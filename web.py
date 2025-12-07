@@ -393,6 +393,149 @@ def api_ai_clear():
     return jsonify({'success': True})
 
 
+# --- ARIZONA AI API ---
+
+ARIZONA_SYSTEM_PROMPT = """Ты - эксперт по игровому серверу Arizona RP (GTA SA-MP). 
+Ты знаешь все правила, системы, фракции, бизнесы, работы и особенности сервера.
+Отвечай на русском языке, коротко и по делу.
+Если не знаешь точного ответа - честно скажи об этом."""
+
+@app.route('/api/arizona/helper', methods=['POST'])
+def api_arizona_helper():
+    """Arizona RP game helper"""
+    if not AI_MODEL:
+        return jsonify({'success': False, 'error': 'AI не настроен'})
+    
+    data = request.json
+    question = data.get('question', '').strip()
+    
+    if not question:
+        return jsonify({'success': False, 'error': 'Пустой вопрос'})
+    
+    try:
+        prompt = f"""{ARIZONA_SYSTEM_PROMPT}
+
+Вопрос игрока по Arizona RP: {question}
+
+Дай полезный и точный ответ:"""
+        
+        response = AI_MODEL.generate_content(prompt)
+        return jsonify({'success': True, 'response': response.text})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)[:200]})
+
+@app.route('/api/arizona/complaint', methods=['POST'])
+def api_arizona_complaint():
+    """Generate complaint template"""
+    if not AI_MODEL:
+        return jsonify({'success': False, 'error': 'AI не настроен'})
+    
+    data = request.json
+    nickname = data.get('nickname', '').strip()
+    description = data.get('description', '').strip()
+    
+    if not nickname or not description:
+        return jsonify({'success': False, 'error': 'Заполните все поля'})
+    
+    try:
+        prompt = f"""Ты составляешь жалобу на игрока Arizona RP по шаблону форума.
+
+Никнейм нарушителя: {nickname}
+Описание ситуации: {description}
+
+Составь грамотную жалобу в формате:
+
+**Никнейм нарушителя:** [ник]
+**Дата и время:** [приблизительно]
+**Описание нарушения:** [подробное описание]
+**Нарушенное правило:** [какое правило было нарушено]
+**Доказательства:** [что нужно приложить]
+**Требуемое наказание:** [рекомендация]
+
+Если в описании упоминается конкретное нарушение - определи какое правило сервера нарушено."""
+        
+        response = AI_MODEL.generate_content(prompt)
+        return jsonify({'success': True, 'response': response.text})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)[:200]})
+
+@app.route('/api/arizona/legend', methods=['POST'])
+def api_arizona_legend():
+    """Generate RP character legend"""
+    if not AI_MODEL:
+        return jsonify({'success': False, 'error': 'AI не настроен'})
+    
+    data = request.json
+    name = data.get('name', '').strip()
+    age = data.get('age', '25')
+    style = data.get('style', 'neutral')
+    
+    if not name:
+        return jsonify({'success': False, 'error': 'Введите имя персонажа'})
+    
+    style_desc = {
+        'criminal': 'криминальный элемент, бандит или мафиози',
+        'cop': 'сотрудник полиции или государственных структур',
+        'business': 'бизнесмен, предприниматель',
+        'street': 'уличный гонщик, стритрейсер',
+        'neutral': 'обычный гражданин, работяга'
+    }
+    
+    try:
+        prompt = f"""Создай RP-легенду (биографию) для персонажа GTA San Andreas / Arizona RP.
+
+Имя персонажа: {name}
+Возраст: {age} лет
+Типаж: {style_desc.get(style, 'обычный гражданин')}
+
+Напиши детальную биографию в 3-4 абзаца:
+1. Детство и юность (откуда родом, семья)
+2. Как попал в Лос-Сантос / Сан-Фиерро / Лас-Вентурас
+3. Чем занимается сейчас, цели в жизни
+4. Характер, привычки, особенности
+
+Сделай историю интересной и реалистичной для RP."""
+        
+        response = AI_MODEL.generate_content(prompt)
+        return jsonify({'success': True, 'response': response.text})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)[:200]})
+
+@app.route('/api/arizona/rules', methods=['POST'])
+def api_arizona_rules():
+    """Arizona RP rules helper"""
+    if not AI_MODEL:
+        return jsonify({'success': False, 'error': 'AI не настроен'})
+    
+    data = request.json
+    question = data.get('question', '').strip()
+    
+    if not question:
+        return jsonify({'success': False, 'error': 'Пустой вопрос'})
+    
+    try:
+        prompt = f"""Ты - эксперт по правилам Arizona RP. Знаешь все правила сервера:
+
+- DM (DeathMatch) - убийство без причины
+- RK (RevengeKill) - месть после смерти
+- PG (PowerGaming) - нереалистичные действия
+- MG (MetaGaming) - использование OOC информации в IC
+- VDM (Vehicle DeathMatch) - убийство транспортом
+- SK (SpawnKill) - убийство на спавне
+- Зелёные зоны - места где нельзя стрелять
+- Читы - бан навсегда
+- Оскорбления - мут/бан
+
+Вопрос: {question}
+
+Дай чёткий ответ: это нарушение или нет? Какое правило? Какое наказание?"""
+        
+        response = AI_MODEL.generate_content(prompt)
+        return jsonify({'success': True, 'response': response.text})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)[:200]})
+
+
 # Simulation Thread
 def simulate():
     while True:
