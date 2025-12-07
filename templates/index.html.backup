@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Dashboard - Premium Control Panel</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            --bg-card: rgba(255, 255, 255, 0.05);
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent: #667eea;
+            --accent-secondary: #764ba2;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --bg-card: rgba(255, 255, 255, 0.8);
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --border: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-color="cyberpunk"] {
+            --accent: #ff006e;
+            --accent-secondary: #8338ec;
+        }
+
+        [data-color="ocean"] {
+            --accent: #06ffa5;
+            --accent-secondary: #0077b6;
+        }
+
+        [data-color="sunset"] {
+            --accent: #ff6b35;
+            --accent-secondary: #f7931e;
+        }
+
+        [data-color="forest"] {
+            --accent: #52b788;
+            --accent-secondary: #2d6a4f;
+        }
+
+        [data-color="royal"] {
+            --accent: #ffd60a;
+            --accent-secondary: #9d4edd;
+        }
+
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0c29;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            transition: all 0.3s ease;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(252, 70, 107, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(99, 102, 241, 0.3) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: -10%;
+            right: -10%;
+            width: 60%;
+            height: 120%;
+            background:
+                linear-gradient(to bottom,
+                    rgba(255, 255, 255, 0.02) 0%,
+                    rgba(255, 255, 255, 0.02) 33.33%,
+                    rgba(13, 71, 161, 0.02) 33.33%,
+                    rgba(13, 71, 161, 0.02) 66.66%,
+                    rgba(213, 0, 0, 0.02) 66.66%,
+                    rgba(213, 0, 0, 0.02) 100%);
+            transform: rotate(-15deg);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .theme-toggle {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: transform 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .color-selector {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 10px 15px;
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.2s ease;
+            margin-left: 10px;
+        }
+
+        .color-selector:hover {
+            transform: scale(1.05);
+            border-color: var(--accent);
+        }
+
+        .color-selector:focus {
+            outline: none;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow:
+                0 15px 45px rgba(0, 0, 0, 0.3),
+                0 0 50px rgba(var(--accent), 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            border-color: rgba(var(--accent), 0.3);
+        }
+
+        .stat-value {
+            font-size: 3em;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 20px;
+            padding: 35px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        h2 {
+            color: var(--accent);
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: rgba(102, 126, 234, 0.2);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: var(--bg-card);
+        }
+
+        .status-online {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .status-offline {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .status-unknown {
+            color: #9e9e9e;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow:
+                0 4px 15px rgba(0, 0, 0, 0.2),
+                0 0 20px rgba(var(--accent), 0.3);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow:
+                0 8px 25px rgba(0, 0, 0, 0.3),
+                0 0 40px rgba(var(--accent), 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #e91e63 100%);
+            box-shadow:
+                0 4px 15px rgba(0, 0, 0, 0.2),
+                0 0 20px rgba(244, 67, 54, 0.3);
+        }
+
+        .btn-danger:hover {
+            box-shadow:
+                0 8px 25px rgba(0, 0, 0, 0.3),
+                0 0 40px rgba(244, 67, 54, 0.5);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+            box-shadow:
+                0 4px 15px rgba(0, 0, 0, 0.2),
+                0 0 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-success:hover {
+            box-shadow:
+                0 8px 25px rgba(0, 0, 0, 0.3),
+                0 0 40px rgba(76, 175, 80, 0.5);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 1em;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 2px solid #f44336;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(244, 67, 54, 0.5);
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+            display: none;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            border: 1px solid var(--border);
+        }
+
+        .modal-content pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            color: var(--text-primary);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--accent);
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(102, 126, 234, 0.3);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .parallax-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .parallax-layer {
+            transition: transform 0.1s ease-out;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particleCanvas"></canvas>
+
+    <div class="notification" id="notification">
+        <h3 style="color: #f44336;">🚨 Сайт упал!</h3>
+        <p id="notification-text"></p>
+    </div>
+
+    <div class="modal" id="viewModal">
+        <div class="modal-content">
+        </div>
+        <div class="controls">
+            <select class="color-selector" onchange="changeColor(this.value)">
+                <option value="default">🎨 Default</option>
+                <option value="cyberpunk">⚡ Cyberpunk</option>
+                <option value="ocean">🌊 Ocean</option>
+                <option value="sunset">🌅 Sunset</option>
+                <option value="forest">🌲 Forest</option>
+                <option value="royal">👑 Royal</option>
+            </select>
+            <button class="theme-toggle" onclick="toggleTheme()" title="Сменить тему">🌓</button>
+        </div>
+        </header>
+
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-accounts">-</div>
+                <div class="stat-label">📝 Total Records</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-monitors">-</div>
+                <div class="stat-label">🌐 Monitored Sites</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="monitors-online">-</div>
+                <div class="stat-label">🟢 Online</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="monitors-offline">-</div>
+                <div class="stat-label">🔴 Offline</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Статистика мониторинга</h2>
+            <div class="chart-container">
+                <canvas id="monitorChart"></canvas>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🌐 Website Monitoring</h2>
+            <div class="input-group">
+                <input type="text" id="monitor-url" placeholder="Enter URL (e.g., google.com)">
+                <input type="text" id="monitor-name" placeholder="Name (optional)">
+                <button class="btn" onclick="addMonitor()">➕ Add Monitor</button>
+            </div>
+            <div id="monitors-loading" class="loading">
+                <div class="spinner"></div>
+            </div>
+            <table id="monitors-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Name</th>
+                        <th>URL</th>
+                        <th>Last Check</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="monitors-body"></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>📊 Recent Records</h2>
+            <button class="btn btn-success" onclick="exportData()" style="margin-bottom: 20px;">📥 Export All Data
+                (JSON)</button>
+            <div id="accounts-loading" class="loading">
+                <div class="spinner"></div>
+            </div>
+            <table id="accounts-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Preview</th>
+                        <th>Added By</th>
+                        <th>Timestamp</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="accounts-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // ===== PARTICLE SYSTEM =====
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let particles = [];
+        let mouseX = 0;
+        let mouseY = 0;
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.speedY = Math.random() * 1 - 0.5;
+                this.opacity = Math.random() * 0.5 + 0.2;
+            }
+
+            update() {
+                // Move towards mouse
+                const dx = mouseX - this.x;
+                const dy = mouseY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 150) {
+                    const force = (150 - distance) / 150;
+                    this.x -= (dx / distance) * force * 2;
+                    this.y -= (dy / distance) * force * 2;
+                }
+
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                // Wrap around screen
+                if (this.x > canvas.width) this.x = 0;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0;
+                if (this.y < 0) this.y = canvas.height;
+            }
+
+            draw() {
+                ctx.fillStyle = `rgba(102, 126, 234, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw connections
+                particles.forEach(particle => {
+                    const dx = this.x - particle.x;
+                    const dy = this.y - particle.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 100) {
+                        ctx.strokeStyle = `rgba(102, 126, 234, ${0.2 * (1 - distance / 100)})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(this.x, this.y);
+                        ctx.lineTo(particle.x, particle.y);
+                        ctx.stroke();
+                    }
+                });
+            }
+        }
+
+        // Create particles
+        for (let i = 0; i < 80; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            requestAnimationFrame(animateParticles);
+        }
+
+        animateParticles();
+
+        // Mouse tracking
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        // Resize canvas
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // ===== PARALLAX EFFECT =====
+        let scrollY = 0;
+
+        window.addEventListener('scroll', () => {
+            scrollY = window.scrollY;
+
+            // Apply parallax to stat cards
+            document.querySelectorAll('.stat-card').forEach((card, index) => {
+                const speed = (index + 1) * 0.05;
+                card.style.transform = `translateY(${scrollY * speed}px)`;
+            });
+
+            // Apply parallax to sections
+            document.querySelectorAll('.section').forEach((section, index) => {
+                const speed = (index + 1) * 0.03;
+                section.style.transform = `translateY(${scrollY * speed}px)`;
+            });
+        });
+
+        // Mouse parallax effect
+        document.addEventListener('mousemove', (e) => {
+            const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
+            const moveY = (e.clientY - window.innerHeight / 2) * 0.01;
+
+            document.querySelectorAll('.stat-card').forEach((card, index) => {
+                const depth = (index + 1) * 0.5;
+                card.style.transform = `translate(${moveX * depth}px, ${moveY * depth}px)`;
+            });
+        });
+
+        // ===== EXISTING CODE =====
+        let monitorChart = null;
+        let lastMonitorStatus = {};
+
+        // Theme toggle
+        function toggleTheme() {
+            const current = document.body.getAttribute('data-theme');
+            document.body.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
+            localStorage.setItem('theme', current === 'light' ? 'dark' : 'light');
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.body.setAttribute('data-theme', savedTheme);
+
+        // Load saved color
+        const savedColor = localStorage.getItem('color') || 'default';
+        document.body.setAttribute('data-color', savedColor);
+        document.querySelector('.color-selector').value = savedColor;
+
+        // Change color scheme
+        function changeColor(color) {
+            document.body.setAttribute('data-color', color);
+            localStorage.setItem('color', color);
+
+            // Recreate chart with new colors
+            if (monitorChart) {
+                const data = monitorChart.data.datasets[0].data;
+                updateChart(data[0], data[1], data[2]);
+            }
+        }
+
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+
+                document.getElementById('total-accounts').textContent = data.total_accounts;
+                document.getElementById('total-monitors').textContent = data.total_monitors;
+                document.getElementById('monitors-online').textContent = data.monitors_online;
+                document.getElementById('monitors-offline').textContent = data.monitors_offline;
+
+                // Update chart
+                updateChart(data.monitors_online, data.monitors_offline, data.total_monitors - data.monitors_online - data.monitors_offline);
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Update pie chart
+        function updateChart(online, offline, unknown) {
+            const ctx = document.getElementById('monitorChart').getContext('2d');
+
+            if (monitorChart) {
+                monitorChart.destroy();
+            }
+
+            monitorChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Online', 'Offline', 'Unknown'],
+                    datasets: [{
+                        data: [online, offline, unknown],
+                        backgroundColor: ['#4caf50', '#f44336', '#9e9e9e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: getComputedStyle(document.body).getPropertyValue('--text-primary') }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load monitors
+        async function loadMonitors() {
+            try {
+                const response = await fetch('/api/monitors');
+                const monitors = await response.json();
+
+                const tbody = document.getElementById('monitors-body');
+                tbody.innerHTML = '';
+
+                monitors.forEach(monitor => {
+                    // Check for status change
+                    if (lastMonitorStatus[monitor.id] === 'online' && monitor.status === 'offline') {
+                        showNotification(`Сайт ${monitor.name} недоступен!`);
+                    }
+                    lastMonitorStatus[monitor.id] = monitor.status;
+
+                    const statusClass = monitor.status === 'online' ? 'status-online' :
+                        monitor.status === 'offline' ? 'status-offline' : 'status-unknown';
+                    const statusIcon = monitor.status === 'online' ? '🟢' :
+                        monitor.status === 'offline' ? '🔴' : '⚪';
+
+                    const lastCheck = monitor.last_checked ?
+                        new Date(monitor.last_checked).toLocaleString('ru-RU') : 'Never';
+
+                    const row = `
+                        <tr>
+                            <td><span class="${statusClass}">${statusIcon} ${monitor.status.toUpperCase()}</span></td>
+                            <td>${monitor.name}</td>
+                            <td><a href="${monitor.url}" target="_blank" style="color: var(--accent);">${monitor.url}</a></td>
+                            <td>${lastCheck}</td>
+                            <td>
+                                <button class="btn btn-danger" onclick="removeMonitor('${monitor.id}')">🗑️ Remove</button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+
+                document.getElementById('monitors-loading').style.display = 'none';
+                document.getElementById('monitors-table').style.display = 'table';
+            } catch (error) {
+                console.error('Error loading monitors:', error);
+            }
+        }
+
+        // Load accounts
+        async function loadAccounts() {
+            try {
+                const response = await fetch('/api/accounts');
+                const accounts = await response.json();
+
+                const tbody = document.getElementById('accounts-body');
+                tbody.innerHTML = '';
+
+                accounts.slice(0, 20).forEach(account => {
+                    const row = `
+                        <tr>
+                            <td><strong>${account.id}</strong></td>
+                            <td>${account.preview}</td>
+                            <td>${account.added_by}</td>
+                            <td>${account.timestamp}</td>
+                            <td>
+                                <button class="btn" onclick="viewAccount(${account.id})">👁️ View</button>
+                                <button class="btn btn-danger" onclick="deleteAccount(${account.id})">🗑️ Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+
+                document.getElementById('accounts-loading').style.display = 'none';
+                document.getElementById('accounts-table').style.display = 'table';
+            } catch (error) {
+                console.error('Error loading accounts:', error);
+            }
+        }
+
+        // View account
+        async function viewAccount(id) {
+            if (!confirm('Вы уверены, что хотите просмотреть полное содержимое?')) return;
+
+            try {
+                const response = await fetch(`/api/accounts/${id}`);
+                const account = await response.json();
+
+                document.getElementById('modal-content').textContent = account.content;
+                document.getElementById('viewModal').style.display = 'flex';
+            } catch (error) {
+                alert('Ошибка загрузки записи');
+            }
+        }
+
+        // Delete account
+        async function deleteAccount(id) {
+            if (!confirm('Вы уверены, что хотите удалить эту запись?')) return;
+
+            try {
+                const response = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadAccounts();
+                    loadStats();
+                } else {
+                    alert('Ошибка удаления');
+                }
+            } catch (error) {
+                alert('Ошибка удаления');
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('viewModal').style.display = 'none';
+        }
+
+        // Add monitor
+        async function addMonitor() {
+            const url = document.getElementById('monitor-url').value;
+            const name = document.getElementById('monitor-name').value;
+
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/monitors/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, name })
+                });
+
+                if (response.ok) {
+                    document.getElementById('monitor-url').value = '';
+                    document.getElementById('monitor-name').value = '';
+                    loadMonitors();
+                    loadStats();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error adding monitor:', error);
+                alert('Failed to add monitor');
+            }
+        }
+
+        // Remove monitor
+        async function removeMonitor(id) {
+            if (!confirm('Are you sure you want to remove this monitor?')) return;
+
+            try {
+                const response = await fetch(`/api/monitors/remove/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadMonitors();
+                    loadStats();
+                } else {
+                    alert('Failed to remove monitor');
+                }
+            } catch (error) {
+                console.error('Error removing monitor:', error);
+            }
+        }
+
+        // Export data
+        async function exportData() {
+            try {
+                const response = await fetch('/api/export');
+                const data = await response.json();
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `bot_data_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+            } catch (error) {
+                alert('Ошибка экспорта данных');
+            }
+        }
+
+        // Show notification
+        function showNotification(text) {
+            const notification = document.getElementById('notification');
+            document.getElementById('notification-text').textContent = text;
+            notification.style.display = 'block';
+
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize
+        loadStats();
+        loadMonitors();
+        loadAccounts();
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            loadStats();
+            loadMonitors();
+        }, 30000);
+    </script>
+</body>
+
+</html>
