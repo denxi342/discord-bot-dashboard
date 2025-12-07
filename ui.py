@@ -469,3 +469,267 @@ def ai_help(ctx=None):
     
     return embed
 
+
+# ============================================================
+# 🎮 ARIZONA RP ASSISTANT UI
+# ============================================================
+
+def arizona_main_menu(ctx=None):
+    """Главное меню Arizona RP Assistant"""
+    embed = create_base_embed(
+        title="🎮 Arizona RP Assistant",
+        description="""**Добро пожаловать в AI-ассистент Arizona RP!**
+
+Я помогу вам разобраться в правилах сервера, терминологии и игровых ситуациях.
+
+**🔥 Возможности:**
+• Поиск по правилам сервера
+• Объяснение терминов (DM, RK, PG...)
+• Калькулятор наказаний
+• AI-чат с памятью диалога
+• Помощь с жалобами
+
+**Выберите действие ниже или используйте команды:**""",
+        color=0xFF6B35,  # Оранжевый Arizona
+        ctx=ctx
+    )
+    
+    embed.add_field(
+        name="📝 Быстрые команды",
+        value="""
+`!az rules <запрос>` — поиск правил
+`!az ask <вопрос>` — задать вопрос AI
+`!az penalty <нарушение>` — узнать наказание
+`!az terms` — терминология
+`!az help` — все команды
+        """,
+        inline=False
+    )
+    
+    embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1234/arizona_logo.png")  # Placeholder
+    embed.set_footer(text="Arizona RP Assistant • Powered by Gemini AI")
+    
+    return embed
+
+
+def arizona_help(ctx=None):
+    """Показать все команды Arizona Assistant"""
+    embed = create_base_embed(
+        title="🎮 Arizona RP Assistant — Команды",
+        description="Полный список доступных команд",
+        color=0xFF6B35,
+        ctx=ctx
+    )
+    
+    embed.add_field(
+        name="📖 `!az rules [запрос]`",
+        value="Поиск по правилам. Без аргумента — список разделов",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="❓ `!az ask <вопрос>`",
+        value="Задать вопрос AI-ассистенту (одиночный)",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="💬 `!az chat <сообщение>`",
+        value="Чат с AI с памятью диалога",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🔄 `!az reset`",
+        value="Сбросить историю диалога с AI",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="⚖️ `!az penalty <нарушение>`",
+        value="Калькулятор наказаний",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="📚 `!az terms`",
+        value="Показать терминологию Arizona RP",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="📝 `!az report`",
+        value="Как подать жалобу",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="💡 Алиасы",
+        value="`!arizona`, `!az`, `!ари`, `!аризона` — все работают одинаково",
+        inline=False
+    )
+    
+    return embed
+
+
+class ArizonaMainMenu(discord.ui.View):
+    """Интерактивное главное меню Arizona Assistant"""
+    
+    def __init__(self, ctx):
+        super().__init__(timeout=120)
+        self.ctx = ctx
+    
+    @discord.ui.button(label="📖 Правила", style=discord.ButtonStyle.primary, row=0)
+    async def rules_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Показать категории правил"""
+        embed = create_base_embed(
+            title="📖 Категории правил Arizona RP",
+            description="Выберите категорию для просмотра:",
+            color=COLOR_BLURPLE,
+            ctx=self.ctx
+        )
+        
+        categories = [
+            ("🎮 Игровой процесс", "`!az rules dm` • `!az rules rk` • `!az rules pg`"),
+            ("💬 Правила чата", "`!az rules чат` • `!az rules voice`"),
+            ("🛡️ Читы и моды", "`!az rules читы`"),
+            ("⚔️ Капты и мероприятия", "`!az rules капт` • `!az rules мероприятие`"),
+            ("👮 Силовые структуры", "`!az rules полиция`"),
+            ("💰 Экономика", "`!az rules бизнес`"),
+            ("📝 Жалобы", "`!az rules жалоба`"),
+        ]
+        
+        for name, value in categories:
+            embed.add_field(name=name, value=value, inline=False)
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+    
+    @discord.ui.button(label="📚 Термины", style=discord.ButtonStyle.secondary, row=0)
+    async def terms_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Показать терминологию"""
+        import arizona_rules
+        terms = arizona_rules.ARIZONA_RULES.get("термины", {})
+        
+        embed = create_base_embed(
+            title="📚 Терминология Arizona RP",
+            description=terms.get("content", "Не найдено")[:4000],
+            color=COLOR_BLURPLE,
+            ctx=self.ctx
+        )
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+    
+    @discord.ui.button(label="⚖️ Наказания", style=discord.ButtonStyle.danger, row=0)
+    async def penalty_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Показать информацию о наказаниях"""
+        embed = create_base_embed(
+            title="⚖️ Калькулятор наказаний",
+            description="""**Используйте команду:**
+`!az penalty <нарушение>`
+
+**Примеры:**
+• `!az penalty dm` — узнать срок за DM
+• `!az penalty читы` — наказание за читы
+• `!az penalty флуд` — наказание за флуд
+
+**Шкала наказаний:**
+🟡 **Мут** — ограничение чата (10-300 мин)
+🟠 **Деморган** — изоляция (20-1200 мин)
+🔴 **Варн** — предупреждение (3 варна = бан)
+⛔ **Бан** — блокировка (1-2000 дней)
+☠️ **ЧСС/ЧСП** — полный запрет""",
+            color=COLOR_RED,
+            ctx=self.ctx
+        )
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+    
+    @discord.ui.button(label="🤖 AI Чат", style=discord.ButtonStyle.success, row=1)
+    async def ai_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Информация об AI чате"""
+        embed = create_base_embed(
+            title="🤖 Arizona AI Assistant",
+            description="""**Два режима общения с AI:**
+
+**1️⃣ Одиночный вопрос** — `!az ask <вопрос>`
+AI ответит на вопрос без сохранения контекста.
+Пример: `!az ask что такое DM?`
+
+**2️⃣ Чат с памятью** — `!az chat <сообщение>`
+AI запомнит ваш диалог и будет учитывать контекст.
+Сброс диалога: `!az reset`
+
+**💡 AI знает:**
+• Все правила Arizona RP
+• Терминологию сервера
+• Наказания за нарушения
+• Игровые механики""",
+            color=0x10B981,
+            ctx=self.ctx
+        )
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+    
+    @discord.ui.button(label="📝 Жалоба", style=discord.ButtonStyle.secondary, row=1)
+    async def report_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Информация о жалобах"""
+        import arizona_rules
+        result = arizona_rules.search_rules("жалоба")
+        
+        embed = create_base_embed(
+            title="📝 Как подать жалобу",
+            description=result[:4000] if result else "Информация не найдена",
+            color=COLOR_BLURPLE,
+            ctx=self.ctx
+        )
+        
+        embed.add_field(
+            name="🔗 Полезные ссылки",
+            value="• [Форум Arizona](https://forum.arizona-rp.com/)\n• [Правила](https://arizona-rp.com/rules)",
+            inline=False
+        )
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+class ArizonaRulesSelect(discord.ui.View):
+    """Селект-меню для выбора категории правил"""
+    
+    def __init__(self, ctx):
+        super().__init__(timeout=60)
+        self.ctx = ctx
+    
+    @discord.ui.select(
+        placeholder="Выберите категорию правил...",
+        options=[
+            discord.SelectOption(label="DM (DeathMatch)", value="dm", emoji="💀"),
+            discord.SelectOption(label="RK (RevengeKill)", value="rk", emoji="🔄"),
+            discord.SelectOption(label="PG (PowerGaming)", value="pg", emoji="💪"),
+            discord.SelectOption(label="MG (MetaGaming)", value="mg", emoji="🧠"),
+            discord.SelectOption(label="NonRP поведение", value="nonrp", emoji="🚫"),
+            discord.SelectOption(label="Правила чата", value="чат", emoji="💬"),
+            discord.SelectOption(label="Читы и моды", value="читы", emoji="🛡️"),
+            discord.SelectOption(label="Капты", value="капт", emoji="⚔️"),
+            discord.SelectOption(label="Полиция/ФБР", value="полиция", emoji="👮"),
+            discord.SelectOption(label="Жалобы", value="жалоба", emoji="📝"),
+        ]
+    )
+    async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
+        import arizona_rules
+        
+        selected = select.values[0]
+        result = arizona_rules.search_rules(selected)
+        
+        if result:
+            embed = create_base_embed(
+                title=f"📖 Правила: {selected.upper()}",
+                description=result[:4000],
+                color=COLOR_GREEN,
+                ctx=self.ctx
+            )
+        else:
+            embed = warning(f"Правила для `{selected}` не найдены", self.ctx)
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arizona AI Assistant</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #1a1b1e;
+            --chat-bg: #2b2d31;
+            --sidebar-bg: #232428;
+            --primary: #5865F2;
+            --text-main: #dbdee1;
+            --text-muted: #949ba4;
+            --arizona-orange: #FF6B35;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background-color: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 15px;
+            border-right: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo span {
+            color: var(--arizona-orange);
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 10px 15px;
+            text-align: left;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 15px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .nav-btn.active {
+            background-color: rgba(88, 101, 242, 0.1);
+            color: var(--primary);
+        }
+
+        .tools-list {
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .header {
+            padding: 20px 30px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+            background: var(--bg-color);
+            z-index: 10;
+        }
+
+        .header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Chat Area */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            display: flex;
+            gap: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+        }
+
+        .avatar.ai {
+            background: var(--arizona-orange);
+        }
+
+        .msg-content {
+            background: var(--chat-bg);
+            padding: 15px 20px;
+            border-radius: 12px;
+            line-height: 1.5;
+            font-size: 15px;
+            color: var(--text-main);
+        }
+
+        .message.user .msg-content {
+            background: #3c3f46;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 30px;
+            background: var(--bg-color);
+            border-top: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .input-box {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 15px 50px 15px 20px;
+            background: var(--chat-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-family: inherit;
+            resize: none;
+            height: 56px;
+            transition: 0.2s;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .send-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .send-btn:hover {
+            color: var(--primary);
+        }
+
+        /* Tools Views */
+        .tool-view {
+            display: none;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .tool-view.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .card {
+            background: var(--chat-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--arizona-orange);
+        }
+
+        .card h3 {
+            color: var(--arizona-orange);
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .form-input,
+        .form-textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--chat-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-orange {
+            background: var(--arizona-orange);
+        }
+
+        /* Markdown Styles */
+        .msg-content p {
+            margin-bottom: 10px;
+        }
+
+        .msg-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .msg-content strong {
+            color: #fff;
+        }
+
+        .msg-content ul {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .msg-content code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .msg-content pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .typing-indicator {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-left: 20px;
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .typing-indicator.active {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="logo">
+            <span>AZ</span> Arizona AI
+        </div>
+
+        <button class="nav-btn active" onclick="switchTab('chat')">💬 AI Чат</button>
+        <button class="nav-btn" onclick="switchTab('rules')">📖 Поиск правил</button>
+        <button class="nav-btn" onclick="switchTab('complaint')">⚖️ Генератор жалоб</button>
+        <button class="nav-btn" onclick="switchTab('legend')">🎭 Био-генератор</button>
+
+        <div class="tools-list">
+            <a href="/dashboard" class="nav-btn">🔙 В Дашборд</a>
+            <a href="/logout" class="nav-btn">🚪 Выход</a>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+        <!-- CHAT TAB -->
+        <div id="tab-chat" class="chat-container">
+            <div class="message">
+                <div class="avatar ai">AI</div>
+                <div class="msg-content">
+                    Привет! Я AI-ассистент сервера Arizona RP. 👋<br>
+                    Я знаю все правила, термины и системы сервера.<br><br>
+                    Чем могу помочь?
+                </div>
+            </div>
+        </div>
+
+        <!-- RULES TAB -->
+        <div id="tab-rules" class="tool-view">
+            <h2>📖 База знаний Arizona RP</h2>
+            <div style="margin-top: 20px;">
+                <input type="text" id="rules-search" class="form-input"
+                    placeholder="Поиск правила (например: DM, капт, читы)..." onkeypress="handleRulesEnter(event)">
+                <button onclick="searchRules()" class="btn btn-orange" style="margin-top: 10px;">Найти</button>
+            </div>
+            <div id="rules-results" class="card-grid">
+                <!-- Results will appear here -->
+                <div class="card" onclick="searchRules('DM')">
+                    <h3>💀 DM</h3>
+                    <p>Убийство без причины</p>
+                </div>
+                <div class="card" onclick="searchRules('PG')">
+                    <h3>💪 PG</h3>
+                    <p>Изображение героя</p>
+                </div>
+                <div class="card" onclick="searchRules('Капт')">
+                    <h3>⚔️ Капты</h3>
+                    <p>Правила захвата территорий</p>
+                </div>
+                <div class="card" onclick="searchRules('Слет')">
+                    <h3>🏠 Слёт</h3>
+                    <p>Правила ловли имущества</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPLAINT TAB -->
+        <div id="tab-complaint" class="tool-view">
+            <h2>⚖️ Генератор жалоб</h2>
+            <p style="color: var(--text-muted); margin-bottom: 20px;">AI поможет составить грамотную жалобу для форума.
+            </p>
+
+            <div class="form-group">
+                <label class="form-label">Ник нарушителя</label>
+                <input type="text" id="comp-nick" class="form-input" placeholder="Nick_Name">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Суть нарушения</label>
+                <textarea id="comp-desc" class="form-textarea"
+                    placeholder="Опишите что произошло, когда и как..."></textarea>
+            </div>
+
+            <button onclick="generateComplaint()" class="btn btn-orange">Сгенерировать</button>
+
+            <div id="comp-result" style="margin-top: 30px; display: none;">
+                <h3>🎉 Готовая жалоба:</h3>
+                <pre id="comp-text"
+                    style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-top: 10px; white-space: pre-wrap;"></pre>
+                <button onclick="copyComplaint()" class="btn" style="margin-top: 10px;">Копировать</button>
+            </div>
+        </div>
+
+        <!-- LEGEND TAB -->
+        <div id="tab-legend" class="tool-view">
+            <h2>🎭 Генератор RP Биографии</h2>
+
+            <div class="form-group">
+                <label class="form-label">Имя персонажа</label>
+                <input type="text" id="bio-name" class="form-input" placeholder="Ivan_Ivanov">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Типаж</label>
+                <select id="bio-style" class="form-input">
+                    <option value="neutral">Обычный гражданин</option>
+                    <option value="criminal">Бандит / Мафиози</option>
+                    <option value="cop">Полицейский / Агент</option>
+                    <option value="business">Бизнесмен</option>
+                    <option value="street">Уличный гонщик</option>
+                </select>
+            </div>
+
+            <button onclick="generateBio()" class="btn btn-orange">Создать историю</button>
+
+            <div id="bio-result" style="margin-top: 30px; display: none;">
+                <div class="msg-content" id="bio-text"></div>
+            </div>
+        </div>
+
+        <!-- Shared Input Area (Visible only in Chat tab) -->
+        <div class="input-area" id="chat-input-area">
+            <div class="typing-indicator" id="typing">AI печатает...</div>
+            <div class="input-box">
+                <input type="text" class="chat-input" id="messageInput" placeholder="Задайте вопрос по правилам..."
+                    autocomplete="off">
+                <button class="send-btn" onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab Switching
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tool-view, .chat-container').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active'); // Add active class properly
+
+            // Special handling for flexible display logic
+            if (tabId === 'chat') {
+                document.getElementById('tab-chat').style.display = 'flex';
+                document.getElementById('chat-input-area').style.display = 'block';
+                document.querySelectorAll('.tool-view').forEach(el => el.style.display = 'none');
+            } else {
+                document.getElementById('tab-chat').style.display = 'none';
+                document.getElementById('chat-input-area').style.display = 'none';
+                document.querySelectorAll('.tool-view').forEach(el => el.style.display = 'none');
+                document.getElementById('tab-' + tabId).style.display = 'block';
+            }
+
+            // Update Nav Buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            if (event.target.classList.contains('nav-btn')) {
+                event.target.classList.add('active');
+            }
+        }
+
+        // Chat Functionality
+        const messageInput = document.getElementById('messageInput');
+        const chatContainer = document.getElementById('tab-chat');
+
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        async function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
+
+            addMessage('user', text);
+            messageInput.value = '';
+            document.getElementById('typing').classList.add('active');
+
+            try {
+                // Check if it's a rule question or general chat
+                // For now, route everything to helper for better context
+                const response = await fetch('/api/arizona/helper', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: text })
+                });
+
+                const data = await response.json();
+                document.getElementById('typing').classList.remove('active');
+
+                if (data.success) {
+                    addMessage('ai', data.response);
+                } else {
+                    addMessage('ai', 'Ошибка: ' + data.error);
+                }
+            } catch (e) {
+                document.getElementById('typing').classList.remove('active');
+                addMessage('ai', 'Ошибка сети. Попробуйте позже.');
+            }
+        }
+
+        function addMessage(role, text) {
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+
+            const avatar = role === 'ai' ? 'AI' : 'User';
+            const avatarClass = role === 'ai' ? 'avatar ai' : 'avatar';
+
+            // Parse Markdown
+            const htmlContent = marked.parse(text);
+
+            div.innerHTML = `
+                <div class="${avatarClass}">${role === 'ai' ? 'AI' : '👤'}</div>
+                <div class="msg-content">${htmlContent}</div>
+            `;
+
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Rules Search
+        function handleRulesEnter(e) {
+            if (e.key === 'Enter') searchRules();
+        }
+
+        async function searchRules(query = null) {
+            const input = document.getElementById('rules-search');
+            const searchText = query || input.value.trim();
+            if (!searchText) return;
+
+            input.value = searchText;
+            const resultsDiv = document.getElementById('rules-results');
+            resultsDiv.innerHTML = '<div class="loading">🔍 Ищу правила...</div>';
+
+            try {
+                const response = await fetch('/api/arizona/rules', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: searchText })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const html = marked.parse(data.response);
+                    resultsDiv.innerHTML = `
+                        <div class="msg-content" style="width: 100%;">
+                            ${html}
+                            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                            <p style="font-size: 12px; color: var(--text-muted);">Источник: ${data.source === 'database' ? 'База данных' : 'AI Анализ'}</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `<div style="color: #f87171;">❌ ${data.error}</div>`;
+                }
+            } catch (e) {
+                resultsDiv.innerHTML = `<div style="color: #f87171;">❌ Ошибка соединения</div>`;
+            }
+        }
+
+        // Complaint Generator
+        async function generateComplaint() {
+            const nick = document.getElementById('comp-nick').value;
+            const desc = document.getElementById('comp-desc').value;
+
+            if (!nick || !desc) {
+                alert('Заполните все поля!');
+                return;
+            }
+
+            const btn = document.querySelector('#tab-complaint .btn-orange');
+            btn.innerText = 'Генерирую...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/arizona/complaint', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname: nick, description: desc })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('comp-result').style.display = 'block';
+                    document.getElementById('comp-text').innerText = data.response;
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            } catch (e) {
+                alert('Ошибка сети');
+            }
+
+            btn.innerText = 'Сгенерировать';
+            btn.disabled = false;
+        }
+
+        function copyComplaint() {
+            const text = document.getElementById('comp-text').innerText;
+            navigator.clipboard.writeText(text);
+            alert('Скопировано в буфер обмена!');
+        }
+
+        // Bio Generator
+        async function generateBio() {
+            const name = document.getElementById('bio-name').value;
+            const style = document.getElementById('bio-style').value;
+
+            if (!name) {
+                alert('Введите имя персонажа!');
+                return;
+            }
+
+            const btn = document.querySelector('#tab-legend .btn-orange');
+            btn.innerText = 'Пишу историю...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/arizona/legend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, style: style })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('bio-result').style.display = 'block';
+                    document.getElementById('bio-text').innerHTML = marked.parse(data.response);
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            } catch (e) {
+                alert('Ошибка сети');
+            }
+
+            btn.innerText = 'Создать историю';
+            btn.disabled = false;
+        }
+
+        // Initial setup
+        switchTab('chat');
+    </script>
+</body>
+
+</html>

@@ -79,6 +79,14 @@ def dashboard():
     
     return render_template('index.html', user=user, auth_url=auth_url)
 
+@app.route('/arizona')
+def arizona_page():
+    # Arizona AI Assistant Page
+    user = session.get('user', None)
+    if not user:
+        return redirect(url_for('index'))
+    return render_template('arizona.html', user=user)
+
 # --- ADMIN API ---
 @app.route('/api/admin/set_prefix', methods=['POST'])
 def api_set_prefix():

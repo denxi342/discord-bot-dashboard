@@ -632,6 +632,292 @@ async def ai_code(ctx, *, task: str):
             await ctx.send(embed=ui.error(f"Ошибка: {str(e)[:200]}", ctx))
 
 
+# ============================================================
+# 🎮 ARIZONA RP AI ASSISTANT - ГЛОБАЛЬНАЯ СИСТЕМА
+# ============================================================
+
+import arizona_rules
+
+# Системный промпт для Arizona AI
+ARIZONA_AI_SYSTEM_PROMPT = """Ты — официальный AI-ассистент сервера Arizona RP (GTA SAMP).
+
+ТВОИ ЗАДАЧИ:
+1. Отвечать на вопросы по правилам Arizona RP
+2. Объяснять терминологию (DM, RK, PG, MG, NonRP и т.д.)
+3. Помогать понять, какое наказание грозит за нарушение
+4. Давать советы по игре и RP-ситуациям
+5. Помогать с жалобами и апелляциями
+
+ВАЖНЫЕ ПРАВИЛА ДЛЯ ТЕБЯ:
+- Всегда отвечай на русском языке
+- Используй терминологию Arizona RP
+- Ссылайся на конкретные правила когда возможно
+- Будь дружелюбным но профессиональным
+- Если не уверен в правиле — скажи об этом
+- НЕ придумывай правила которых нет
+
+БАЗА ПРАВИЛ КОТОРУЮ ТЫ ЗНАЕШЬ:
+{rules_context}
+
+Отвечай кратко и по делу. Используй эмодзи для наглядности."""
+
+# Хранилище сессий Arizona AI
+ARIZONA_AI_SESSIONS = {}
+
+
+@bot.group(name='arizona', aliases=['az', 'ари', 'аризона'], invoke_without_command=True)
+async def arizona(ctx):
+    """🎮 Arizona RP Assistant - главное меню"""
+    view = ui.ArizonaMainMenu(ctx)
+    embed = ui.arizona_main_menu(ctx)
+    await ctx.send(embed=embed, view=view)
+
+
+@arizona.command(name='rules', aliases=['правила', 'rule', 'р'])
+async def arizona_rules_cmd(ctx, *, query: str = None):
+    """Поиск по правилам Arizona RP"""
+    if not query:
+        # Показать список всех разделов
+        sections = arizona_rules.get_all_rules_list()
+        embed = ui.create_base_embed(
+            title="📋 Правила Arizona RP",
+            description=sections + "\n\n💡 Используйте `!arizona rules <запрос>` для поиска",
+            color=ui.COLOR_BLURPLE,
+            ctx=ctx
+        )
+        await ctx.send(embed=embed)
+        return
+    
+    # Поиск по правилам
+    result = arizona_rules.search_rules(query)
+    
+    if result:
+        # Обрезаем если слишком длинно
+        if len(result) > 4000:
+            result = result[:4000] + "\n\n*...результат обрезан*"
+        
+        embed = ui.create_base_embed(
+            title=f"📖 Правила: {query}",
+            description=result,
+            color=ui.COLOR_GREEN,
+            ctx=ctx
+        )
+    else:
+        embed = ui.create_base_embed(
+            title="🔍 Ничего не найдено",
+            description=f"По запросу `{query}` правила не найдены.\n\n💡 Попробуйте другие ключевые слова:\n`dm`, `rk`, `pg`, `капт`, `полиция`, `читы`, `жалоба`",
+            color=ui.COLOR_YELLOW,
+            ctx=ctx
+        )
+    
+    await ctx.send(embed=embed)
+
+
+@arizona.command(name='ask', aliases=['вопрос', 'спросить', 'q'])
+async def arizona_ask(ctx, *, question: str):
+    """Задать вопрос AI-ассистенту Arizona RP"""
+    if not AI_MODEL:
+        await ctx.send(embed=ui.error("❌ AI не настроен! Добавьте GEMINI_API_KEY в .env", ctx))
+        return
+    
+    user_id = str(ctx.author.id)
+    
+    async with ctx.typing():
+        try:
+            # Сначала ищем в базе правил
+            rules_context = arizona_rules.search_rules(question)
+            if not rules_context:
+                # Берём общий контекст
+                rules_context = "Используй свои знания о правилах Arizona RP"
+            
+            # Создаём prompt с контекстом правил
+            full_prompt = ARIZONA_AI_SYSTEM_PROMPT.format(rules_context=rules_context[:3000])
+            full_prompt += f"\n\nВОПРОС ИГРОКА: {question}\n\nОТВЕТ:"
+            
+            response = AI_MODEL.generate_content(full_prompt)
+            answer = response.text
+            
+            if len(answer) > 4000:
+                answer = answer[:4000] + "\n\n*...ответ обрезан*"
+            
+            embed = ui.create_base_embed(
+                title="🎮 Arizona RP Assistant",
+                description=answer,
+                color=0xFF6B35,  # Оранжевый Arizona
+                ctx=ctx
+            )
+            embed.add_field(name="❓ Ваш вопрос", value=f"```{question[:200]}```", inline=False)
+            embed.set_footer(text="Arizona AI • Ответ основан на правилах сервера")
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            await ctx.send(embed=ui.error(f"Ошибка AI: {str(e)[:200]}", ctx))
+
+
+@arizona.command(name='chat', aliases=['чат', 'диалог'])
+async def arizona_chat(ctx, *, message: str):
+    """Чат с Arizona AI с памятью диалога"""
+    if not AI_MODEL:
+        await ctx.send(embed=ui.error("❌ AI не настроен!", ctx))
+        return
+    
+    user_id = str(ctx.author.id)
+    
+    # Создаём или получаем сессию
+    if user_id not in ARIZONA_AI_SESSIONS:
+        # Создаём чат с системным промптом
+        rules_summary = "\n".join([f"• {r['title']}" for r in arizona_rules.ARIZONA_RULES.values()])
+        system_prompt = ARIZONA_AI_SYSTEM_PROMPT.format(rules_context=rules_summary)
+        
+        ARIZONA_AI_SESSIONS[user_id] = AI_MODEL.start_chat(history=[
+            {"role": "user", "parts": [system_prompt]},
+            {"role": "model", "parts": ["Понял! Я готов помогать игрокам Arizona RP. Задавайте вопросы по правилам, терминологии или игровым ситуациям. 🎮"]}
+        ])
+    
+    chat = ARIZONA_AI_SESSIONS[user_id]
+    
+    async with ctx.typing():
+        try:
+            # Добавляем контекст правил если вопрос про конкретное правило
+            rules_context = arizona_rules.search_rules(message)
+            if rules_context:
+                enhanced_message = f"[Контекст из правил: {rules_context[:1000]}]\n\nВопрос игрока: {message}"
+            else:
+                enhanced_message = message
+            
+            response = chat.send_message(enhanced_message)
+            answer = response.text
+            
+            if len(answer) > 4000:
+                answer = answer[:4000] + "\n\n*...ответ обрезан*"
+            
+            msg_count = len(chat.history) // 2
+            
+            embed = ui.create_base_embed(
+                title="💬 Arizona AI Chat",
+                description=answer,
+                color=0xFF6B35,
+                ctx=ctx
+            )
+            embed.set_footer(text=f"Сообщений: {msg_count} • !arizona reset для нового диалога")
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            await ctx.send(embed=ui.error(f"Ошибка: {str(e)[:200]}", ctx))
+
+
+@arizona.command(name='reset', aliases=['сброс', 'новый'])
+async def arizona_reset(ctx):
+    """Сбросить диалог с Arizona AI"""
+    user_id = str(ctx.author.id)
+    
+    if user_id in ARIZONA_AI_SESSIONS:
+        del ARIZONA_AI_SESSIONS[user_id]
+        await ctx.send(embed=ui.success("🔄 Диалог с Arizona AI сброшен! Начинаем с чистого листа.", ctx))
+    else:
+        await ctx.send(embed=ui.info("💬 Arizona AI", "У вас нет активного диалога.", ctx))
+
+
+@arizona.command(name='penalty', aliases=['наказание', 'штраф', 'срок'])
+async def arizona_penalty(ctx, *, violation: str):
+    """Калькулятор наказаний - узнай срок за нарушение"""
+    # Поиск в правилах
+    result = arizona_rules.search_rules(violation)
+    
+    if result:
+        embed = ui.create_base_embed(
+            title=f"⚖️ Наказание за: {violation}",
+            description=result,
+            color=ui.COLOR_RED,
+            ctx=ctx
+        )
+        embed.set_footer(text="⚠️ Точное наказание определяет администратор")
+    else:
+        # Если не нашли — спрашиваем AI
+        if AI_MODEL:
+            async with ctx.typing():
+                try:
+                    prompt = f"""Ты эксперт по правилам Arizona RP. 
+                    Игрок спрашивает какое наказание за: "{violation}"
+                    
+                    Ответь кратко:
+                    1. Какое это нарушение (DM, RK, PG и т.д.)
+                    2. Примерное наказание (деморган/варн/бан)
+                    3. От чего зависит срок
+                    
+                    Если не уверен — скажи что нужно уточнить у администрации."""
+                    
+                    response = AI_MODEL.generate_content(prompt)
+                    answer = response.text
+                    
+                    embed = ui.create_base_embed(
+                        title=f"⚖️ Возможное наказание: {violation}",
+                        description=answer,
+                        color=ui.COLOR_YELLOW,
+                        ctx=ctx
+                    )
+                    embed.set_footer(text="⚠️ AI оценка • Точное наказание определяет администратор")
+                    
+                except Exception as e:
+                    embed = ui.error(f"Ошибка: {str(e)[:100]}", ctx)
+        else:
+            embed = ui.warning(f"Не найдено правило для `{violation}`.\n\nПопробуйте: `dm`, `rk`, `pg`, `читы`", ctx)
+    
+    await ctx.send(embed=embed)
+
+
+@arizona.command(name='terms', aliases=['термины', 'терминология', 'словарь'])
+async def arizona_terms(ctx):
+    """Показать все термины Arizona RP"""
+    terms = arizona_rules.ARIZONA_RULES.get("термины", {})
+    
+    embed = ui.create_base_embed(
+        title="📚 Терминология Arizona RP",
+        description=terms.get("content", "Термины не найдены"),
+        color=ui.COLOR_BLURPLE,
+        ctx=ctx
+    )
+    
+    # Добавляем быстрые ссылки на популярные правила
+    embed.add_field(
+        name="🔗 Быстрый поиск",
+        value="`!az rules dm` • `!az rules rk` • `!az rules pg` • `!az rules капт`",
+        inline=False
+    )
+    
+    await ctx.send(embed=embed)
+
+
+@arizona.command(name='report', aliases=['жалоба', 'репорт'])
+async def arizona_report(ctx):
+    """Информация о подаче жалобы"""
+    result = arizona_rules.search_rules("жалоба")
+    
+    embed = ui.create_base_embed(
+        title="📝 Как подать жалобу на Arizona RP",
+        description=result if result else "Информация не найдена",
+        color=ui.COLOR_BLURPLE,
+        ctx=ctx
+    )
+    
+    embed.add_field(
+        name="🔗 Ссылки",
+        value="• [Форум Arizona](https://forum.arizona-rp.com/)\n• [Правила сервера](https://arizona-rp.com/rules)",
+        inline=False
+    )
+    
+    await ctx.send(embed=embed)
+
+
+@arizona.command(name='help', aliases=['помощь', 'хелп'])
+async def arizona_help(ctx):
+    """Показать все команды Arizona Assistant"""
+    embed = ui.arizona_help(ctx)
+    await ctx.send(embed=embed)
+
+
 if __name__ == "__main__":
     if not TOKEN:
         print("Error: DISCORD_TOKEN not found in .env")
