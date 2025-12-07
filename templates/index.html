@@ -825,7 +825,6 @@
         <button class="tab-btn" onclick="switchTab('control')">🎛️ Управление</button>
         <button class="tab-btn" onclick="switchTab('data')">📋 Данные</button>
         <button class="tab-btn" onclick="switchTab('favorites')">⭐ Избранное</button>
-        <button class="tab-btn" onclick="switchTab('arizona')">🌵 Arizona RP</button>
         <button class="tab-btn" onclick="switchTab('tempmail')">📧 Temp Mail</button>
         <button class="tab-btn" onclick="switchTab('aichat')">🤖 AI Chat</button>
     </div>
@@ -1018,50 +1017,6 @@
                         </tr>
                     </thead>
                     <tbody id="accounts-body"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ARIZONA RP TAB -->
-        <div id="tab-arizona" class="tab-content">
-            <div class="stats-grid" style="margin-bottom: 30px;">
-                <div class="stat-card">
-                    <div class="stat-value" id="arizona-total-servers">28</div>
-                    <div class="stat-label">Всего серверов</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="arizona-online-servers">-</div>
-                    <div class="stat-label">Онлайн</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="arizona-total-players">-</div>
-                    <div class="stat-label">Игроков онлайн</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="arizona-average-load">-</div>
-                    <div class="stat-label">Средняя загрузка</div>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2>🎮 Серверы Arizona RP</h2>
-                <div class="btn-group" style="margin-bottom: 20px;">
-                    <button class="btn btn-success" onclick="loadArizonaServers()">🔄 Обновить</button>
-                    <button class="btn" onclick="filterArizonaServers('all')">Все</button>
-                    <button class="btn" onclick="filterArizonaServers('online')">Онлайн</button>
-                    <button class="btn" onclick="filterArizonaServers('offline')">Офлайн</button>
-                </div>
-
-                <div id="arizona-loading">
-                    <div class="skeleton"></div>
-                    <div class="skeleton"></div>
-                    <div class="skeleton"></div>
-                </div>
-
-                <div id="arizona-servers-grid"
-                    style="display: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
-                    <!-- Server cards will be inserted here -->
-                </div>
             </div>
         </div>
 
