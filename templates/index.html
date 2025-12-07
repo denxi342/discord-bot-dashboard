@@ -837,6 +837,42 @@
         </div>
     </div>
 
+    <!-- Monitor Logs Modal -->
+    <div class="modal" id="monitorLogsModal">
+        <div class="modal-content" style="max-width: 900px;">
+            <h2 id="monitor-logs-title">📊 Логи мониторинга</h2>
+
+            <div class="stats-grid" style="margin-bottom: 20px;">
+                <div class="stat-card">
+                    <div class="stat-value" id="monitor-uptime">-</div>
+                    <div class="stat-label">Uptime %</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="monitor-checks">-</div>
+                    <div class="stat-label">Всего проверок</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="monitor-ping">-</div>
+                    <div class="stat-label">Последний Ping</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="monitor-status">-</div>
+                    <div class="stat-label">Статус</div>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom: 15px;">📝 История инцидентов</h3>
+            <div class="log-container" id="monitor-logs-content" style="max-height: 400px; overflow-y: auto;">
+                <p style="opacity: 0.5;">Загрузка логов...</p>
+            </div>
+
+            <div class="btn-group" style="margin-top: 20px;">
+                <button class="btn btn-warning" onclick="clearMonitorLogs()">🗑️ Очистить логи</button>
+                <button class="btn" onclick="closeMonitorLogsModal()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <h1>Bot Dashboard Pro</h1>
@@ -948,6 +984,8 @@
                             <th>Статус</th>
                             <th>Название</th>
                             <th>URL</th>
+                            <th>Uptime %</th>
+                            <th>Ping</th>
                             <th>Проверка</th>
                             <th>Действия</th>
                         </tr>
@@ -1683,7 +1721,25 @@
             document.getElementById('monitors-loading').style.display = 'none';
             document.getElementById('monitors-table').style.display = 'table';
             data.forEach(m => {
-                tbody.innerHTML += `<tr><td>⭐</td><td>${m.status}</td><td>${m.name}</td><td>${m.url}</td><td>-</td><td><button class="btn btn-sm" onclick="removeMonitor('${m.id}')">Del</button></td></tr>`;
+                const statusClass = m.status === 'online' ? 'status-online' : 'status-offline';
+                const statusText = m.status === 'online' ? '🟢' : (m.status === 'offline' ? '🔴' : '⚪');
+                const uptime = m.uptime_percentage !== undefined ? `${m.uptime_percentage}%` : '-';
+                const ping = m.response_time ? `${m.response_time}ms` : '-';
+                const lastCheck = m.last_checked ? new Date(m.last_checked).toLocaleString('ru-RU') : '-';
+
+                tbody.innerHTML += `<tr>
+                    <td>⭐</td>
+                    <td class="${statusClass}">${statusText} ${m.status}</td>
+                    <td>${m.name}</td>
+                    <td><a href="${m.url}" target="_blank">${m.url}</a></td>
+                    <td>${uptime}</td>
+                    <td>${ping}</td>
+                    <td>${lastCheck}</td>
+                    <td>
+                        <button class="btn btn-sm" onclick="viewMonitorLogs('${m.id}', '${m.name}')">📊 Логи</button>
+                        <button class="btn btn-sm btn-danger" onclick="removeMonitor('${m.id}')">Del</button>
+                    </td>
+                </tr>`;
             });
         }
         async function loadAccounts() {
@@ -1787,6 +1843,76 @@
             document.getElementById('viewModal').style.display = 'flex';
         }
         function closeModal() { document.getElementById('viewModal').style.display = 'none'; }
+
+        // --- MONITOR LOGS FUNCTIONS ---
+        let currentMonitorId = null;
+
+        async function viewMonitorLogs(monitorId, monitorName) {
+            currentMonitorId = monitorId;
+            document.getElementById('monitor-logs-title').textContent = `📊 Логи: ${monitorName}`;
+            document.getElementById('monitorLogsModal').style.display = 'flex';
+
+            // Загружаем статистику
+            try {
+                const statsRes = await fetch(`/api/monitors/${monitorId}/stats`);
+                const stats = await statsRes.json();
+
+                document.getElementById('monitor-uptime').textContent = stats.uptime_percentage + '%';
+                document.getElementById('monitor-checks').textContent = stats.total_checks;
+                document.getElementById('monitor-ping').textContent = stats.response_time ? stats.response_time + 'ms' : '-';
+                document.getElementById('monitor-status').textContent = stats.status === 'online' ? '🟢 Online' : '🔴 Offline';
+
+                // Загружаем логи
+                const logsRes = await fetch(`/api/monitors/${monitorId}/logs`);
+                const logs = await logsRes.json();
+
+                const logsContainer = document.getElementById('monitor-logs-content');
+                if (logs.length === 0) {
+                    logsContainer.innerHTML = '<p style="opacity: 0.5; text-align: center;">Пока нет событий</p>';
+                } else {
+                    logsContainer.innerHTML = logs.map(log => {
+                        const typeClass = log.type === 'down' ? 'error' : 'info';
+                        const typeIcon = log.type === 'down' ? '🔴' : '🟢';
+                        return `
+                            <div class="log-entry">
+                                <span class="log-time">${log.timestamp}</span>
+                                <span class="log-level ${typeClass}">${typeIcon} ${log.type.toUpperCase()}</span>
+                                <span class="log-message">${log.message}</span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки логов:', error);
+                showToast('Ошибка загрузки логов', 'error');
+            }
+        }
+
+        function closeMonitorLogsModal() {
+            document.getElementById('monitorLogsModal').style.display = 'none';
+            currentMonitorId = null;
+        }
+
+        async function clearMonitorLogs() {
+            if (!currentMonitorId) return;
+
+            if (!confirm('Вы уверены? Все логи будут удалены.')) return;
+
+            try {
+                const res = await fetch(`/api/monitors/${currentMonitorId}/clear-logs`, { method: 'POST' });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast('Логи очищены', 'success');
+                    document.getElementById('monitor-logs-content').innerHTML = '<p style="opacity: 0.5; text-align: center;">Пока нет событий</p>';
+                } else {
+                    showToast('Ошибка очистки логов', 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showToast('Ошибка очистки логов', 'error');
+            }
+        }
 
         // --- INIT ---
         window.addEventListener('DOMContentLoaded', () => {

@@ -323,7 +323,12 @@ def add_monitor(url, name=None):
         "added_at": datetime.now().isoformat(),
         "status": "unknown", # online, offline, unknown
         "last_checked": None,
-        "last_status_code": None
+        "last_status_code": None,
+        "response_time": None, # В миллисекундах
+        "uptime_percentage": 100.0, # Процент доступности
+        "total_checks": 0, # Всего проверок
+        "failed_checks": 0, # Проваленных проверок
+        "incident_logs": [] # История инцидентов [{type, timestamp, message}]
     }
     monitors.append(entry)
     save_monitors(monitors)
@@ -342,13 +347,55 @@ def remove_monitor(monitor_id):
 def get_monitors():
     return load_monitors()
 
-def update_monitor_status(monitor_id, status, status_code):
+def update_monitor_status(monitor_id, status, status_code, response_time=None):
     monitors = load_monitors()
     for m in monitors:
         if m['id'] == monitor_id:
+            old_status = m.get('status', 'unknown')
+            
+            # Обновляем счетчики
+            m['total_checks'] = m.get('total_checks', 0) + 1
+            if status == 'offline':
+                m['failed_checks'] = m.get('failed_checks', 0) + 1
+            
+            # Вычисляем uptime %
+            if m['total_checks'] > 0:
+                m['uptime_percentage'] = round(
+                    ((m['total_checks'] - m['failed_checks']) / m['total_checks']) * 100, 2
+                )
+            
+            # Логируем изменение статуса
+            if old_status != status and old_status != 'unknown':
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                if status == 'offline':
+                    log_entry = {
+                        'type': 'down',
+                        'timestamp': timestamp,
+                        'message': f'🔴 Сайт упал (код: {status_code})',
+                        'status_code': status_code,
+                        'response_time': response_time
+                    }
+                else:  # online
+                    log_entry = {
+                        'type': 'up',
+                        'timestamp': timestamp,
+                        'message': f'🟢 Сайт восстановлен ({response_time}мс)',
+                        'status_code': status_code,
+                        'response_time': response_time
+                    }
+                
+                # Добавляем лог (максимум 50 последних записей)
+                if 'incident_logs' not in m:
+                    m['incident_logs'] = []
+                m['incident_logs'].insert(0, log_entry)
+                m['incident_logs'] = m['incident_logs'][:50]
+            
+            # Обновляем основные поля
             m['status'] = status
             m['last_checked'] = datetime.now().isoformat()
             m['last_status_code'] = status_code
+            m['response_time'] = response_time
+            
             save_monitors(monitors)
             return
 
@@ -381,3 +428,36 @@ def get_prefix(user_id):
 def get_all_prefixes():
     return load_prefixes()
 
+# --- Monitor Logs ---
+def get_monitor_logs(monitor_id):
+    """Получить логи инцидентов для конкретного монитора"""
+    monitors = load_monitors()
+    for m in monitors:
+        if m['id'] == monitor_id:
+            return m.get('incident_logs', [])
+    return []
+
+def get_monitor_stats(monitor_id):
+    """Получить статистику монитора"""
+    monitors = load_monitors()
+    for m in monitors:
+        if m['id'] == monitor_id:
+            return {
+                'uptime_percentage': m.get('uptime_percentage', 0),
+                'total_checks': m.get('total_checks', 0),
+                'failed_checks': m.get('failed_checks', 0),
+                'response_time': m.get('response_time'),
+                'last_checked': m.get('last_checked'),
+                'status': m.get('status')
+            }
+    return None
+
+def clear_monitor_logs(monitor_id):
+    """Очистить логи монитора"""
+    monitors = load_monitors()
+    for m in monitors:
+        if m['id'] == monitor_id:
+            m['incident_logs'] = []
+            save_monitors(monitors)
+            return True
+    return False

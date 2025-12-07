@@ -231,6 +231,32 @@ def api_remove_monitor(id):
         return jsonify({'success': True})
     return jsonify({'success': False})
 
+@app.route('/api/monitors/<id>/logs')
+def api_monitor_logs(id):
+    """Получить логи конкретного монитора"""
+    if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
+    logs = utils.get_monitor_logs(id)
+    return jsonify(logs)
+
+@app.route('/api/monitors/<id>/stats')
+def api_monitor_stats(id):
+    """Получить статистику монитора"""
+    if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
+    stats = utils.get_monitor_stats(id)
+    if stats:
+        return jsonify(stats)
+    return jsonify({'error': 'Monitor not found'}), 404
+
+@app.route('/api/monitors/<id>/clear-logs', methods=['POST'])
+def api_clear_monitor_logs(id):
+    """Очистить логи монитора"""
+    if 'user' not in session: return jsonify({'success': False}), 401
+    if utils.clear_monitor_logs(id):
+        add_log('info', f"Monitor logs cleared: {id}")
+        return jsonify({'success': True})
+    return jsonify({'success': False})
+
+
 @app.route('/api/accounts')
 def api_accounts(): return jsonify(utils.get_all_accounts())
 
