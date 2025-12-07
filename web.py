@@ -318,6 +318,81 @@ def api_tm_read():
     return jsonify(utils.get_mock_content(mid))
 
 
+# --- AI CHAT API ---
+try:
+    import google.generativeai as genai
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY)
+        AI_MODEL = genai.GenerativeModel('gemini-1.5-flash')
+        print("[+] Gemini AI initialized for Web API!")
+    else:
+        AI_MODEL = None
+        print("[!] GEMINI_API_KEY not set. AI Chat disabled.")
+except ImportError:
+    AI_MODEL = None
+    print("[!] google-generativeai not installed. AI Chat disabled.")
+
+# Store chat sessions per user
+AI_WEB_SESSIONS = {}
+
+@app.route('/api/ai/chat', methods=['POST'])
+def api_ai_chat():
+    """AI Chat API endpoint"""
+    if not AI_MODEL:
+        return jsonify({
+            'success': False, 
+            'error': 'AI не настроен. Добавьте GEMINI_API_KEY в переменные окружения.'
+        })
+    
+    data = request.json
+    message = data.get('message', '').strip()
+    
+    if not message:
+        return jsonify({'success': False, 'error': 'Пустое сообщение'})
+    
+    # Get or create session for user
+    user_id = session.get('user', {}).get('id', 'anonymous')
+    
+    if user_id not in AI_WEB_SESSIONS:
+        AI_WEB_SESSIONS[user_id] = AI_MODEL.start_chat(history=[])
+    
+    chat = AI_WEB_SESSIONS[user_id]
+    
+    try:
+        response = chat.send_message(message)
+        answer = response.text
+        
+        # Limit response length
+        if len(answer) > 8000:
+            answer = answer[:8000] + "\n\n... (ответ обрезан)"
+        
+        add_log('info', f"AI Chat: {message[:50]}...")
+        
+        return jsonify({
+            'success': True,
+            'response': answer
+        })
+        
+    except Exception as e:
+        error_msg = str(e)
+        add_log('error', f"AI Error: {error_msg[:100]}")
+        return jsonify({
+            'success': False,
+            'error': error_msg[:200]
+        })
+
+@app.route('/api/ai/clear', methods=['POST'])
+def api_ai_clear():
+    """Clear AI chat history for user"""
+    user_id = session.get('user', {}).get('id', 'anonymous')
+    
+    if user_id in AI_WEB_SESSIONS:
+        del AI_WEB_SESSIONS[user_id]
+    
+    return jsonify({'success': True})
+
+
 # Simulation Thread
 def simulate():
     while True:
@@ -338,3 +413,4 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print(f"Server running on http://0.0.0.0:{port}")
     socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
+

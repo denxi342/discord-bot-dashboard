@@ -2,7 +2,7 @@
 # Выполняйте по порядку в PowerShell
 
 # 1. Перейдите в папку проекта
-cd C:\Users\kompd\.gemini\antigravity\scratch\discord_bot
+Set-Location C:\Users\kompd\.gemini\antigravity\scratch\discord_bot
 
 # 2. Инициализируйте Git
 git init

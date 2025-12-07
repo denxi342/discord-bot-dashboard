@@ -416,3 +416,56 @@ def temp_mail_help(ctx=None):
     embed.set_footer(text="💡 Письма хранятся несколько часов, затем автоматически удаляются")
     
     return embed
+
+
+# --- AI Chat UI ---
+
+def ai_help(ctx=None):
+    """Show help for AI commands"""
+    embed = create_base_embed(
+        title="🤖 AI Ассистент • Инструкция",
+        description="Мощный ИИ на базе Google Gemini для ответов на любые вопросы",
+        color=COLOR_BLURPLE,
+        ctx=ctx
+    )
+    
+    embed.add_field(
+        name="💬 `!ai <вопрос>`",
+        value="Задать одиночный вопрос без сохранения контекста",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🗣️ `!chat <сообщение>`",
+        value="Чат с памятью — ИИ помнит ваш диалог",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🗑️ `!clear`",
+        value="Очистить историю диалога и начать заново",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🌍 `!translate <язык> <текст>`",
+        value="Перевести текст. Пример: `!translate en Привет мир`",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="💻 `!code <задача>`",
+        value="Написать код. Пример: `!code функция сортировки на Python`",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🎨 `!imagine <описание>`",
+        value="Получить детальное описание изображения по запросу",
+        inline=False
+    )
+    
+    embed.set_footer(text="Powered by Gemini AI • Бесплатно и без ограничений")
+    
+    return embed
+

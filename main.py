@@ -6,9 +6,29 @@ from dotenv import load_dotenv
 import utils
 import ui
 
+# Google Gemini AI
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+    print("[!] google-generativeai not installed. AI features disabled.")
+
 # Загрузка переменных окружения
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+
+# Настройка Gemini AI
+if GEMINI_AVAILABLE and GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    AI_MODEL = genai.GenerativeModel('gemini-1.5-flash')
+    print("[+] Gemini AI initialized successfully!")
+else:
+    AI_MODEL = None
+
+# Хранилище истории чатов для каждого пользователя
+AI_CHAT_HISTORY = {}
 
 # Настройка интентов
 intents = discord.Intents.default()
@@ -433,8 +453,188 @@ async def tempmail_domains(ctx):
         await msg.edit(content=None, embed=embed)
 
 
+# --- AI Chat Commands ---
+
+@bot.command(name='ai')
+async def ai_single(ctx, *, question: str):
+    """Задать вопрос ИИ (одиночный запрос без памяти)"""
+    if not AI_MODEL:
+        await ctx.send(embed=ui.error("❌ AI не настроен! Добавьте GEMINI_API_KEY в .env", ctx))
+        return
+    
+    # Показываем что бот печатает
+    async with ctx.typing():
+        try:
+            response = AI_MODEL.generate_content(question)
+            answer = response.text
+            
+            # Обрезаем если слишком длинный
+            if len(answer) > 4000:
+                answer = answer[:4000] + "...\n\n*[Ответ обрезан]*"
+            
+            embed = ui.create_base_embed(
+                title="🤖 AI Ответ",
+                description=answer,
+                color=ui.COLOR_BLURPLE,
+                ctx=ctx
+            )
+            embed.add_field(name="❓ Вопрос", value=f"```{question[:200]}```", inline=False)
+            embed.set_footer(text="Powered by Gemini AI • Одиночный запрос")
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            await ctx.send(embed=ui.error(f"Ошибка AI: {str(e)[:200]}", ctx))
+
+
+@bot.command(name='chat')
+async def ai_chat(ctx, *, message: str):
+    """Чат с ИИ с памятью разговора"""
+    if not AI_MODEL:
+        await ctx.send(embed=ui.error("❌ AI не настроен! Добавьте GEMINI_API_KEY в .env", ctx))
+        return
+    
+    user_id = str(ctx.author.id)
+    
+    # Создаем или получаем сессию чата
+    if user_id not in AI_CHAT_HISTORY:
+        AI_CHAT_HISTORY[user_id] = AI_MODEL.start_chat(history=[])
+    
+    chat = AI_CHAT_HISTORY[user_id]
+    
+    async with ctx.typing():
+        try:
+            response = chat.send_message(message)
+            answer = response.text
+            
+            if len(answer) > 4000:
+                answer = answer[:4000] + "...\n\n*[Ответ обрезан]*"
+            
+            # Считаем сообщения в истории
+            msg_count = len(chat.history) // 2
+            
+            embed = ui.create_base_embed(
+                title="💬 AI Чат",
+                description=answer,
+                color=0x10B981,  # Зеленый для чата
+                ctx=ctx
+            )
+            embed.set_footer(text=f"Сообщений в диалоге: {msg_count} • !clear чтобы начать заново")
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            await ctx.send(embed=ui.error(f"Ошибка AI: {str(e)[:200]}", ctx))
+
+
+@bot.command(name='clear', aliases=['reset', 'newchat'])
+async def ai_clear(ctx):
+    """Очистить историю диалога с ИИ"""
+    user_id = str(ctx.author.id)
+    
+    if user_id in AI_CHAT_HISTORY:
+        del AI_CHAT_HISTORY[user_id]
+        await ctx.send(embed=ui.success("🗑️ История диалога очищена! Начинаем с чистого листа.", ctx))
+    else:
+        await ctx.send(embed=ui.info("💬 Чат", "У вас еще нет активного диалога.", ctx))
+
+
+@bot.command(name='imagine', aliases=['img', 'draw'])
+async def ai_imagine(ctx, *, prompt: str):
+    """Описать как бы выглядела картинка (Gemini не генерирует изображения)"""
+    if not AI_MODEL:
+        await ctx.send(embed=ui.error("❌ AI не настроен!", ctx))
+        return
+    
+    async with ctx.typing():
+        try:
+            enhanced_prompt = f"""Ты художник. Опиши максимально детально и красочно, 
+            как бы выглядела картина/изображение по запросу: "{prompt}"
+            Опиши цвета, композицию, освещение, настроение, стиль."""
+            
+            response = AI_MODEL.generate_content(enhanced_prompt)
+            answer = response.text
+            
+            if len(answer) > 4000:
+                answer = answer[:4000] + "..."
+            
+            embed = ui.create_base_embed(
+                title="🎨 Визуализация",
+                description=answer,
+                color=0xF59E0B,  # Оранжевый для креатива
+                ctx=ctx
+            )
+            embed.add_field(name="🖼️ Запрос", value=f"`{prompt[:100]}`", inline=False)
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            await ctx.send(embed=ui.error(f"Ошибка: {str(e)[:200]}", ctx))
+
+
+@bot.command(name='translate', aliases=['tr'])
+async def ai_translate(ctx, lang: str, *, text: str):
+    """Перевести текст. Пример: !translate en Привет мир"""
+    if not AI_MODEL:
+        await ctx.send(embed=ui.error("❌ AI не настроен!", ctx))
+        return
+    
+    async with ctx.typing():
+        try:
+            prompt = f"Переведи следующий текст на язык '{lang}'. Дай только перевод без пояснений:\n\n{text}"
+            response = AI_MODEL.generate_content(prompt)
+            translation = response.text.strip()
+            
+            embed = ui.create_base_embed(
+                title="🌍 Перевод",
+                color=0x8B5CF6,
+                ctx=ctx
+            )
+            embed.add_field(name="📝 Оригинал", value=f"```{text[:500]}```", inline=False)
+            embed.add_field(name=f"🔄 Перевод ({lang.upper()})", value=f"```{translation[:500]}```", inline=False)
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            await ctx.send(embed=ui.error(f"Ошибка: {str(e)[:200]}", ctx))
+
+
+@bot.command(name='code', aliases=['программа', 'код'])
+async def ai_code(ctx, *, task: str):
+    """Написать код. Пример: !code напиши функцию сортировки на Python"""
+    if not AI_MODEL:
+        await ctx.send(embed=ui.error("❌ AI не настроен!", ctx))
+        return
+    
+    async with ctx.typing():
+        try:
+            prompt = f"""Напиши код для следующей задачи. 
+            Дай только код с комментариями, без лишних объяснений.
+            Задача: {task}"""
+            
+            response = AI_MODEL.generate_content(prompt)
+            code = response.text
+            
+            if len(code) > 4000:
+                code = code[:4000] + "\n# ... (обрезано)"
+            
+            embed = ui.create_base_embed(
+                title="💻 Код",
+                description=code,
+                color=0x3B82F6,
+                ctx=ctx
+            )
+            embed.add_field(name="📋 Задача", value=f"`{task[:100]}`", inline=False)
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            await ctx.send(embed=ui.error(f"Ошибка: {str(e)[:200]}", ctx))
+
+
 if __name__ == "__main__":
     if not TOKEN:
         print("Error: DISCORD_TOKEN not found in .env")
     else:
         bot.run(TOKEN)
+
