@@ -324,7 +324,7 @@ try:
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
     if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
-        AI_MODEL = genai.GenerativeModel('gemini-pro')
+        AI_MODEL = genai.GenerativeModel('gemini-2.0-flash')
         print("[+] Gemini AI initialized for Web API!")
     else:
         AI_MODEL = None
