@@ -82,6 +82,37 @@
             }
         }
 
+        /* Loading Spinner */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #845ef7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Arizona Result Styling */
+        .arizona-result h3 {
+            color: #FFD700;
+            margin: 15px 0 10px;
+            font-size: 1.1em;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+            padding-bottom: 5px;
+        }
+
+        .arizona-result p {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+
         #particleCanvas {
             position: fixed;
             top: 0;
@@ -2707,6 +2738,33 @@
         // --- ARIZONA AI FUNCTIONS ---
         let currentArizonaTool = 'helper';
 
+        // Format markdown to HTML
+        function formatMarkdown(text) {
+            if (!text) return '';
+            return text
+                // Headers
+                .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+                .replace(/\*\*(.+?)\*\*/g, '<h3 style="color:#FFD700;margin:15px 0 10px;font-size:1.1em;">$1</h3>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                // Emojis and formatting
+                .replace(/🚫/g, '<span style="color:#ff6b6b;">🚫</span>')
+                .replace(/✅/g, '<span style="color:#51cf66;">✅</span>')
+                .replace(/⏱️/g, '<span style="color:#ffd43b;">⏱️</span>')
+                .replace(/📝/g, '<span style="color:#74c0fc;">📝</span>')
+                .replace(/❓/g, '<span style="color:#845ef7;">❓</span>')
+                .replace(/❌/g, '<span style="color:#ff6b6b;">❌</span>')
+                .replace(/💡/g, '<span style="color:#ffd43b;">💡</span>')
+                .replace(/📋/g, '<span style="color:#74c0fc;">📋</span>')
+                .replace(/📍/g, '<span style="color:#ff922b;">📍</span>')
+                .replace(/⚠️/g, '<span style="color:#ffd43b;">⚠️</span>')
+                // Lists
+                .replace(/^• /gm, '<span style="color:#845ef7;margin-right:8px;">▸</span>')
+                .replace(/^- /gm, '<span style="color:#845ef7;margin-right:8px;">▸</span>')
+                // Line breaks
+                .replace(/\n\n/g, '</p><p style="margin:10px 0;">')
+                .replace(/\n/g, '<br>');
+        }
+
         function selectArizonaTool(tool) {
             // Hide all tools
             document.querySelectorAll('.arizona-workspace').forEach(el => el.style.display = 'none');
@@ -2733,7 +2791,7 @@
 
             const resultDiv = document.getElementById('arizona-helper-result');
             resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '⏳ Генерирую ответ...';
+            resultDiv.innerHTML = '<div style="text-align:center;padding:20px;"><div class="loading-spinner"></div><p style="margin-top:10px;color:#aaa;">Ищу ответ...</p></div>';
 
             try {
                 const response = await fetch('/api/arizona/helper', {
@@ -2742,9 +2800,14 @@
                     body: JSON.stringify({ question: input })
                 });
                 const data = await response.json();
-                resultDiv.innerHTML = data.success ? data.response : '❌ ' + data.error;
+                if (data.success) {
+                    const source = data.source === 'database' ? '📚 Из базы правил' : '🤖 От AI';
+                    resultDiv.innerHTML = `<div style="margin-bottom:10px;font-size:0.8em;color:#888;">${source}</div><div style="line-height:1.6;">${formatMarkdown(data.response)}</div>`;
+                } else {
+                    resultDiv.innerHTML = '<div style="color:#ff6b6b;">❌ ' + data.error + '</div>';
+                }
             } catch (e) {
-                resultDiv.innerHTML = '❌ Ошибка подключения';
+                resultDiv.innerHTML = '<div style="color:#ff6b6b;">❌ Ошибка подключения</div>';
             }
         }
 
@@ -2755,7 +2818,7 @@
 
             const resultDiv = document.getElementById('arizona-complaint-result');
             resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '⏳ Составляю жалобу...';
+            resultDiv.innerHTML = '<div style="text-align:center;padding:20px;"><div class="loading-spinner"></div><p style="margin-top:10px;color:#aaa;">Составляю жалобу...</p></div>';
 
             try {
                 const response = await fetch('/api/arizona/complaint', {
@@ -2764,9 +2827,9 @@
                     body: JSON.stringify({ nickname: nick, description: desc })
                 });
                 const data = await response.json();
-                resultDiv.innerHTML = data.success ? data.response : '❌ ' + data.error;
+                resultDiv.innerHTML = data.success ? `<div style="line-height:1.6;">${formatMarkdown(data.response)}</div>` : '<div style="color:#ff6b6b;">❌ ' + data.error + '</div>';
             } catch (e) {
-                resultDiv.innerHTML = '❌ Ошибка подключения';
+                resultDiv.innerHTML = '<div style="color:#ff6b6b;">❌ Ошибка подключения</div>';
             }
         }
 
@@ -2778,7 +2841,7 @@
 
             const resultDiv = document.getElementById('arizona-legend-result');
             resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '⏳ Генерирую легенду...';
+            resultDiv.innerHTML = '<div style="text-align:center;padding:20px;"><div class="loading-spinner"></div><p style="margin-top:10px;color:#aaa;">Создаю легенду персонажа...</p></div>';
 
             try {
                 const response = await fetch('/api/arizona/legend', {
@@ -2787,9 +2850,9 @@
                     body: JSON.stringify({ name, age, style })
                 });
                 const data = await response.json();
-                resultDiv.innerHTML = data.success ? data.response : '❌ ' + data.error;
+                resultDiv.innerHTML = data.success ? `<div style="line-height:1.8;">${formatMarkdown(data.response)}</div>` : '<div style="color:#ff6b6b;">❌ ' + data.error + '</div>';
             } catch (e) {
-                resultDiv.innerHTML = '❌ Ошибка подключения';
+                resultDiv.innerHTML = '<div style="color:#ff6b6b;">❌ Ошибка подключения</div>';
             }
         }
 
@@ -2799,7 +2862,7 @@
 
             const resultDiv = document.getElementById('arizona-rules-result');
             resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '⏳ Проверяю правила...';
+            resultDiv.innerHTML = '<div style="text-align:center;padding:20px;"><div class="loading-spinner"></div><p style="margin-top:10px;color:#aaa;">Ищу в правилах...</p></div>';
 
             try {
                 const response = await fetch('/api/arizona/rules', {
@@ -2808,9 +2871,14 @@
                     body: JSON.stringify({ question: input })
                 });
                 const data = await response.json();
-                resultDiv.innerHTML = data.success ? data.response : '❌ ' + data.error;
+                if (data.success) {
+                    const source = data.source === 'database' ? '📚 Из базы правил' : '🤖 От AI';
+                    resultDiv.innerHTML = `<div style="margin-bottom:10px;font-size:0.8em;color:#888;">${source}</div><div style="line-height:1.6;">${formatMarkdown(data.response)}</div>`;
+                } else {
+                    resultDiv.innerHTML = '<div style="color:#ff6b6b;">❌ ' + data.error + '</div>';
+                }
             } catch (e) {
-                resultDiv.innerHTML = '❌ Ошибка подключения';
+                resultDiv.innerHTML = '<div style="color:#ff6b6b;">❌ Ошибка подключения</div>';
             }
         }
 
