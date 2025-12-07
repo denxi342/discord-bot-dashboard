@@ -395,6 +395,14 @@ def api_ai_clear():
 
 # --- ARIZONA AI API ---
 
+# Import local rules database
+try:
+    from arizona_rules import search_rules, get_all_rules_list, ARIZONA_RULES
+    RULES_DB_LOADED = True
+except ImportError:
+    RULES_DB_LOADED = False
+    ARIZONA_RULES = {}
+
 ARIZONA_SYSTEM_PROMPT = """Ты - эксперт по игровому серверу Arizona RP (GTA SA-MP). 
 Ты знаешь все правила, системы, фракции, бизнесы, работы и особенности сервера.
 Отвечай на русском языке, коротко и по делу.
@@ -402,27 +410,38 @@ ARIZONA_SYSTEM_PROMPT = """Ты - эксперт по игровому серв�
 
 @app.route('/api/arizona/helper', methods=['POST'])
 def api_arizona_helper():
-    """Arizona RP game helper"""
-    if not AI_MODEL:
-        return jsonify({'success': False, 'error': 'AI не настроен'})
-    
+    """Arizona RP game helper - uses local database first, then AI"""
     data = request.json
     question = data.get('question', '').strip()
     
     if not question:
         return jsonify({'success': False, 'error': 'Пустой вопрос'})
     
-    try:
-        prompt = f"""{ARIZONA_SYSTEM_PROMPT}
+    # First try local rules database
+    if RULES_DB_LOADED:
+        result = search_rules(question)
+        if result:
+            return jsonify({'success': True, 'response': result, 'source': 'database'})
+    
+    # Fallback to AI if available
+    if AI_MODEL:
+        try:
+            prompt = f"""{ARIZONA_SYSTEM_PROMPT}
 
 Вопрос игрока по Arizona RP: {question}
 
 Дай полезный и точный ответ:"""
-        
-        response = AI_MODEL.generate_content(prompt)
-        return jsonify({'success': True, 'response': response.text})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)[:200]})
+            
+            response = AI_MODEL.generate_content(prompt)
+            return jsonify({'success': True, 'response': response.text, 'source': 'ai'})
+        except Exception as e:
+            error_msg = str(e)
+            if '429' in error_msg:
+                return jsonify({'success': False, 'error': 'Лимит запросов AI превышен. Попробуйте позже или задайте вопрос по правилам (DM, RK, PG, читы и т.д.)'})
+            return jsonify({'success': False, 'error': str(e)[:200]})
+    
+    return jsonify({'success': False, 'error': 'Не найдено в базе. Попробуйте: DM, RK, PG, читы, капт, полиция, жалоба'})
+
 
 @app.route('/api/arizona/complaint', methods=['POST'])
 def api_arizona_complaint():
@@ -503,18 +522,23 @@ def api_arizona_legend():
 
 @app.route('/api/arizona/rules', methods=['POST'])
 def api_arizona_rules():
-    """Arizona RP rules helper"""
-    if not AI_MODEL:
-        return jsonify({'success': False, 'error': 'AI не настроен'})
-    
+    """Arizona RP rules helper - uses local database first"""
     data = request.json
     question = data.get('question', '').strip()
     
     if not question:
         return jsonify({'success': False, 'error': 'Пустой вопрос'})
     
-    try:
-        prompt = f"""Ты - эксперт по правилам Arizona RP. Знаешь все правила сервера:
+    # First try local rules database
+    if RULES_DB_LOADED:
+        result = search_rules(question)
+        if result:
+            return jsonify({'success': True, 'response': result, 'source': 'database'})
+    
+    # Fallback to AI
+    if AI_MODEL:
+        try:
+            prompt = f"""Ты - эксперт по правилам Arizona RP. Знаешь все правила сервера:
 
 - DM (DeathMatch) - убийство без причины
 - RK (RevengeKill) - месть после смерти
@@ -529,11 +553,15 @@ def api_arizona_rules():
 Вопрос: {question}
 
 Дай чёткий ответ: это нарушение или нет? Какое правило? Какое наказание?"""
-        
-        response = AI_MODEL.generate_content(prompt)
-        return jsonify({'success': True, 'response': response.text})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)[:200]})
+            
+            response = AI_MODEL.generate_content(prompt)
+            return jsonify({'success': True, 'response': response.text, 'source': 'ai'})
+        except Exception as e:
+            if '429' in str(e):
+                return jsonify({'success': False, 'error': 'Лимит AI. Используйте ключевые слова: DM, RK, PG, читы, капт'})
+            return jsonify({'success': False, 'error': str(e)[:200]})
+    
+    return jsonify({'success': False, 'error': 'Правило не найдено. Попробуйте: DM, RK, PG, MG, SK, TK, читы'})
 
 
 # Simulation Thread
