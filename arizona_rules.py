@@ -526,41 +526,64 @@ ARIZONA_RULES = {
 # ============ ФУНКЦИЯ ПОИСКА ============
 
 def search_rules(query: str) -> str:
-    """Поиск по базе правил Arizona RP"""
-    query_lower = query.lower()
-    results = []
+    """Поиск по базе правил Arizona RP - улучшенный алгоритм"""
+    query_lower = query.lower().strip()
     
-    # Прямой поиск по ключам
+    # Разбиваем запрос на отдельные слова для поиска
+    words = query_lower.replace('?', '').replace('!', '').replace(',', '').split()
+    
+    results = []
+    scores = {}  # Для ранжирования результатов
+    
     for key, rule in ARIZONA_RULES.items():
+        score = 0
+        
+        # 1. Прямое совпадение с ключом (высший приоритет)
         if key in query_lower:
-            results.append(rule)
-            continue
+            score += 100
         
-        # Поиск по ключевым словам
-        keywords = rule.get("keywords", [])
-        for keyword in keywords:
-            if keyword in query_lower:
-                results.append(rule)
-                break
+        # 2. Проверка каждого слова запроса
+        for word in words:
+            # Совпадение с ключом
+            if word == key or word in key:
+                score += 50
+            
+            # Совпадение с ключевыми словами
+            keywords = rule.get("keywords", [])
+            for keyword in keywords:
+                if word in keyword or keyword in word:
+                    score += 30
+                if word == keyword:
+                    score += 50
+            
+            # Совпадение с заголовком
+            title_lower = rule.get("title", "").lower()
+            if word in title_lower:
+                score += 20
+            
+            # Совпадение с содержимым
+            content_lower = rule.get("content", "").lower()
+            if word in content_lower:
+                score += 5
         
-        # Поиск в заголовке
-        if query_lower in rule.get("title", "").lower():
-            if rule not in results:
-                results.append(rule)
-        
-        # Поиск в содержимом
-        if query_lower in rule.get("content", "").lower():
-            if rule not in results:
-                results.append(rule)
+        if score > 0:
+            scores[key] = score
+    
+    # Сортируем по релевантности
+    sorted_keys = sorted(scores.keys(), key=lambda k: scores[k], reverse=True)
+    
+    # Берём топ результаты с минимальным порогом
+    for key in sorted_keys[:3]:
+        if scores[key] >= 10:  # Минимальный порог релевантности
+            results.append(ARIZONA_RULES[key])
     
     if not results:
         return None
     
-    # Возвращаем первые 3 результата
+    # Формируем красивый вывод
     output = ""
-    for i, rule in enumerate(results[:3]):
-        output += f"**{rule['title']}**\n"
-        output += rule['content'] + "\n\n"
+    for rule in results:
+        output += rule['content'].strip() + "\n\n"
     
     return output.strip()
 
@@ -569,3 +592,4 @@ def get_all_rules_list() -> str:
     """Получить список всех доступных разделов правил"""
     sections = [rule["title"] for rule in ARIZONA_RULES.values()]
     return "📋 **Доступные разделы правил:**\n• " + "\n• ".join(sections)
+
