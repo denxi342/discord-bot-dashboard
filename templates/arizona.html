@@ -368,10 +368,10 @@
             <span>AZ</span> Arizona AI
         </div>
 
-        <button class="nav-btn active" onclick="switchTab('chat')">💬 AI Чат</button>
-        <button class="nav-btn" onclick="switchTab('rules')">📖 Поиск правил</button>
-        <button class="nav-btn" onclick="switchTab('complaint')">⚖️ Генератор жалоб</button>
-        <button class="nav-btn" onclick="switchTab('legend')">🎭 Био-генератор</button>
+        <button class="nav-btn active" onclick="switchTab('chat', this)">💬 AI Чат</button>
+        <button class="nav-btn" onclick="switchTab('rules', this)">📖 Поиск правил</button>
+        <button class="nav-btn" onclick="switchTab('complaint', this)">⚖️ Генератор жалоб</button>
+        <button class="nav-btn" onclick="switchTab('legend', this)">🎭 Био-генератор</button>
 
         <div class="tools-list">
             <a href="/dashboard" class="nav-btn">🔙 В Дашборд</a>
@@ -490,7 +490,7 @@
 
     <script>
         // Tab Switching
-        function switchTab(tabId) {
+        function switchTab(tabId, btn) {
             // Hide all tabs
             document.querySelectorAll('.tool-view, .chat-container').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active'); // Add active class properly
@@ -508,9 +508,9 @@
             }
 
             // Update Nav Buttons
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            if (event.target.classList.contains('nav-btn')) {
-                event.target.classList.add('active');
+            if (btn) {
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
             }
         }
 

@@ -4,8 +4,21 @@
         "url": "https://lead.arztools.tech/",
         "name": "\u0430\u0420\u0418\u0417\u041e\u041d\u0410 \u041b\u0418\u0414\u0415\u0420\u042b",
         "added_at": "2025-12-07T04:50:28.001517",
-        "status": "online",
-        "last_checked": "2025-12-07T06:37:55.215982",
-        "last_status_code": 200
+        "status": "offline",
+        "last_checked": "2025-12-08T05:43:49.365887",
+        "last_status_code": 0,
+        "total_checks": 1,
+        "failed_checks": 1,
+        "uptime_percentage": 0.0,
+        "incident_logs": [
+            {
+                "type": "down",
+                "timestamp": "2025-12-08 05:43:49",
+                "message": "\ud83d\udd34 \u0421\u0430\u0439\u0442 \u0443\u043f\u0430\u043b (\u043a\u043e\u0434: 0)",
+                "status_code": 0,
+                "response_time": null
+            }
+        ],
+        "response_time": null
     }
 ]
