@@ -201,15 +201,6 @@
             -webkit-text-fill-color: transparent;
         }
 
-        h1::after {
-            content: "v2.1";
-            font-size: 20px;
-            vertical-align: super;
-            opacity: 0.5;
-            -webkit-text-fill-color: white;
-            margin-left: 10px;
-        }
-
         .light-theme h1 {
             background: linear-gradient(135deg, #202124 0%, rgba(32, 33, 36, 0.8) 100%);
             -webkit-background-clip: text;
@@ -1893,41 +1884,28 @@
             }
 
             // --- TABS & NAVIGATION ---
-            // --- TABS & NAVIGATION ---
             function switchTab(tab) {
-                console.log('Switching to tab:', tab);
                 document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-                // Activate button - Find button with specific onclick handler
+                // Activate button
+                const tabs = ['dashboard', 'control', 'data', 'favorites', 'tempmail', 'aichat', 'arizonaai'];
+                const index = tabs.indexOf(tab);
                 const btns = document.querySelectorAll('.tab-btn');
-                btns.forEach(btn => {
-                    if (btn.getAttribute('onclick').includes(`'${tab}'`)) {
-                        btn.classList.add('active');
-                    }
-                });
+                if (btns[index]) btns[index].classList.add('active');
 
                 // Activate content
                 const content = document.getElementById(`tab-${tab}`);
-                if (content) {
-                    content.classList.add('active');
-                } else {
-                    console.error('Tab content not found:', `tab-${tab}`);
-                }
+                if (content) content.classList.add('active');
 
                 // Load tab specific data
                 if (tab === 'favorites') { loadFavoriteMonitors(); loadFavoriteAccounts(); }
-                else if (tab === 'arizonaai') { if (typeof loadArizonaServers === 'function') loadArizonaServers(); }
+                else if (tab === 'arizonaai') { loadArizonaServers(); }
                 else if (tab === 'tempmail') {
-                    if (typeof renderAccountsList === 'function') renderAccountsList();
-                    if (typeof tm_accounts !== 'undefined' && tm_accounts.length > 0) checkCurrentMail(true);
+                    renderAccountsList();
+                    if (tm_accounts.length > 0) checkCurrentMail(true);
                 } else if (tab === 'profile') {
                     if (typeof loadGodPrefixes === 'function') loadGodPrefixes();
-                } else if (tab === 'aichat') {
-                    setTimeout(() => {
-                        const msgs = document.getElementById('ai-messages');
-                        if (msgs) msgs.scrollTop = msgs.scrollHeight;
-                    }, 100);
                 }
             }
 
