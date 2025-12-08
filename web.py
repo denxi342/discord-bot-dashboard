@@ -572,6 +572,59 @@ def api_arizona_rules():
     return jsonify({'success': False, 'error': 'Правило не найдено. Попробуйте: DM, RK, PG, MG, SK, TK, читы'})
 
 
+@app.route('/api/arizona/news')
+def api_arizona_news():
+    """Returns Mocked Arizona RP News"""
+    # In a real scenario, this would scrape a forum or VK group.
+    # We will simulate "Live" news.
+    import random
+    
+    current_date = datetime.now()
+    
+    news_items = [
+        {
+            'id': 1,
+            'title': 'Масштабное обновление "Halloween 2025"',
+            'date': (current_date - timedelta(days=2)).strftime('%d.%m.%Y'),
+            'tag': 'Обновление',
+            'image': 'https://i.imgur.com/8Qe5x9b.jpeg',
+            'summary': 'Встречайте хэллоуинское обновление! Новые квесты, уникальные аксессуары, зловещий лес и битва с боссами. Успейте нафармить новые монеты до конца месяца!',
+            'likes': random.randint(150, 500)
+        },
+        {
+            'id': 2,
+            'title': 'Акция X4 PayDay на все выходные!',
+            'date': (current_date - timedelta(days=0)).strftime('%d.%m.%Y'),
+            'tag': 'Акция',
+            'image': 'https://i.imgur.com/k9F2WzP.jpeg',
+            'summary': 'В честь дня рождения проекта мы запускаем акцию X4 PayDay и X4 Пополнение счёта на все выходные. Отличный повод прокачать уровень и заработать!',
+            'likes': random.randint(1000, 5000)
+        },
+        {
+            'id': 3,
+            'title': 'Открытие заявок на пост Хелпера',
+            'date': (current_date - timedelta(days=5)).strftime('%d.%m.%Y'),
+            'tag': 'Набор',
+            'image': 'https://i.imgur.com/C4D1h1A.jpeg',
+            'summary': 'Хочешь помогать игрокам и стать частью команды администрации? Открыты заявки на пост хелпера 1 уровня. Требования: 15+ уровень, знание правил, адекватность.',
+            'likes': random.randint(50, 200)
+        },
+        {
+            'id': 4,
+            'title': 'Новые бизнесы в г. Лас-Вентурас',
+            'date': (current_date - timedelta(days=8)).strftime('%d.%m.%Y'),
+            'tag': 'Экономика',
+            'image': 'https://i.imgur.com/71j1XqG.jpeg',
+            'summary': 'Добавлено 5 новых уникальных бизнесов: Аренды лодок, Казино-отели и Тюнинг-ателье. Аукцион начнется в пятницу в 18:00 по МСК.',
+            'likes': random.randint(300, 900)
+        }
+    ]
+    
+    # Simulate loading delay
+    time.sleep(0.5)
+    return jsonify({'success': True, 'news': news_items})
+
+
 # Simulation Thread
 def simulate():
     while True:
