@@ -1869,12 +1869,24 @@
             </div>
 
             <script>
-                const socket = io();
-
-                socket.on('connect', () => {
-                    console.log('Connected to WebSocket');
-                    showToast('Подключено к серверу', 'success');
-                });
+                // Safety wrapper for Socket.IO
+                let socket;
+                try {
+                    if (typeof io !== 'undefined') {
+                        socket = io();
+                        socket.on('connect', () => {
+                            console.log('Connected to WebSocket');
+                            showToast('Подключено к серверу', 'success');
+                        });
+                    } else {
+                        console.warn('Socket.IO not loaded (offline mode?)');
+                        // Mock socket to prevent errors later
+                        socket = { on: () => { }, emit: () => { } };
+                    }
+                } catch (e) {
+                    console.error('Socket init error:', e);
+                    socket = { on: () => { }, emit: () => { } };
+                }
 
                 socket.on('stats_update', (data) => {
                     // Update stats logic
