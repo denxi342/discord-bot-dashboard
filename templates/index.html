@@ -1227,8 +1227,69 @@
                     margin: 10px 0;
                     font-size: 13px;
                 }
+            </style>
+            <!-- Temp Mail Content -->
+            <div class="mail-layout">
+                <div class="mail-sidebar">
+                    <div class="mail-toolbar">
+                        <h3 style="margin:0; font-size:16px;">📧 Ящики</h3>
+                        <button class="btn btn-sm btn-success" onclick="createTempMail()">+New</button>
+                    </div>
+                    <div id="tm-accounts-list" style="flex:1; overflow-y:auto; margin-top:10px;"></div>
+                    <div id="tm-empty-state" style="padding:20px; text-align:center; opacity:0.5; display:none;">
+                        Нет активных ящиков
+                    </div>
+                    <div
+                        style="margin-top:auto; padding-top:10px; border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between;">
+                        <button class="btn btn-sm" onclick="toggleHistoryModal()">📜 История</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteCurrentAccount()">🗑️</button>
+                    </div>
+                </div>
+                <!-- Main Mail Content -->
+                <div class="mail-main" id="tm-content" style="display:none;">
+                    <div class="mail-toolbar">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="tm-active-email"
+                                style="font-weight:600; font-family:monospace; font-size:16px;">loading...</span>
+                            <button class="btn btn-sm" onclick="copyActiveEmail()">📋</button>
+                        </div>
+                        <button class="btn btn-sm" id="tm-refresh-btn" onclick="checkCurrentMail()">🔄 Обновить</button>
+                    </div>
+                    <div class="inbox-list" id="tm-inbox-list">
+                        <!-- Mails go here -->
+                    </div>
+                </div>
+            </div>
 
-                <div class="mail-layout"><div class="mail-sidebar"><div class="mail-toolbar"><h3 style="margin:0; font-size:16px;">📧 Ящики</h3><button class="btn btn-sm btn-success" onclick="createTempMail()">+New</button>< !-- <button class="btn btn-sm btn-danger" onclick="deleteCurrentAccount()">Del</button>--></div><div id="tm-accounts-list" style="flex:1; overflow-y:auto; margin-top:10px;"></div><div id="tm-empty-state" style="padding:20px; text-align:center; opacity:0.5; display:none;">Нет активных ящиков </div><div style="margin-top:auto; padding-top:10px; border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between;"><button class="btn btn-sm" onclick="toggleHistoryModal()">📜 История</button><button class="btn btn-sm btn-danger" onclick="deleteCurrentAccount()">🗑️</button></div></div><div class="mail-main" id="tm-content" style="display:none;"><div class="mail-toolbar"><div style="display:flex; align-items:center; gap:10px;"><span id="tm-active-email" style="font-weight:600; font-family:monospace; font-size:16px;">loading...</span><button class="btn btn-sm" onclick="copyActiveEmail()">📋</button></div><button class="btn btn-sm" id="tm-refresh-btn" onclick="checkCurrentMail()">🔄 Обновить</button></div><div class="inbox-list" id="tm-inbox-list">< !-- Mails go here --></div></div></div>< !-- Mail Reader Overlay --><div id="tm-reader" class="modal" style="display:none; z-index:1100;"><div class="modal-content" style="max-width:800px;"><div style="display:flex; justify-content:space-between; margin-bottom:20px;"><h3 id="tm-read-subject" style="margin:0;">Subject</h3><button class="btn btn-sm" onclick="closeReader()">❌</button></div><div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:15px; font-size:13px;"><div>From: <strong id="tm-read-from">Sender</strong></div><div>Date: <span id="tm-read-date">Time</span></div></div><div id="tm-code-banner" class="code-banner" style="display:none;"><span style="font-weight:600;">КОД:</span><span id="tm-code-value" class="code-value">12345</span><button class="btn btn-sm" onclick="copyCode()">📋</button></div><div id="tm-read-body" class="mail-body" style="background:white; color:black; padding:20px; border-radius:8px; min-height:200px; overflow-x:auto;">< !-- Body --></div></div></div></div>< !-- AI CHAT TAB --><div id="tab-aichat" class="tab-content"><style>.ai-message-content code {
+            <!-- Mail Reader Overlay -->
+            <div id="tm-reader" class="modal" style="display:none; z-index:1100;">
+                <div class="modal-content" style="max-width:800px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                        <h3 id="tm-read-subject" style="margin:0;">Subject</h3>
+                        <button class="btn btn-sm" onclick="closeReader()">❌</button>
+                    </div>
+                    <div
+                        style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:15px; font-size:13px;">
+                        <div>From: <strong id="tm-read-from">Sender</strong></div>
+                        <div>Date: <span id="tm-read-date">Time</span></div>
+                    </div>
+                    <div id="tm-code-banner" class="code-banner" style="display:none;">
+                        <span style="font-weight:600;">КОД:</span>
+                        <span id="tm-code-value" class="code-value">12345</span>
+                        <button class="btn btn-sm" onclick="copyCode()">📋</button>
+                    </div>
+                    <div id="tm-read-body" class="mail-body"
+                        style="background:white; color:black; padding:20px; border-radius:8px; min-height:200px; overflow-x:auto;">
+                        <!-- Body -->
+                    </div>
+                </div>
+            </div>
+        </div> <!-- Closing tab-tempmail -->
+
+        <!-- AI CHAT TAB -->
+        <div id="tab-aichat" class="tab-content">
+            <style>
+                .ai-message-content code {
                     background: rgba(0, 0, 0, 0.3);
                     padding: 2px 6px;
                     border-radius: 4px;
