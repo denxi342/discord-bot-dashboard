@@ -861,13 +861,13 @@
     </div>
 
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('dashboard', event)">📊 Дашборд</button>
-        <button class="tab-btn" onclick="switchTab('control', event)">🎛️ Управление</button>
-        <button class="tab-btn" onclick="switchTab('data', event)">📋 Данные</button>
-        <button class="tab-btn" onclick="switchTab('tempmail', event)">📧 Temp Mail</button>
-        <button class="tab-btn" onclick="switchTab('aichat', event)">🤖 AI Chat</button>
-        <button class="tab-btn" onclick="switchTab('arizonaai', event)">🌵 Arizona AI</button>
-        <button class="tab-btn" onclick="switchTab('news', event)">📰 Новости</button>
+        <button id="btn-dashboard" class="tab-btn active" onclick="switchTab('dashboard')">📊 Дашборд</button>
+        <button id="btn-control" class="tab-btn" onclick="switchTab('control')">🎛️ Управление</button>
+        <button id="btn-data" class="tab-btn" onclick="switchTab('data')">📋 Данные</button>
+        <button id="btn-tempmail" class="tab-btn" onclick="switchTab('tempmail')">📧 Temp Mail</button>
+        <button id="btn-aichat" class="tab-btn" onclick="switchTab('aichat')">🤖 AI Chat</button>
+        <button id="btn-arizonaai" class="tab-btn" onclick="switchTab('arizonaai')">🌵 Arizona AI</button>
+        <button id="btn-news" class="tab-btn" onclick="switchTab('news')">📰 Новости</button>
     </div>
 
     <div class="modal" id="viewModal">
@@ -1914,57 +1914,28 @@
                     while (container.children.length > 50) {
                         container.removeChild(container.lastChild);
                     }
+                    content.classList.add('active');
+                    // Scroll to top of content
+                    window.scrollTo(0, 0);
+                } else {
+                    console.error('Tab content not found:', `tab-${tab}`);
                 }
 
-                // --- TABS & NAVIGATION ---
-                // --- TABS & NAVIGATION ---
-                // --- TABS & NAVIGATION ---
-                function switchTab(tab, event) {
-                    console.log('Switching to tab:', tab);
-
-                    // Remove active from all
-                    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-                    // Activate button
-                    if (event && event.currentTarget) {
-                        event.currentTarget.classList.add('active');
-                    } else {
-                        // Fallback: Try to find button by text or onclick attribute
-                        const btns = document.querySelectorAll('.tab-btn');
-                        btns.forEach(btn => {
-                            const onclick = btn.getAttribute('onclick');
-                            if (onclick && onclick.includes(`'${tab}'`)) {
-                                btn.classList.add('active');
-                            }
-                        });
-                    }
-
-                    // Activate content
-                    const content = document.getElementById(`tab-${tab}`);
-                    if (content) {
-                        content.classList.add('active');
-                        // Scroll to top of content
-                        window.scrollTo(0, 0);
-                    } else {
-                        console.error('Tab content not found:', `tab-${tab}`);
-                    }
-
-                    // Load tab specific data
-                    if (tab === 'favorites') { loadFavoriteMonitors(); loadFavoriteAccounts(); }
-                    else if (tab === 'arizonaai') { if (typeof loadArizonaServers === 'function') loadArizonaServers(); }
-                    else if (tab === 'news') { loadNews(); }
-                    else if (tab === 'tempmail') {
-                        if (typeof renderAccountsList === 'function') renderAccountsList();
-                        if (typeof tm_accounts !== 'undefined' && tm_accounts.length > 0) checkCurrentMail(true);
-                    } else if (tab === 'profile') {
-                        if (typeof loadGodPrefixes === 'function') loadGodPrefixes();
-                    } else if (tab === 'aichat') {
-                        setTimeout(() => {
-                            const msgs = document.getElementById('ai-messages');
-                            if (msgs) msgs.scrollTop = msgs.scrollHeight;
-                        }, 100);
-                    }
+                // Load tab specific data
+                if (tab === 'favorites') { loadFavoriteMonitors(); loadFavoriteAccounts(); }
+                else if (tab === 'arizonaai') { if (typeof loadArizonaServers === 'function') loadArizonaServers(); }
+                else if (tab === 'news') { loadNews(); }
+                else if (tab === 'tempmail') {
+                    if (typeof renderAccountsList === 'function') renderAccountsList();
+                    if (typeof tm_accounts !== 'undefined' && tm_accounts.length > 0) checkCurrentMail(true);
+                } else if (tab === 'profile') {
+                    if (typeof loadGodPrefixes === 'function') loadGodPrefixes();
+                } else if (tab === 'aichat') {
+                    setTimeout(() => {
+                        const msgs = document.getElementById('ai-messages');
+                        if (msgs) msgs.scrollTop = msgs.scrollHeight;
+                    }, 100);
+                }
                 }
 
                 // --- ARIZONA NEWS FUNCTIONS ---
