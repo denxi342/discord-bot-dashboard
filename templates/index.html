@@ -1968,48 +1968,8 @@
                     container.insertBefore(entry, container.firstChild);
 
                     while (container.children.length > 50) {
-                        container.innerHTML = '<div class="news-loader"><div class="loading-spinner"></div><p style="margin-top:15px;">Загрузка новостей...</p></div>';
-
-                        try {
-                            const res = await fetch('/api/arizona/news');
-                            const data = await res.json();
-
-                            if (data.success && data.news.length > 0) {
-                                container.innerHTML = '';
-                                data.news.forEach(item => {
-                                    let tagClass = 'update';
-                                    if (item.tag === 'Акция') tagClass = 'event';
-                                    if (item.tag === 'Набор') tagClass = 'promo';
-                                    if (item.tag === 'Экономика') tagClass = 'promo';
-
-                                    const html = `
-                                    <div class="news-card">
-                                        <div class="news-image" style="background-image: url('${item.image || 'https://via.placeholder.com/300x180?text=Arizona+RP'}');"></div>
-                                        <div class="news-content">
-                                            <div class="news-meta">
-                                                <span class="news-date">${item.date}</span>
-                                                <span class="news-tag ${tagClass}">${item.tag}</span>
-                                            </div>
-                                            <div class="news-title">${item.title}</div>
-                                            <div class="news-text">${item.summary}</div>
-                                            <div class="news-footer">
-                                                <div class="news-likes">❤️ ${item.likes}</div>
-                                                <button class="news-read-btn" onclick="showToast('Открываю форум...', 'info')">Подробнее</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
-                                    container.innerHTML += html;
-                                });
-                            } else {
-                                container.innerHTML = '<div style="text-align:center; padding: 40px; opacity:0.6;">Новости не найдены</div>';
-                            }
-                        } catch (e) {
-                            console.error(e);
-                            container.innerHTML = '<div style="text-align:center; padding: 40px; opacity:0.6; color:#ff6b6b;">Ошибка загрузки новостей</div>';
-                        }
+                                                container.removeChild(container.lastChild);
                     }
-
                     // --- FAVORITES SYSTEM ---
                     let favorites = JSON.parse(localStorage.getItem('favorites') || '{"monitors": [], "accounts": []}');
 
