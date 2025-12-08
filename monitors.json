@@ -5,10 +5,10 @@
         "name": "\u0430\u0420\u0418\u0417\u041e\u041d\u0410 \u041b\u0418\u0414\u0415\u0420\u042b",
         "added_at": "2025-12-07T04:50:28.001517",
         "status": "offline",
-        "last_checked": "2025-12-08T06:33:49.395874",
+        "last_checked": "2025-12-08T06:43:49.404415",
         "last_status_code": 0,
-        "total_checks": 11,
-        "failed_checks": 11,
+        "total_checks": 13,
+        "failed_checks": 13,
         "uptime_percentage": 0.0,
         "incident_logs": [
             {

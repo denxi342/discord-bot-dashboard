@@ -574,55 +574,69 @@ def api_arizona_rules():
 
 @app.route('/api/arizona/news')
 def api_arizona_news():
-    """Returns Mocked Arizona RP News"""
-    # In a real scenario, this would scrape a forum or VK group.
-    # We will simulate "Live" news.
-    import random
+    """Returns REAL Arizona RP News from VK"""
+    import requests
     
-    current_date = datetime.now()
+    token = '5c8059f45c8059f45c8059f47c5fbdb09955c805c8059f435b61029f3a0276425bc525b'
+    group_domain = 'arizona_rp'
+    version = '5.131'
     
-    news_items = [
-        {
-            'id': 1,
-            'title': 'Масштабное обновление "Halloween 2025"',
-            'date': (current_date - timedelta(days=2)).strftime('%d.%m.%Y'),
-            'tag': 'Обновление',
-            'image': 'https://i.imgur.com/8Qe5x9b.jpeg',
-            'summary': 'Встречайте хэллоуинское обновление! Новые квесты, уникальные аксессуары, зловещий лес и битва с боссами. Успейте нафармить новые монеты до конца месяца!',
-            'likes': random.randint(150, 500)
-        },
-        {
-            'id': 2,
-            'title': 'Акция X4 PayDay на все выходные!',
-            'date': (current_date - timedelta(days=0)).strftime('%d.%m.%Y'),
-            'tag': 'Акция',
-            'image': 'https://i.imgur.com/k9F2WzP.jpeg',
-            'summary': 'В честь дня рождения проекта мы запускаем акцию X4 PayDay и X4 Пополнение счёта на все выходные. Отличный повод прокачать уровень и заработать!',
-            'likes': random.randint(1000, 5000)
-        },
-        {
-            'id': 3,
-            'title': 'Открытие заявок на пост Хелпера',
-            'date': (current_date - timedelta(days=5)).strftime('%d.%m.%Y'),
-            'tag': 'Набор',
-            'image': 'https://i.imgur.com/C4D1h1A.jpeg',
-            'summary': 'Хочешь помогать игрокам и стать частью команды администрации? Открыты заявки на пост хелпера 1 уровня. Требования: 15+ уровень, знание правил, адекватность.',
-            'likes': random.randint(50, 200)
-        },
-        {
-            'id': 4,
-            'title': 'Новые бизнесы в г. Лас-Вентурас',
-            'date': (current_date - timedelta(days=8)).strftime('%d.%m.%Y'),
-            'tag': 'Экономика',
-            'image': 'https://i.imgur.com/71j1XqG.jpeg',
-            'summary': 'Добавлено 5 новых уникальных бизнесов: Аренды лодок, Казино-отели и Тюнинг-ателье. Аукцион начнется в пятницу в 18:00 по МСК.',
-            'likes': random.randint(300, 900)
-        }
-    ]
-    
-    # Simulate loading delay
-    time.sleep(0.5)
-    return jsonify({'success': True, 'news': news_items})
+    try:
+        url = f"https://api.vk.com/method/wall.get?domain={group_domain}&count=10&access_token={token}&v={version}"
+        r = requests.get(url, timeout=5)
+        data = r.json()
+        
+        if 'error' in data:
+            print("VK API Error:", data['error'])
+            return jsonify({'success': False, 'error': 'VK API Error'})
+            
+        posts = data.get('response', {}).get('items', [])
+        news_items = []
+        
+        for p in posts:
+            # Skip ads (marked_as_ads) if needed, but official updates might be marked.
+            
+            # Get Image
+            img_url = 'https://via.placeholder.com/300x180?text=Arizona+RP'
+            if 'attachments' in p:
+                for att in p['attachments']:
+                    if att['type'] == 'photo':
+                        # Get best resolution
+                        sizes = att['photo']['sizes']
+                        img_url = sizes[-1]['url']
+                        break
+            
+            # Determine Tag based on text
+            text = p.get('text', '')
+            tag = 'Новости'
+            if 'обновление' in text.lower(): tag = 'Обновление'
+            elif 'x4' in text.lower() or 'конкурс' in text.lower(): tag = 'Акция'
+            elif 'лидер' in text.lower() or 'заявки' in text.lower(): tag = 'Набор'
+            elif '#arizona' in text.lower(): tag = 'Arizona'
+
+            # Format Date
+            date_str = datetime.fromtimestamp(p['date']).strftime('%d.%m.%Y %H:%M')
+            
+            # Clean text (remove huge links or hashtags at end if possible, but keep simple)
+            summary = text[:150] + '...' if len(text) > 150 else text
+            
+            news_items.append({
+                'id': p['id'],
+                'title': text.split('\n')[0][:50] + '...', # First line as title
+                'date': date_str,
+                'tag': tag,
+                'image': img_url,
+                'summary': summary,
+                'likes': p.get('likes', {}).get('count', 0),
+                'url': f"https://vk.com/wall{p['owner_id']}_{p['id']}"
+            })
+            
+        return jsonify({'success': True, 'news': news_items})
+        
+    except Exception as e:
+        print("News Fetch Error:", e)
+        # Fallback to mock data if API fails
+        return jsonify({'success': False, 'error': str(e)})
 
 
 # Simulation Thread
