@@ -1970,7 +1970,8 @@
                     while (container.children.length > 50) {
                                                 container.removeChild(container.lastChild);
                     }
-                    // --- FAVORITES SYSTEM ---
+                                    }    
+                // --- FAVORITES SYSTEM ---
                     let favorites = JSON.parse(localStorage.getItem('favorites') || '{"monitors": [], "accounts": []}');
 
                     function toggleFavorite(type, id) {
