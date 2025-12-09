@@ -1390,7 +1390,10 @@
                     <textarea id="arizona-rules-input"
                         placeholder="Например: Можно ли убивать в зелёной зоне? Что такое DM? Какой срок бана за читы?"></textarea>
                 </div>
-                <button class="btn btn-success" onclick="checkRules()">⚖️ Проверить правила</button>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="checkRules()">⚖️ Проверить правила</button>
+                    <button class="btn btn-info" onclick="showRulesList()">📜 Список разделов</button>
+                </div>
                 <div class="arizona-result" id="arizona-rules-result" style="display: none;"></div>
             </div>
 

@@ -619,6 +619,13 @@ def api_arizona_rules():
     
     return jsonify({'success': False, 'error': 'Правило не найдено. Попробуйте: DM, RK, PG, MG, SK, TK, читы'})
 
+@app.route('/api/arizona/rules_list', methods=['GET'])
+def api_arizona_rules_list():
+    """Get list of all available rules"""
+    if RULES_DB_LOADED:
+        return jsonify({'success': True, 'response': get_all_rules_list()})
+    return jsonify({'success': False, 'error': 'База правил не загружена'})
+
 
 @app.route('/api/arizona/news')
 def api_arizona_news():

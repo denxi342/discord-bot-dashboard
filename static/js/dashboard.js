@@ -368,6 +368,28 @@ const ArizonaModule = {
         }
     },
 
+    showRulesList: async () => {
+        const result = document.getElementById('arizona-rules-result');
+        result.style.display = 'block';
+        result.innerHTML = '<div class="loading-spinner"></div> Загрузка списка...';
+
+        try {
+            const res = await fetch('/api/arizona/rules_list');
+            const data = await res.json();
+
+            if (data.success) {
+                result.innerHTML = `
+                    <div class="arizona-result">
+                        <div class="rules-content">${Utils.escapeHtml(data.response).replace(/\n/g, '<br>')}</div>
+                    </div>`;
+            } else {
+                result.innerHTML = `<span style="color:#ff6b6b">Ошибка: ${data.error}</span>`;
+            }
+        } catch (e) {
+            result.innerHTML = `<span style="color:#ff6b6b">Ошибка сети: ${e.message}</span>`;
+        }
+    },
+
     calculateBusiness: () => {
         const type = document.getElementById('calc-business-type').value;
         const level = parseInt(document.getElementById('calc-business-level').value) || 1;
@@ -574,6 +596,7 @@ window.askArizonaHelper = ArizonaModule.askHelper;
 window.generateComplaint = ArizonaModule.generateComplaint;
 window.generateLegend = ArizonaModule.generateLegend;
 window.checkRules = ArizonaModule.checkRules;
+window.showRulesList = ArizonaModule.showRulesList;
 window.calculateBusiness = ArizonaModule.calculateBusiness;
 window.calculateFaction = ArizonaModule.calculateFaction;
 // Control
