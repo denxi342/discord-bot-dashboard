@@ -652,6 +652,25 @@ def simulate():
             events = ['User joined', 'Command !help', 'Backup started', 'Error in module X', 'Server restart']
             lvls = ['info', 'info', 'info', 'warning', 'error']
             add_log(random.choice(lvls), random.choice(events))
+        
+        # Emit stats update
+        try:
+            uptime = int(time.time() - bot_status['start_time'])
+            cpu = psutil.cpu_percent(interval=None) or 0
+            mem = psutil.virtual_memory()
+            mem_used = mem.used // (1024 * 1024)
+            
+            socketio.emit('stats_update', {
+                'servers': bot_status['servers'],
+                'users': bot_status['users'],
+                'commands_today': bot_status['commands_today'],
+                'uptime': uptime,
+                'running': bot_status['running'],
+                'cpu_percent': cpu,
+                'memory_used': mem_used
+            })
+        except Exception as e:
+            print(f"Stats emit error: {e}")
 
 threading.Thread(target=simulate, daemon=True).start()
 
