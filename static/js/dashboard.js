@@ -157,6 +157,9 @@ const TabsModule = {
     }
 };
 
+// Expose globally for inline onclicks
+window.switchTab = TabsModule.switchTab;
+
 // --- WEBSOCKET MODULE ---
 const WebSocketModule = {
     socket: null,
@@ -633,4 +636,201 @@ const FavoritesModule = {
 };
 
 // Expose Utils if needed
+// --- CONTROL MODULE ---
+const ControlModule = {
+    controlBot: async (action) => {
+        if (!confirm(`Вы уверены, что хотите ${action} бота?`)) return;
+        Utils.showToast(`Отправка команды: ${action}...`);
+        try {
+            const res = await fetch(`/api/bot/control/${action}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) Utils.showToast(data.message, 'success');
+            else Utils.showToast(data.message || 'Ошибка', 'error');
+        } catch (e) {
+            console.error(e);
+            Utils.showToast('Ошибка сети', 'error');
+        }
+    }
+};
+
+// --- AI CHAT MODULE ---
+const AIChatModule = {
+    send: async () => {
+        const input = document.getElementById('ai-input');
+        const container = document.getElementById('ai-messages');
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        // User Msg
+        AIChatModule.appendMsg(msg, 'user');
+        input.value = '';
+
+        // Loading
+        const loadId = AIChatModule.appendMsg('Печатает...', 'ai', true);
+
+        try {
+            const res = await fetch('/api/ai/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg })
+            });
+            const data = await res.json();
+
+            // Remove loading
+            const loadEl = document.getElementById(loadId);
+            if (loadEl) loadEl.remove();
+
+            if (data.success) {
+                AIChatModule.appendMsg(data.response, 'ai');
+            } else {
+                AIChatModule.appendMsg(`Ошибка: ${data.error}`, 'ai error');
+            }
+        } catch (e) {
+            AIChatModule.appendMsg('Ошибка соединения', 'ai error');
+        }
+    },
+
+    appendMsg: (text, type, isLoading = false) => {
+        const container = document.getElementById('ai-messages');
+        if (!container) return;
+        const div = document.createElement('div');
+        const id = 'msg-' + Date.now();
+        div.id = id;
+        div.className = `ai-message ${type} ${isLoading ? 'loading' : ''}`;
+        div.innerHTML = `<div class="ai-avatar">${type === 'user' ? '👤' : '🤖'}</div><div class="ai-text">${Utils.escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        return id;
+    },
+
+    clear: async () => {
+        if (!confirm('Очистить историю чата?')) return;
+        document.getElementById('ai-messages').innerHTML = ''; // Keep welcome?
+        await fetch('/api/ai/clear', { method: 'POST' });
+        Utils.showToast('Чат очищен', 'success');
+    },
+
+    quickAction: (text) => {
+        const input = document.getElementById('ai-input');
+        input.value = text + ' ';
+        input.focus();
+    }
+};
+
+// --- ADMIN MODULE (God Mode) ---
+const AdminModule = {
+    setPrefix: async () => {
+        const uid = document.getElementById('gm-user-id').value;
+        const prefix = document.getElementById('gm-prefix').value;
+        if (!uid || !prefix) return Utils.showToast('Заполните поля', 'error');
+
+        try {
+            const res = await fetch('/api/admin/set_prefix', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: uid, prefix: prefix })
+            });
+            const data = await res.json();
+            if (data.success) Utils.showToast('Префикс установлен', 'success');
+            else Utils.showToast('Ошибка', 'error');
+        } catch (e) {
+            Utils.showToast('Ошибка сети', 'error');
+        }
+    }
+};
+
+// --- MONITOR LOGS MODULE ---
+const MonitorLogsModule = {
+    currentId: null,
+
+    show: async (id) => {
+        MonitorLogsModule.currentId = id;
+        const modal = document.getElementById('monitorLogsModal');
+        const content = document.getElementById('monitor-logs-content');
+        if (modal) modal.style.display = 'block';
+        if (content) content.innerHTML = 'Загрузка...';
+
+        try {
+            const res = await fetch(`/api/monitors/${id}/logs`);
+            const logs = await res.json();
+            if (content) {
+                content.innerHTML = logs.map(l => `<div>[${l.time}] ${l.status} (${l.code})</div>`).join('') || 'Нет логов';
+            }
+        } catch (e) {
+            if (content) content.innerHTML = 'Ошибка загрузки';
+        }
+    },
+
+    close: () => {
+        const modal = document.getElementById('monitorLogsModal');
+        if (modal) modal.style.display = 'none';
+        MonitorLogsModule.currentId = null;
+    },
+
+    clear: async () => {
+        if (!MonitorLogsModule.currentId) return;
+        try {
+            await fetch(`/api/monitors/${MonitorLogsModule.currentId}/clear-logs`, { method: 'POST' });
+            Utils.showToast('Логи очищены');
+            MonitorLogsModule.show(MonitorLogsModule.currentId); // Reload
+        } catch (e) { }
+    }
+};
+
+// --- EXPOSE GLOBALLY ---
+// Utils
 window.showToast = Utils.showToast;
+// Tabs
+window.switchTab = TabsModule.switchTab;
+// Temp Mail
+window.createTempMail = TempMailModule.create;
+window.checkCurrentMail = TempMailModule.checkMail;
+window.deleteCurrentAccount = TempMailModule.deleteAccount;
+window.copyActiveEmail = () => Utils.copyToClipboard(TempMailModule.accounts[TempMailModule.activeIdx]?.email);
+window.closeReader = () => document.getElementById('tm-reader').style.display = 'none';
+window.clearHistory = () => {
+    if (confirm('Очистить историю?')) {
+        TempMailModule.accounts = [];
+        TempMailModule.activeIdx = 0;
+        TempMailModule.save();
+        Utils.showToast('История очищена');
+    }
+};
+// Favorites / Data
+window.toggleFavorite = FavoritesModule.toggle;
+window.removeMonitor = FavoritesModule.removeMonitor;
+window.viewAccount = FavoritesModule.viewAccount;
+window.addMonitor = async () => {
+    const url = document.getElementById('monitor-url').value;
+    const name = document.getElementById('monitor-name').value;
+    if (!url) return Utils.showToast('URL обязателен');
+    const res = await fetch('/api/monitors/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, name })
+    });
+    const d = await res.json();
+    if (d.success) { Utils.showToast('Монитор добавлен'); FavoritesModule.loadAllMonitors(); }
+    else Utils.showToast(d.error || 'Ошибка', 'error');
+};
+window.exportData = () => window.location.href = '/api/backup'; // Assuming backup route
+// Arizona
+window.selectArizonaTool = ArizonaModule.selectTool;
+window.askArizonaHelper = ArizonaModule.askHelper;
+window.generateComplaint = ArizonaModule.generateComplaint;
+window.generateLegend = ArizonaModule.generateLegend;
+window.checkRules = ArizonaModule.checkRules;
+window.calculateBusiness = ArizonaModule.calculateBusiness;
+window.calculateFaction = ArizonaModule.calculateFaction;
+// Control
+window.controlBot = ControlModule.controlBot;
+// AI Chat
+window.sendAiMessage = AIChatModule.send;
+window.clearAiChat = AIChatModule.clear;
+window.aiQuickAction = AIChatModule.quickAction;
+// Admin
+window.godSetPrefix = AdminModule.setPrefix;
+// Monitor Logs
+window.showMonitorLogs = MonitorLogsModule.show; // Need to check if html uses this
+window.closeMonitorLogsModal = MonitorLogsModule.close;
+window.clearMonitorLogs = MonitorLogsModule.clear;
