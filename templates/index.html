@@ -1565,20 +1565,7 @@
             {% endif %}
         </div>
 
-        <!-- HISTORY MODAL -->
-        <div id="history-modal" onclick="if(event.target === this) toggleHistoryModal()">
-            <div
-                style="background: #1e293b; padding: 30px; border-radius: 16px; width: 500px; max-width: 90%; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 style="margin: 0;">📜 История адресов</h2>
-                    <button class="btn-icon" onclick="toggleHistoryModal()">❌</button>
-                </div>
-                <div id="history-list" style="overflow-y: auto; flex: 1; margin: 0 -10px; padding: 0 10px;"></div>
-                <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
-                    <button class="btn btn-sm btn-danger" onclick="clearHistory()">Очистить историю</button>
-                </div>
-            </div>
-        </div>
+
     </div>
 
     <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=3"></script>
