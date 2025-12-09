@@ -526,45 +526,54 @@ ARIZONA_RULES = {
 # ============ ФУНКЦИЯ ПОИСКА ============
 
 def search_rules(query: str) -> str:
-    """Поиск по базе правил Arizona RP - улучшенный алгоритм"""
+    """Поиск по базе правил Arizona RP - улучшенный алгоритм v2"""
+    import re
     query_lower = query.lower().strip()
     
-    # Разбиваем запрос на отдельные слова для поиска
-    words = query_lower.replace('?', '').replace('!', '').replace(',', '').split()
+    # Разбиваем на слова, игнорируя пунктуацию
+    words = re.findall(r'\w+', query_lower)
     
     results = []
     scores = {}  # Для ранжирования результатов
     
     for key, rule in ARIZONA_RULES.items():
         score = 0
-        
-        # 1. Прямое совпадение с ключом (высший приоритет)
-        if key in query_lower:
+        rule_lower_content = rule.get("content", "").lower()
+        rule_lower_title = rule.get("title", "").lower()
+        keywords = [k.lower() for k in rule.get("keywords", [])]
+
+        # 1. Прямое совпадение с ключом (dm, sk, tk)
+        if key == query_lower:
+            score += 200
+        elif key in words:
             score += 100
+        elif key in query_lower: # "что такое дм" -> "дм" inside
+             score += 50
         
-        # 2. Проверка каждого слова запроса
+        # 2. Проверка ключевых слов
+        for keyword in keywords:
+            if keyword == query_lower:
+                score += 150
+            elif keyword in words:
+                score += 80
+            elif keyword in query_lower:
+                score += 40
+                
+        # 3. Проверка каждого слова запроса
         for word in words:
+            if len(word) < 2: continue # skip 1 letter words
+            
             # Совпадение с ключом
-            if word == key or word in key:
+            if word == key:
                 score += 50
             
             # Совпадение с ключевыми словами
-            keywords = rule.get("keywords", [])
-            for keyword in keywords:
-                if word in keyword or keyword in word:
-                    score += 30
-                if word == keyword:
-                    score += 50
+            if word in keywords:
+                score += 40
             
             # Совпадение с заголовком
-            title_lower = rule.get("title", "").lower()
-            if word in title_lower:
+            if word in rule_lower_title:
                 score += 20
-            
-            # Совпадение с содержимым
-            content_lower = rule.get("content", "").lower()
-            if word in content_lower:
-                score += 5
         
         if score > 0:
             scores[key] = score
@@ -572,20 +581,16 @@ def search_rules(query: str) -> str:
     # Сортируем по релевантности
     sorted_keys = sorted(scores.keys(), key=lambda k: scores[k], reverse=True)
     
-    # Берём топ результаты с минимальным порогом
-    for key in sorted_keys[:3]:
-        if scores[key] >= 10:  # Минимальный порог релевантности
-            results.append(ARIZONA_RULES[key])
-    
-    if not results:
+    # Берём топ результат (если уверенный) или топ-3
+    if not sorted_keys:
         return None
-    
-    # Формируем красивый вывод
-    output = ""
-    for rule in results:
-        output += rule['content'].strip() + "\n\n"
-    
-    return output.strip()
+        
+    best_key = sorted_keys[0]
+    if scores[best_key] >= 40: # Если хороший матч
+        return ARIZONA_RULES[best_key]['content']
+            
+    # Если результат слабый, возвращаем None, пусть AI думает
+    return None
 
 
 def get_all_rules_list() -> str:
