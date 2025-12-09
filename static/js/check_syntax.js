@@ -7,20 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Dashboard Initializing...');
 
     // Initialize Modules
-    try {
-        if (typeof TabsModule !== 'undefined') TabsModule.init();
-        if (typeof WebSocketModule !== 'undefined') WebSocketModule.init();
-        if (typeof ArizonaModule !== 'undefined') ArizonaModule.init();
-        if (typeof TempMailModule !== 'undefined') TempMailModule.init();
-        if (typeof FavoritesModule !== 'undefined') FavoritesModule.init();
-        if (typeof UIModule !== 'undefined') UIModule.init();
-    } catch (e) {
-        console.error('Critical Init Error:', e);
-        // Fallback for UI if Utils is available
-        if (typeof Utils !== 'undefined') {
-            Utils.showToast('Ошибка инициализации: ' + e.message, 'error');
-        }
-    }
+    TabsModule.init();
+    WebSocketModule.init();
+    ArizonaModule.init();
+    TempMailModule.init();
+    FavoritesModule.init();
+    UIModule.init();
 });
 
 // --- CORE UTILS ---
@@ -58,11 +50,8 @@ const UIModule = {
         if (themeBtn) {
             themeBtn.addEventListener('click', UIModule.toggleTheme);
             // Restore theme
-            try {
-                const savedTheme = localStorage.getItem('theme') || 'dark';
-                if (savedTheme === 'light') document.body.classList.add('light-theme');
-            } catch (e) { console.warn('Theme load error:', e); }
-
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            if (savedTheme === 'light') document.body.classList.add('light-theme');
             UIModule.updateThemeIcon();
         }
 
@@ -84,9 +73,7 @@ const UIModule = {
     toggleTheme: () => {
         document.body.classList.toggle('light-theme');
         const isLight = document.body.classList.contains('light-theme');
-        try {
-            localStorage.setItem('theme', isLight ? 'light' : 'dark');
-        } catch (e) { console.warn('Theme save error:', e); }
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
         UIModule.updateThemeIcon();
     },
 
@@ -374,23 +361,10 @@ const ArizonaModule = {
 
 // --- TEMP MAIL MODULE ---
 const TempMailModule = {
-    accounts: [],
-    activeIdx: 0,
-
-    initData: () => {
-        try {
-            TempMailModule.accounts = JSON.parse(localStorage.getItem('tm_accounts') || '[]');
-            TempMailModule.activeIdx = parseInt(localStorage.getItem('tm_active_idx') || '0');
-        } catch (e) {
-            console.error('TempMail data corrupted', e);
-            TempMailModule.accounts = [];
-            TempMailModule.activeIdx = 0;
-        }
-    },
+    accounts: JSON.parse(localStorage.getItem('tm_accounts') || '[]'),
+    activeIdx: parseInt(localStorage.getItem('tm_active_idx') || '0'),
 
     init: () => {
-        TempMailModule.initData();
-
         window.createTempMail = TempMailModule.create;
         window.checkCurrentMail = TempMailModule.checkMail;
         window.deleteCurrentAccount = TempMailModule.deleteAccount;
@@ -401,10 +375,8 @@ const TempMailModule = {
     },
 
     save: () => {
-        try {
-            localStorage.setItem('tm_accounts', JSON.stringify(TempMailModule.accounts));
-            localStorage.setItem('tm_active_idx', TempMailModule.activeIdx);
-        } catch (e) { console.error('TM Save error', e); }
+        localStorage.setItem('tm_accounts', JSON.stringify(TempMailModule.accounts));
+        localStorage.setItem('tm_active_idx', TempMailModule.activeIdx);
         TempMailModule.renderList();
     },
 
@@ -527,30 +499,16 @@ const TempMailModule = {
 
 // --- FAVORITES MODULE ---
 const FavoritesModule = {
-    data: { monitors: [], accounts: [] },
-
-    initData: () => {
-        try {
-            FavoritesModule.data = JSON.parse(localStorage.getItem('favorites') || '{"monitors": [], "accounts": []}');
-            if (!FavoritesModule.data.monitors) FavoritesModule.data.monitors = [];
-            if (!FavoritesModule.data.accounts) FavoritesModule.data.accounts = [];
-        } catch (e) {
-            console.error('Favorites corrupted', e);
-            FavoritesModule.data = { monitors: [], accounts: [] };
-        }
-    },
+    data: JSON.parse(localStorage.getItem('favorites') || '{"monitors": [], "accounts": []}'),
 
     init: () => {
-        FavoritesModule.initData();
         window.toggleFavorite = FavoritesModule.toggle;
         window.removeMonitor = FavoritesModule.removeMonitor; // Proxy logic
         window.viewAccount = FavoritesModule.viewAccount; // Proxy logic
     },
 
     save: () => {
-        try {
-            localStorage.setItem('favorites', JSON.stringify(FavoritesModule.data));
-        } catch (e) { console.error('Fav save error', e); }
+        localStorage.setItem('favorites', JSON.stringify(FavoritesModule.data));
     },
 
     toggle: (type, id) => {
