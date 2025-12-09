@@ -279,6 +279,50 @@ const ArizonaModule = {
             target.style.display = 'block';
             target.classList.add('fade-in');
         }
+
+        if (toolId === 'news') ArizonaModule.loadNews();
+    },
+
+    loadNews: async () => {
+        const grid = document.getElementById('arizona-news-grid');
+        const loading = document.getElementById('arizona-news-loading');
+
+        // Don't reload if already populated (optional, but good for perf)
+        if (grid.children.length > 0) return;
+
+        grid.style.display = 'none';
+        loading.style.display = 'block';
+
+        try {
+            const res = await fetch('/api/arizona/news');
+            const data = await res.json();
+
+            loading.style.display = 'none';
+            grid.style.display = 'grid';
+
+            if (data.success && data.news.length > 0) {
+                grid.innerHTML = data.news.map(item => `
+                    <div class="news-card" style="background:rgba(255,255,255,0.05); border-radius:15px; overflow:hidden; transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <img src="${item.image}" style="width:100%; height:160px; object-fit:cover;">
+                        <div style="padding:15px;">
+                            <div style="font-size:12px; opacity:0.7; margin-bottom:5px;">
+                                <span style="background:${item.tag === 'Обновление' ? '#ef4444' : '#3b82f6'}; padding:2px 8px; border-radius:4px; color:white;">${item.tag}</span>
+                                <span style="margin-left:8px;">${item.date}</span>
+                            </div>
+                            <h4 style="margin:10px 0; font-size:16px;">${item.title}</h4>
+                            <p style="font-size:13px; opacity:0.8; line-height:1.4;">${item.summary}</p>
+                            <a href="${item.url}" target="_blank" style="display:inline-block; margin-top:10px; color:#60a5fa; font-size:13px;">Читать далее &rarr;</a>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px;">Новостей пока нет или ошибка загрузки.</div>`;
+            }
+        } catch (e) {
+            loading.style.display = 'none';
+            grid.style.display = 'block';
+            grid.innerHTML = `<div style="color:#ff6b6b; text-align:center;">Ошибка загрузки новостей: ${e.message}</div>`;
+        }
     },
 
     // --- Tools Implementation ---

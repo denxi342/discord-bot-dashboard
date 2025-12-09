@@ -1300,14 +1300,18 @@
             <div class="arizona-tools">
                 <div class="arizona-tool-card active" onclick="selectArizonaTool('helper', this)">
                     <div class="arizona-tool-icon">🎮</div>
-                    <div class="arizona-tool-title">Помощник по игре</div>
-                    <div class="arizona-tool-desc">Ответы на вопросы по серверу, системам, для новичков</div>
+                    <div class="arizona-tool-title">Помощник</div>
+                    <div class="arizona-tool-desc">Ответы на вопросы</div>
                 </div>
-
+                <div class="arizona-tool-card" onclick="selectArizonaTool('news', this)">
+                    <div class="arizona-tool-icon">📰</div>
+                    <div class="arizona-tool-title">Новости</div>
+                    <div class="arizona-tool-desc">Обновления и акции</div>
+                </div>
                 <div class="arizona-tool-card" onclick="selectArizonaTool('complaint', this)">
                     <div class="arizona-tool-icon">📜</div>
-                    <div class="arizona-tool-title">Помощь с жалобами</div>
-                    <div class="arizona-tool-desc">Составление жалоб, проверка нарушений правил</div>
+                    <div class="arizona-tool-title">Жалобы</div>
+                    <div class="arizona-tool-desc">Генератор жалоб</div>
                 </div>
 
                 <div class="arizona-tool-card" onclick="selectArizonaTool('legend', this)">
@@ -1461,10 +1465,23 @@
                             <div class="calc-result-label">Зарплата</div>
                         </div>
                         <div class="calc-result-box">
-                            <div class="calc-result-value" id="calc-faction-paycheck">$0</div>
-                            <div class="calc-result-label">Пейдей (каждые 30 мин)</div>
+                            <div class="stat-value" id="calc-faction-paycheck">$0</div>
+                            <div class="stat-label">Зарплата в PayDay (без премии)</div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- News Tool -->
+            <div class="arizona-workspace" id="arizona-tool-news" style="display: none;">
+                <h3>📰 Новости Arizona RP</h3>
+                <div id="arizona-news-loading" class="text-center" style="padding: 40px;">
+                    <div class="loading-spinner"></div>
+                    <p style="margin-top: 15px; opacity: 0.7;">Загрузка новостей из VK...</p>
+                </div>
+                <div class="arizona-news-grid" id="arizona-news-grid"
+                    style="display: none; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- News items will be here -->
                 </div>
             </div>
         </div>
