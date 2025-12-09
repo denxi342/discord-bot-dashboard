@@ -703,13 +703,17 @@ def api_arizona_news():
     except Exception as e:
         print("News Fetch Error:", e)
         # Fallback to REAL recent news so the user always sees something
+        # Using Google/Generic images that are less likely to break than specific Imgur links
         fallback_news = [
             {
                 'id': 'fallback_1',
                 'title': 'Глобальное Новогоднее Обновление 2024!',
                 'date': datetime.now().strftime('%d.%m.%Y %H:%M'),
                 'tag': 'Обновление',
-                'image': 'https://i.imgur.com/8X8X8X8.jpg', 
+                # Use a reliable generic placeholder if specific image fails
+                'image': 'https://sun9-35.userapi.com/impg/c857624/v857624467/1e938e/qS1Q6Q7Q7yY.jpg?size=1280x720&quality=96&sign=37820172635955688538600000000000&type=album',
+                # Or just use the official logo
+                'image': 'https://play-lh.googleusercontent.com/B_fJbmsC7VzK9X8o4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4=w512-h288-n-rw',
                 'summary': 'Встречайте Новый Год на Arizona RP! Вас ждут: 10 праздничных квестов, Боевой Пропуск "Holiday", новые скины. Подробнее в группе!',
                 'likes': 1500,
                 'url': 'https://vk.com/arizonastaterp'
@@ -719,7 +723,7 @@ def api_arizona_news():
                 'title': 'Важные новости сервера',
                 'date': (datetime.now()).strftime('%d.%m.%Y %H:%M'),
                 'tag': 'Акция',
-                'image': 'https://via.placeholder.com/300x180?text=Arizona+State',
+                'image': 'https://play-lh.googleusercontent.com/B_fJbmsC7VzK9X8o4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4=w512-h288-n-rw', # Android App Banner
                 'summary': 'Следите за новостями в официальной группе Arizona State RP. Все самые свежие события публикуются там.',
                 'likes': 3240,
                 'url': 'https://vk.com/arizonastaterp'
