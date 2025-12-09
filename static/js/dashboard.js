@@ -288,12 +288,24 @@ const ArizonaModule = {
         if (!input || !input.value.trim()) return Utils.showToast('Введите вопрос', 'error');
 
         result.style.display = 'block';
-        result.textContent = 'Думаю... (эмуляция)';
+        result.innerHTML = '<div class="loading-spinner"></div> Думаю...';
 
-        // Mock API call
-        setTimeout(() => {
-            result.innerHTML = `<strong>Ответ AI:</strong><br>Для вашего вопроса "${Utils.escapeHtml(input.value)}" рекомендуется обратиться к /help в игре.`;
-        }, 1000);
+        try {
+            const res = await fetch('/api/arizona/helper', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: input.value })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                result.innerHTML = `<strong>Ответ (${data.source === 'database' ? 'База' : 'AI'}):</strong><br>${Utils.escapeHtml(data.response).replace(/\n/g, '<br>')}`;
+            } else {
+                result.innerHTML = `<span style="color:#ff6b6b">Ошибка: ${data.error}</span>`;
+            }
+        } catch (e) {
+            result.innerHTML = `<span style="color:#ff6b6b">Ошибка сети: ${e.message}</span>`;
+        }
     },
 
     generateComplaint: () => {
@@ -325,11 +337,35 @@ const ArizonaModule = {
         result.innerHTML = `Био для ${name}, ${age} лет... (Тут будет текст)`;
     },
 
-    checkRules: () => {
+    checkRules: async () => {
         const q = document.getElementById('arizona-rules-input').value;
         const result = document.getElementById('arizona-rules-result');
+        if (!q.trim()) return Utils.showToast('Введите запрос', 'error');
+
         result.style.display = 'block';
-        result.innerText = `Поиск правил по запросу: ${q}...`;
+        result.innerHTML = '<div class="loading-spinner"></div> Поиск правил...';
+
+        try {
+            const res = await fetch('/api/arizona/rules', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: q })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                result.innerHTML = `
+                    <div class="arizona-result">
+                        <h3>Результат поиска:</h3>
+                        <div class="rules-content">${Utils.escapeHtml(data.response).replace(/\n/g, '<br>')}</div>
+                        <div style="font-size:0.8em; opacity:0.7; margin-top:10px;">Источник: ${data.source === 'database' ? 'Локальная база' : 'AI Assistant'}</div>
+                    </div>`;
+            } else {
+                result.innerHTML = `<span style="color:#ff6b6b">Ошибка: ${data.error}</span>`;
+            }
+        } catch (e) {
+            result.innerHTML = `<span style="color:#ff6b6b">Ошибка сети: ${e.message}</span>`;
+        }
     },
 
     calculateBusiness: () => {
@@ -355,6 +391,18 @@ const ArizonaModule = {
         document.getElementById('calc-faction-salary').textContent = `$${salary}`;
         document.getElementById('calc-faction-paycheck').textContent = `$${Math.floor(salary / 2)}`; // Payday usually half hourly or full hourly logic
     }
+};
+
+
+// --- TEMP MAIL MODULE (Stub/Placeholder to fix ReferenceError) ---
+const TempMailModule = {
+    accounts: [],
+    activeIdx: 0,
+    init: () => { console.log("TempMail Stub Initialized"); }, // Add real logic if code is found
+    create: () => { Utils.showToast('Функция временно отключена для отладки', 'warning'); },
+    checkMail: () => { Utils.showToast('Функция временно отключена для отладки', 'warning'); },
+    deleteAccount: () => { Utils.showToast('Функция временно отключена для отладки', 'warning'); },
+    save: () => { }
 };
 
 
