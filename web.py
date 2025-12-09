@@ -637,15 +637,31 @@ def api_arizona_news():
     try:
         # Use VK RSS feed - no token needed!
         # TARGET GROUP: https://vk.com/arizonastaterp
-        url = "https://vk.com/rss.php?domain=arizonastaterp"
+        # Numeric ID commonly found for State RP: 168097969
+        urls_to_try = [
+            "https://vk.com/rss.php?owner_id=-168097969", # Arizona State RP (Numeric ID)
+            "https://vk.com/rss.php?domain=arizonastaterp" # Domain fallback
+        ]
         
         # User-Agent is often required to avoid 403 Forbidden on RSS feeds
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         
-        r = requests.get(url, headers=headers, timeout=10)
-        
+        r = None
+        for url in urls_to_try:
+            try:
+                print(f"Trying RSS: {url}")
+                temp_r = requests.get(url, headers=headers, timeout=5)
+                if temp_r.status_code == 200 and '<channel>' in temp_r.text:
+                    r = temp_r
+                    break
+            except:
+                continue
+                
+        if not r:
+            raise Exception("All RSS sources failed")
+            
         # Use raw content in bytes for ElementTree to handle encoding declarations automatically
         root = ET.fromstring(r.content)
         
