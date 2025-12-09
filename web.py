@@ -636,7 +636,8 @@ def api_arizona_news():
     
     try:
         # Use VK RSS feed - no token needed!
-        url = "https://vk.com/rss.php?domain=arizona_rp"
+        # TARGET GROUP: https://vk.com/arizonastaterp
+        url = "https://vk.com/rss.php?domain=arizonastaterp"
         
         # User-Agent is often required to avoid 403 Forbidden on RSS feeds
         headers = {
@@ -646,7 +647,6 @@ def api_arizona_news():
         r = requests.get(url, headers=headers, timeout=10)
         
         # Use raw content in bytes for ElementTree to handle encoding declarations automatically
-        # caused by <?xml version="1.0" encoding="windows-1251"?>
         root = ET.fromstring(r.content)
         
         news_items = []
@@ -661,11 +661,9 @@ def api_arizona_news():
             description = item.find('description').text or ""
             pub_date = item.find('pubDate').text
             
-            # Extract Image from description via Regex (VK puts img in description html)
-            # Standard RSS might not have image, but VK usually embeds it in description 
+            # Extract Image
             img_match = re.search(r'src="(https://[^"]+)"', description)
             if not img_match:
-                 # Try finding <enclosure> tag which is standard for RSS images
                  enclosure = item.find('enclosure')
                  if enclosure is not None and 'image' in enclosure.get('type', ''):
                      img_url = enclosure.get('url')
@@ -674,24 +672,23 @@ def api_arizona_news():
             else:
                  img_url = img_match.group(1)
             
-            # Clean HTML from description for summary
+            # Clean HTML
             summary = re.sub(r'<[^>]+>', '', description)
             summary = summary.replace('&nbsp;', ' ').strip()
             summary = summary[:150] + '...' if len(summary) > 150 else summary
             
-            # Determine Tag
+            # Tag logic
             tag = 'Новости'
             lower_text = (title + summary).lower()
             if 'обновление' in lower_text: tag = 'Обновление'
             elif 'x4' in lower_text or 'конкурс' in lower_text: tag = 'Акция'
             elif 'лидер' in lower_text or 'заявки' in lower_text: tag = 'Набор'
 
-            # Parse Date logic...
-            # Just keep original string if parsing fails
-            date_str = pub_date[:25] # Truncate +0300 parts if messy
+            # Date logic
+            date_str = pub_date[:25] 
 
             news_items.append({
-                'id': link, # Use link as ID
+                'id': link,
                 'title': title,
                 'date': date_str,
                 'tag': tag,
@@ -712,20 +709,20 @@ def api_arizona_news():
                 'title': 'Глобальное Новогоднее Обновление 2024!',
                 'date': datetime.now().strftime('%d.%m.%Y %H:%M'),
                 'tag': 'Обновление',
-                'image': 'https://i.imgur.com/8X8X8X8.jpg', # Placeholder or real static image
-                'summary': 'Встречайте Новый Год на Arizona RP! Вас ждут: 10 праздничных квестов, Боевой Пропуск "Holiday", новые скины, автомобили и уникальные аксессуары. Успейте активировать промокоды и получить подарки!',
+                'image': 'https://i.imgur.com/8X8X8X8.jpg', 
+                'summary': 'Встречайте Новый Год на Arizona RP! Вас ждут: 10 праздничных квестов, Боевой Пропуск "Holiday", новые скины. Подробнее в группе!',
                 'likes': 1500,
-                'url': 'https://vk.com/arizona_rp'
+                'url': 'https://vk.com/arizonastaterp'
             },
             {
                 'id': 'fallback_2',
-                'title': 'Акции x4 PayDay и Пополнение',
+                'title': 'Важные новости сервера',
                 'date': (datetime.now()).strftime('%d.%m.%Y %H:%M'),
                 'tag': 'Акция',
-                'image': 'https://via.placeholder.com/300x180?text=x4+Event',
-                'summary': 'На всех серверах включена акция x4 PayDay и x4 пополнение счёта! Отличная возможность прокачать уровень и заработать денег. Не упустите шанс!',
+                'image': 'https://via.placeholder.com/300x180?text=Arizona+State',
+                'summary': 'Следите за новостями в официальной группе Arizona State RP. Все самые свежие события публикуются там.',
                 'likes': 3240,
-                'url': 'https://vk.com/arizona_rp'
+                'url': 'https://vk.com/arizonastaterp'
             }
         ]
         return jsonify({'success': True, 'news': fallback_news})
