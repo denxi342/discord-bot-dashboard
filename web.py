@@ -637,18 +637,23 @@ def api_arizona_news():
     try:
         # Use VK RSS feed - no token needed!
         url = "https://vk.com/rss.php?domain=arizona_rp"
-        r = requests.get(url, timeout=10)
         
-        # Manually decode to ensure utf-8 (VK RSS sometimes implies windows-1251)
-        r.encoding = 'windows-1251' # VK RSS is usually windows-1251
+        # User-Agent is often required to avoid 403 Forbidden on RSS feeds
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
         
-        root = ET.fromstring(r.text)
+        r = requests.get(url, headers=headers, timeout=10)
+        
+        # Use raw content in bytes for ElementTree to handle encoding declarations automatically
+        # caused by <?xml version="1.0" encoding="windows-1251"?>
+        root = ET.fromstring(r.content)
         
         news_items = []
         channel = root.find('channel')
         
         if not channel:
-             return jsonify({'success': False, 'error': 'RSS format invalid'})
+             return jsonify({'success': False, 'error': 'RSS: Channel not found'})
 
         for item in channel.findall('item')[:10]:
             title = item.find('title').text or "News"
@@ -657,11 +662,21 @@ def api_arizona_news():
             pub_date = item.find('pubDate').text
             
             # Extract Image from description via Regex (VK puts img in description html)
+            # Standard RSS might not have image, but VK usually embeds it in description 
             img_match = re.search(r'src="(https://[^"]+)"', description)
-            img_url = img_match.group(1) if img_match else 'https://via.placeholder.com/300x180?text=Arizona+RP'
+            if not img_match:
+                 # Try finding <enclosure> tag which is standard for RSS images
+                 enclosure = item.find('enclosure')
+                 if enclosure is not None and 'image' in enclosure.get('type', ''):
+                     img_url = enclosure.get('url')
+                 else:
+                     img_url = 'https://via.placeholder.com/300x180?text=Arizona+RP'
+            else:
+                 img_url = img_match.group(1)
             
             # Clean HTML from description for summary
             summary = re.sub(r'<[^>]+>', '', description)
+            summary = summary.replace('&nbsp;', ' ').strip()
             summary = summary[:150] + '...' if len(summary) > 150 else summary
             
             # Determine Tag
@@ -671,15 +686,9 @@ def api_arizona_news():
             elif 'x4' in lower_text or 'конкурс' in lower_text: tag = 'Акция'
             elif 'лидер' in lower_text or 'заявки' in lower_text: tag = 'Набор'
 
-            # Parse Date (RFC 822)
-            # Example: Tue, 03 Dec 2024 12:00:00 +0300
-            try:
-                # Simple parsing or just string
-                # We can just keep the string or try to format it
-                dt = datetime.strptime(pub_date, '%a, %d %b %Y %H:%M:%S %z')
-                date_str = dt.strftime('%d.%m.%Y %H:%M')
-            except:
-                date_str = pub_date
+            # Parse Date logic...
+            # Just keep original string if parsing fails
+            date_str = pub_date[:25] # Truncate +0300 parts if messy
 
             news_items.append({
                 'id': link, # Use link as ID
@@ -688,7 +697,7 @@ def api_arizona_news():
                 'tag': tag,
                 'image': img_url,
                 'summary': summary,
-                'likes': 0, # RSS doesn't have likes
+                'likes': 0, 
                 'url': link
             })
             
