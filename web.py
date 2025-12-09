@@ -7,6 +7,7 @@ import requests
 from datetime import datetime, timedelta
 import threading
 import os
+import concurrent.futures
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'super-secret-key-change-me-123')
@@ -400,6 +401,23 @@ def api_ai_clear():
     
     return jsonify({'success': True})
 
+@app.route('/api/debug/arizona')
+def api_debug_arizona():
+    """Debug endpoint to check internal state"""
+    try:
+        from arizona_rules import search_rules as sr
+        test_search = sr("dm")
+        search_status = "OK" if test_search else "FAIL (returned None)"
+    except Exception as e:
+        search_status = f"ERROR: {e}"
+        
+    return jsonify({
+        "rules_loaded": RULES_DB_LOADED,
+        "ai_enabled": AI_MODEL is not None,
+        "search_test_dm": search_status,
+        "rules_count": len(ARIZONA_RULES) if RULES_DB_LOADED else 0
+    })
+
 
 # --- ARIZONA AI API ---
 
@@ -428,9 +446,14 @@ def api_arizona_helper():
     
     # First try local rules database
     if RULES_DB_LOADED:
-        result = search_rules(question)
-        if result:
-            return jsonify({'success': True, 'response': result, 'source': 'database'})
+        try:
+            result = search_rules(question)
+            if result:
+                return jsonify({'success': True, 'response': result, 'source': 'database'})
+        except Exception as e:
+            print(f"Error in search_rules: {e}")
+            # Continue to AI fallback if local search fails unexpectedly
+
     
     # Fallback to AI if available
     if AI_MODEL:
@@ -447,8 +470,15 @@ def api_arizona_helper():
 
 Дай полезный и точный ответ:"""
             
-            response = AI_MODEL.generate_content(prompt)
+            # Run AI with timeout to prevent eternal loading
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(AI_MODEL.generate_content, prompt)
+                response = future.result(timeout=10) # 10 seconds timeout
+            
             return jsonify({'success': True, 'response': response.text, 'source': 'ai'})
+            
+        except concurrent.futures.TimeoutError:
+            return jsonify({'success': False, 'error': 'Сервер перегружен. Попробуйте сформулировать вопрос короче (Timeout).'})
         except Exception as e:
             error_msg = str(e)
             if '429' in error_msg:
@@ -546,9 +576,13 @@ def api_arizona_rules():
     
     # First try local rules database
     if RULES_DB_LOADED:
-        result = search_rules(question)
-        if result:
-            return jsonify({'success': True, 'response': result, 'source': 'database'})
+        try:
+            result = search_rules(question)
+            if result:
+                return jsonify({'success': True, 'response': result, 'source': 'database'})
+        except Exception:
+            pass # Fail silently to AI
+
     
     # Fallback to AI
     if AI_MODEL:
@@ -569,8 +603,15 @@ def api_arizona_rules():
 
 Дай чёткий ответ: это нарушение или нет? Какое правило? Какое наказание?"""
             
-            response = AI_MODEL.generate_content(prompt)
+            # Run AI with timeout to prevent eternal loading
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(AI_MODEL.generate_content, prompt)
+                response = future.result(timeout=10) # 10 seconds timeout
+            
             return jsonify({'success': True, 'response': response.text, 'source': 'ai'})
+            
+        except concurrent.futures.TimeoutError:
+            return jsonify({'success': False, 'error': 'Сервер перегружен. Попробуйте сформулировать вопрос короче (Timeout).'})
         except Exception as e:
             if '429' in str(e):
                 return jsonify({'success': False, 'error': 'Лимит AI. Используйте ключевые слова: DM, RK, PG, читы, капт'})

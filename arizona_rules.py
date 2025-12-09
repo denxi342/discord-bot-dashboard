@@ -538,9 +538,6 @@ def search_rules(query: str) -> str:
     # Разбиваем на слова, игнорируя пунктуацию
     words = re.findall(r'\w+', query_lower)
     
-    print(f"[RULES DEBUG] Searching for: '{query_lower}'")
-    print(f"[RULES DEBUG] Words: {words}")
-    
     scores = {}  # Для ранжирования результатов
     
     for key, rule in ARIZONA_RULES.items():
@@ -589,12 +586,10 @@ def search_rules(query: str) -> str:
     sorted_keys = sorted(scores.keys(), key=lambda k: scores[k], reverse=True)
     
     if not sorted_keys:
-        print("[RULES DEBUG] No matches found.")
         return None
         
     best_key = sorted_keys[0]
     best_score = scores[best_key]
-    print(f"[RULES DEBUG] Best match: '{best_key}' with score {best_score}")
     
     if best_score >= 30: # Slightly lowered threshold
         return ARIZONA_RULES[best_key]['content']
