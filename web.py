@@ -629,69 +629,74 @@ def api_arizona_rules_list():
 
 @app.route('/api/arizona/news')
 def api_arizona_news():
-    """Returns REAL Arizona RP News from VK"""
+    """Returns REAL Arizona RP News from VK (via RSS)"""
     import requests
-    
-    token = '5c8059f45c8059f45c8059f47c5fbdb09955c805c8059f435b61029f3a0276425bc525b'
-    group_domain = 'arizona_rp'
-    version = '5.131'
+    import xml.etree.ElementTree as ET
+    import re
     
     try:
-        url = f"https://api.vk.com/method/wall.get?domain={group_domain}&count=10&access_token={token}&v={version}"
-        r = requests.get(url, timeout=5)
-        data = r.json()
+        # Use VK RSS feed - no token needed!
+        url = "https://vk.com/rss.php?domain=arizona_rp"
+        r = requests.get(url, timeout=10)
         
-        if 'error' in data:
-            print("VK API Error:", data['error'])
-            return jsonify({'success': False, 'error': 'VK API Error'})
-            
-        posts = data.get('response', {}).get('items', [])
+        # Manually decode to ensure utf-8 (VK RSS sometimes implies windows-1251)
+        r.encoding = 'windows-1251' # VK RSS is usually windows-1251
+        
+        root = ET.fromstring(r.text)
+        
         news_items = []
+        channel = root.find('channel')
         
-        for p in posts:
-            # Skip ads (marked_as_ads) if needed, but official updates might be marked.
-            
-            # Get Image
-            img_url = 'https://via.placeholder.com/300x180?text=Arizona+RP'
-            if 'attachments' in p:
-                for att in p['attachments']:
-                    if att['type'] == 'photo':
-                        # Get best resolution
-                        sizes = att['photo']['sizes']
-                        img_url = sizes[-1]['url']
-                        break
-            
-            # Determine Tag based on text
-            text = p.get('text', '')
-            tag = 'Новости'
-            if 'обновление' in text.lower(): tag = 'Обновление'
-            elif 'x4' in text.lower() or 'конкурс' in text.lower(): tag = 'Акция'
-            elif 'лидер' in text.lower() or 'заявки' in text.lower(): tag = 'Набор'
-            elif '#arizona' in text.lower(): tag = 'Arizona'
+        if not channel:
+             return jsonify({'success': False, 'error': 'RSS format invalid'})
 
-            # Format Date
-            date_str = datetime.fromtimestamp(p['date']).strftime('%d.%m.%Y %H:%M')
+        for item in channel.findall('item')[:10]:
+            title = item.find('title').text or "News"
+            link = item.find('link').text
+            description = item.find('description').text or ""
+            pub_date = item.find('pubDate').text
             
-            # Clean text (remove huge links or hashtags at end if possible, but keep simple)
-            summary = text[:150] + '...' if len(text) > 150 else text
+            # Extract Image from description via Regex (VK puts img in description html)
+            img_match = re.search(r'src="(https://[^"]+)"', description)
+            img_url = img_match.group(1) if img_match else 'https://via.placeholder.com/300x180?text=Arizona+RP'
             
+            # Clean HTML from description for summary
+            summary = re.sub(r'<[^>]+>', '', description)
+            summary = summary[:150] + '...' if len(summary) > 150 else summary
+            
+            # Determine Tag
+            tag = 'Новости'
+            lower_text = (title + summary).lower()
+            if 'обновление' in lower_text: tag = 'Обновление'
+            elif 'x4' in lower_text or 'конкурс' in lower_text: tag = 'Акция'
+            elif 'лидер' in lower_text or 'заявки' in lower_text: tag = 'Набор'
+
+            # Parse Date (RFC 822)
+            # Example: Tue, 03 Dec 2024 12:00:00 +0300
+            try:
+                # Simple parsing or just string
+                # We can just keep the string or try to format it
+                dt = datetime.strptime(pub_date, '%a, %d %b %Y %H:%M:%S %z')
+                date_str = dt.strftime('%d.%m.%Y %H:%M')
+            except:
+                date_str = pub_date
+
             news_items.append({
-                'id': p['id'],
-                'title': text.split('\n')[0][:50] + '...', # First line as title
+                'id': link, # Use link as ID
+                'title': title,
                 'date': date_str,
                 'tag': tag,
                 'image': img_url,
                 'summary': summary,
-                'likes': p.get('likes', {}).get('count', 0),
-                'url': f"https://vk.com/wall{p['owner_id']}_{p['id']}"
+                'likes': 0, # RSS doesn't have likes
+                'url': link
             })
             
         return jsonify({'success': True, 'news': news_items})
         
     except Exception as e:
         print("News Fetch Error:", e)
-        # Fallback to mock data if API fails
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': f"RSS Error: {str(e)}"})
 
 
 # Simulation Thread
