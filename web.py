@@ -703,29 +703,36 @@ def api_arizona_news():
     except Exception as e:
         print("News Fetch Error:", e)
         # Fallback to REAL recent news so the user always sees something
-        # Using Google/Generic images that are less likely to break than specific Imgur links
+        # Using LOCAL image to guarantee it works.
         fallback_news = [
             {
                 'id': 'fallback_1',
-                'title': 'Глобальное Новогоднее Обновление 2024!',
+                'title': 'Новости Arizona State',
                 'date': datetime.now().strftime('%d.%m.%Y %H:%M'),
-                'tag': 'Обновление',
-                # Use a reliable generic placeholder if specific image fails
-                'image': 'https://sun9-35.userapi.com/impg/c857624/v857624467/1e938e/qS1Q6Q7Q7yY.jpg?size=1280x720&quality=96&sign=37820172635955688538600000000000&type=album',
-                # Or just use the official logo
-                'image': 'https://play-lh.googleusercontent.com/B_fJbmsC7VzK9X8o4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4=w512-h288-n-rw',
-                'summary': 'Встречайте Новый Год на Arizona RP! Вас ждут: 10 праздничных квестов, Боевой Пропуск "Holiday", новые скины. Подробнее в группе!',
-                'likes': 1500,
+                'tag': 'Важно',
+                'image': '/static/img/arizona_logo.png', 
+                'summary': 'Следите за всеми актуальными новостями, обновлениями правил и важными событиями сервера в нашей официальной группе ВКонтакте.',
+                'likes': 100,
                 'url': 'https://vk.com/arizonastaterp'
             },
             {
                 'id': 'fallback_2',
-                'title': 'Важные новости сервера',
+                'title': 'Технический раздел',
                 'date': (datetime.now()).strftime('%d.%m.%Y %H:%M'),
-                'tag': 'Акция',
-                'image': 'https://play-lh.googleusercontent.com/B_fJbmsC7VzK9X8o4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4qZ4=w512-h288-n-rw', # Android App Banner
-                'summary': 'Следите за новостями в официальной группе Arizona State RP. Все самые свежие события публикуются там.',
-                'likes': 3240,
+                'tag': 'Info',
+                'image': '/static/img/arizona_logo.png',
+                'summary': 'Если у вас возникли технические проблемы или вопросы по донату, обратитесь в технический раздел на форуме или в группе.',
+                'likes': 50,
+                'url': 'https://vk.com/arizonastaterp'
+            },
+             {
+                'id': 'fallback_3',
+                'title': 'Как начать играть?',
+                'date': (datetime.now()).strftime('%d.%m.%Y %H:%M'),
+                'tag': 'Гайд',
+                'image': '/static/img/arizona_logo.png',
+                'summary': 'Скачивайте лаунчер, регистрируйтесь на сервере Arizona State и вводите промокоды для быстрого старта!',
+                'likes': 200,
                 'url': 'https://vk.com/arizonastaterp'
             }
         ]
