@@ -1331,6 +1331,12 @@
                     <div class="arizona-tool-title">Калькуляторы</div>
                     <div class="arizona-tool-desc">Расчёт бизнесов, зарплат, стоимости</div>
                 </div>
+
+                <div class="arizona-tool-card" onclick="selectArizonaTool('smi', this)">
+                    <div class="arizona-tool-icon">📰</div>
+                    <div class="arizona-tool-title">Помощник СМИ</div>
+                    <div class="arizona-tool-desc">Редактор (ПРО)</div>
+                </div>
             </div>
 
             <!-- Helper Tool -->
@@ -1468,6 +1474,33 @@
                             <div class="stat-value" id="calc-faction-paycheck">$0</div>
                             <div class="stat-label">Зарплата в PayDay (без премии)</div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SMI Tool -->
+            <div class="arizona-workspace" id="arizona-tool-smi" style="display: none;">
+                <h3>📰 Помощник СМИ (ПРО)</h3>
+                <div class="arizona-input-group">
+                    <label>Текст объявления:</label>
+                    <textarea id="smi-text" placeholder="Пример: продам нрг 500 50кк торг"
+                        style="min-height: 100px;"></textarea>
+                </div>
+                <button class="btn btn-success" onclick="editAd()">✨ Отредактировать</button>
+
+                <div class="arizona-result" id="smi-result" style="display: none;">
+                    <h3>✅ Результат:</h3>
+                    <div id="smi-output"
+                        style="font-size: 18px; font-weight: bold; margin: 10px 0; padding:10px; background:rgba(0,0,0,0.2); border-radius:8px; cursor: pointer;"
+                        onclick="copySmiResult()" title="Нажмите чтобы скопировать"></div>
+                    <p style="font-size: 12px; opacity: 0.6;">Нажмите на текст для копирования.</p>
+                </div>
+
+                <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                    <h4>📚 Краткая справка (ПРО/ППЭ)</h4>
+                    <div id="smi-rules-content"
+                        style="max-height: 200px; overflow-y: auto; font-size: 13px; opacity: 0.8; margin-top: 10px; white-space: pre-wrap;">
+                        Загрузка правил при первом использовании...
                     </div>
                 </div>
             </div>

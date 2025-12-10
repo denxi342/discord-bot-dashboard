@@ -456,6 +456,57 @@ const ArizonaModule = {
 
         document.getElementById('calc-faction-salary').textContent = `$${salary}`;
         document.getElementById('calc-faction-paycheck').textContent = `$${Math.floor(salary / 2)}`; // Payday usually half hourly or full hourly logic
+    },
+
+    // --- SMI Tool ---
+    editAd: async () => {
+        const input = document.getElementById('smi-text');
+        const result = document.getElementById('smi-result');
+        const output = document.getElementById('smi-output');
+
+        if (!input || !input.value.trim()) return Utils.showToast('Введите текст объявления', 'error');
+
+        result.style.display = 'block';
+        output.innerHTML = '<div class="loading-spinner"></div> Редактирую...';
+
+        try {
+            const res = await fetch('/api/arizona/smi/edit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: input.value })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                output.textContent = data.response;
+                ArizonaModule.loadSmiRules();
+            } else {
+                output.innerHTML = `<span style="color:#ff6b6b">Ошибка: ${data.error}</span>`;
+            }
+        } catch (e) {
+            output.innerHTML = `<span style="color:#ff6b6b">Ошибка сети: ${e.message}</span>`;
+        }
+    },
+
+    loadSmiRules: async () => {
+        const container = document.getElementById('smi-rules-content');
+        if (!container || container.getAttribute('data-loaded') === 'true') return;
+
+        try {
+            const res = await fetch('/api/arizona/smi/data');
+            const data = await res.json();
+            if (data.ppe_summary) {
+                container.innerHTML = Utils.escapeHtml(data.ppe_summary).replace(/\n/g, '<br>');
+                container.setAttribute('data-loaded', 'true');
+            }
+        } catch (e) {
+            console.error('Failed to load SMI rules', e);
+        }
+    },
+
+    copySmiResult: () => {
+        const text = document.getElementById('smi-output').textContent;
+        if (text && !text.includes('Редактирую')) Utils.copyToClipboard(text);
     }
 };
 
@@ -643,6 +694,8 @@ window.checkRules = ArizonaModule.checkRules;
 window.showRulesList = ArizonaModule.showRulesList;
 window.calculateBusiness = ArizonaModule.calculateBusiness;
 window.calculateFaction = ArizonaModule.calculateFaction;
+window.editAd = ArizonaModule.editAd;
+window.copySmiResult = ArizonaModule.copySmiResult;
 // Control
 window.controlBot = ControlModule.controlBot;
 // AI Chat
