@@ -677,7 +677,56 @@ def api_arizona_smi_edit():
         response = AI_MODEL.generate_content(prompt)
         return jsonify({'success': True, 'response': response.text.strip()})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)[:200]})
+        # Fallback to Regex if AI fails (e.g. Quota Exceeded)
+        print(f"AI Error: {e}, using fallback")
+        
+        fallback_text = text
+        
+        # Dictionary of common Arizona substitutions
+        subs = {
+            r'\bнрг\b': 'м/ц NRG-500',
+            r'\bбулет\b': 'а/м Bullet',
+            r'\bинфернус\b': 'а/м Infernus',
+            r'\bкловер\b': 'а/м Clover',
+            r'\bлс\b': 'г. Лос-Сантос',
+            r'\bсф\b': 'г. Сан-Фиерро',
+            r'\bлв\b': 'г. Лас-Вентурас',
+            r'\bцр\b': 'центрального рынка',
+            r'\bаб\b': 'автобазара',
+            r'\bгетто\b': 'опасного района',
+            r'\bакс\b': 'а/с',
+            r'\bтт\b': 'TwinTurbo',
+            r'\bфт\b': 'Full Tune',
+            r'\bп\b': 'Продам',
+            r'\bк\b': 'Куплю',
+            r'\bобменяю\b': 'Обменяю',
+            r'\bторг\b': 'Цена: Договорная',
+            r'\bбез торга\b': 'Цена: Окончательная'
+        }
+        
+        # Simple cleanup
+        if not any(x in fallback_text.lower() for x in ['продам', 'куплю', 'обменяю']):
+            fallback_text = "Продам/Куплю " + fallback_text
+            
+        import re
+        for pattern, replacement in subs.items():
+            fallback_text = re.sub(pattern, replacement, fallback_text, flags=re.IGNORECASE)
+            
+        # Capitalize first letter
+        fallback_text = fallback_text[0].upper() + fallback_text[1:]
+        
+        # Add price stub if missing
+        if 'цена' not in fallback_text.lower() and 'бюджет' not in fallback_text.lower():
+            if 'куплю' in fallback_text.lower():
+                fallback_text += ". Бюджет: Свободный"
+            else:
+                fallback_text += ". Цена: Договорная"
+
+        return jsonify({
+            'success': True, 
+            'response': f"{fallback_text} (Offline Mode)", 
+            'source': 'fallback'
+        })
 
 @app.route('/api/arizona/smi/data')
 def api_arizona_smi_data():
