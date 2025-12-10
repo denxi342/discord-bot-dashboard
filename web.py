@@ -682,21 +682,48 @@ def api_arizona_smi_edit():
         
         fallback_text = text
         
-        # Dictionary of common Arizona substitutions
+        # Dictionary of common Arizona substitutions (Enhanced)
         subs = {
+            # Vehicles - Generic
+            r'\bавто\b': 'а/м',
+            r'\bмашину\b': 'а/м',
+            r'\bтачку\b': 'а/м',
+            r'\bмото\b': 'м/ц',
+            r'\bбайк\b': 'м/ц',
+            r'\bвелик\b': 'в/т',
+            r'\bвелосипед\b': 'в/т',
+            r'\bвертолет\b': 'в/т',
+            r'\bлодка\b': 'л/т',
+            r'\bлодку\b': 'л/т',
+            r'\bсамолет\b': 'с/т',
+
+            # Junk words to remove
+            r'\bмарки\b': '', 
+            r'\bфирмы\b': '',
+
+            # Common Vehicles (Specific)
             r'\bнрг\b': 'м/ц NRG-500',
             r'\bбулет\b': 'а/м Bullet',
             r'\bинфернус\b': 'а/м Infernus',
             r'\bкловер\b': 'а/м Clover',
+            r'\bмавер\b': 'в/т Maverick',
+            r'\bгорник\b': 'в/т Mountain Bike',
+
+            # Locations
             r'\bлс\b': 'г. Лос-Сантос',
             r'\bсф\b': 'г. Сан-Фиерро',
             r'\bлв\b': 'г. Лас-Вентурас',
             r'\bцр\b': 'центрального рынка',
             r'\bаб\b': 'автобазара',
             r'\bгетто\b': 'опасного района',
+
+            # Accessories & Tuning
             r'\bакс\b': 'а/с',
             r'\bтт\b': 'TwinTurbo',
             r'\bфт\b': 'Full Tune',
+            r'\bстейдж\b': 'Stage',
+
+            # Action verbs & Pricing
             r'\bп\b': 'Продам',
             r'\bк\b': 'Куплю',
             r'\bобменяю\b': 'Обменяю',
@@ -704,16 +731,26 @@ def api_arizona_smi_edit():
             r'\bбез торга\b': 'Цена: Окончательная'
         }
         
-        # Simple cleanup
+        # Simple cleanup - Pre-parsing
+        # If user asks "How to edit...", try to extract quotes
+        import re
+        quote_match = re.search(r'["\'](.*?)["\']', fallback_text)
+        if quote_match:
+            fallback_text = quote_match.group(1)
+
+        # Standard processing
         if not any(x in fallback_text.lower() for x in ['продам', 'куплю', 'обменяю']):
             fallback_text = "Продам/Куплю " + fallback_text
             
-        import re
         for pattern, replacement in subs.items():
             fallback_text = re.sub(pattern, replacement, fallback_text, flags=re.IGNORECASE)
             
+        # Clean up double spaces created by removal
+        fallback_text = re.sub(r'\s+', ' ', fallback_text).strip()
+        
         # Capitalize first letter
-        fallback_text = fallback_text[0].upper() + fallback_text[1:]
+        if fallback_text:
+            fallback_text = fallback_text[0].upper() + fallback_text[1:]
         
         # Add price stub if missing
         if 'цена' not in fallback_text.lower() and 'бюджет' not in fallback_text.lower():
