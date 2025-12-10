@@ -78,7 +78,15 @@ def dashboard():
     }
     auth_url = requests.Request('GET', AUTHORIZATION_BASE_URL, params=params).prepare().url
     
-    return render_template('index.html', user=user, auth_url=auth_url)
+    # Calculate uptime
+    uptime_seconds = int(time.time() - bot_status['start_time'])
+    uptime_str = str(timedelta(seconds=uptime_seconds)).split('.')[0] # Format hh:mm:ss
+    
+    return render_template('index.html', 
+                            user=user, 
+                            auth_url=auth_url, 
+                            server_status="Online" if bot_status['running'] else "Offline",
+                            uptime=uptime_str)
 
 @app.route('/arizona')
 def arizona_page():
