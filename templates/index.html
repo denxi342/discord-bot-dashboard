@@ -13,12 +13,10 @@
     <style>
         :root {
             --bg-color: #0b0c10;
-            /* Deep Dark Blue/Black */
             --card-bg: rgba(11, 12, 16, 0.75);
             --border-color: rgba(69, 162, 158, 0.2);
             --text-primary: #c5c6c7;
             --text-secondary: #66fcf1;
-            /* Neon Teal */
             --accent-color: #45a29e;
         }
 
@@ -39,7 +37,6 @@
             position: relative;
         }
 
-        /* CANVAS */
         #plexus-canvas {
             position: fixed;
             top: 0;
@@ -50,7 +47,6 @@
             pointer-events: none;
         }
 
-        /* LAYOUT */
         .app-container {
             max-width: 1440px;
             margin: 0 auto;
@@ -63,7 +59,6 @@
             z-index: 2;
         }
 
-        /* CARDS */
         .spotlight-card {
             background-color: var(--card-bg);
             backdrop-filter: blur(8px);
@@ -86,7 +81,6 @@
             height: 100%;
         }
 
-        /* SIDEBAR */
         .sidebar {
             position: sticky;
             top: 40px;
@@ -139,7 +133,6 @@
             border-color: var(--text-secondary);
         }
 
-        /* TEXT & INPUTS */
         .main-header {
             margin-bottom: 40px;
             border-bottom: 1px solid var(--border-color);
@@ -236,7 +229,6 @@
             }
         }
 
-        /* LOGS */
         #log-container {
             font-family: 'Courier New', monospace;
             font-size: 12px;
@@ -261,7 +253,6 @@
     <canvas id="plexus-canvas"></canvas>
 
     <div class="app-container">
-        <!-- SIDEBAR -->
         <aside class="sidebar">
             <div class="brand"><i class="fa-solid fa-atom"></i>&nbsp;CORE AI</div>
             <nav class="nav-menu">
@@ -277,7 +268,6 @@
             </nav>
         </aside>
 
-        <!-- MAIN -->
         <main>
             <div id="arizona-tool-dashboard" class="arizona-workspace active">
                 <header class="main-header">
@@ -340,16 +330,15 @@
         </main>
     </div>
 
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=8"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=9"></script>
 
-    <!-- PLEXUS ENGINE -->
     <script>
         const canvas = document.getElementById('plexus-canvas');
         const ctx = canvas.getContext('2d');
         let width, height;
         let particles = [];
-         // MOUSE INTERACTION
-        const mouse = { x: null, y: null, radius: 150 }; // Radius of connection
+
+        const mouse = { x: null, y: null, radius: 150 };
         window.addEventListener('mousemove', e => { mouse.x = e.x; mouse.y = e.y; });
         window.addEventListener('mouseout', () => { mouse.x = null; mouse.y = null; });
 
@@ -364,27 +353,25 @@
             constructor() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.vx = (Math.random() - 0.5) * 0.5; // Slow movement
+                this.vx = (Math.random() - 0.5) * 0.5;
                 this.vy = (Math.random() - 0.5) * 0.5;
-                this.size = Math.random() * 2 + 0.5; // Tiny dots
-                this.color = '#c5c6c7'; // Light grey
+                this.size = Math.random() * 2 + 0.5;
+                this.color = '#c5c6c7';
             }
             update() {
                 this.x += this.vx; this.y += this.vy;
-                // Bounce
-                if(thi s.x < 0 || this.x > width) this.vx *= -1;
-                if(thi s.y < 0 || this.y > height) this.vy *= -1;
-                 // MOUSE REACTION (Attraction)
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+
                 if (mouse.x != null) {
                     let dx = mouse.x - this.x;
                     let dy = mouse.y - this.y;
-                    let distance = Math.sqrt(dx*dx  +  dy*dy) ; 
+                    let distance = Math.sqrt(dx * dx + dy * dy);
                     if (distance < mouse.radius) {
-                        // Gentle pull towards mouse
                         const forceDirectionX = dx / distance;
                         const forceDirectionY = dy / distance;
                         const force = (mouse.radius - distance) / mouse.radius;
-                        const strength = 0.05; // strength of pull
+                        const strength = 0.05;
                         this.vx += forceDirectionX * force * strength;
                         this.vy += forceDirectionY * force * strength;
                     }
@@ -401,67 +388,67 @@
         function initParticles() {
             particles = [];
             let numberOfParticles = (width * height) / 9000;
-            for(let i=0; i<numberOfParticles; i++) par ticles . push ( new Particle());
+            for (let i = 0; i < numberOfParticles; i++) particles.push(new Particle());
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            ctx.clearRect(0,0,width,height);
-            
-              for(l et i=0; iength; i++) {
-                     particles[i].update();
+            ctx.clearRect(0, 0, width, height);
+
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
                 particles[i].draw();
 
-                // Draw lines between particles
-                for(let j=i; j<particles.length; j++) {
-                         const dx = particles[i].x - particles[j].x;
+                for (let j = i; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
                     const dy = particles[i].y - particles[j].y;
-                    const distance = Math.sqrt(dx*dx + dy*dy);
-                    
-                       {
-                         ctx.beginPath();
-                        ctx.strokeStyle = `rgba(69, 162, 158, ${1 - distance/100})`; // Teal lines
-                          ctx.lineWidth = 0.5;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 100) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(69, 162, 158, ${1 - distance / 100})`;
+                        ctx.lineWidth = 0.5;
                         ctx.moveTo(particles[i].x, particles[i].y);
                         ctx.lineTo(particles[j].x, particles[j].y);
                         ctx.stroke();
                     }
                 }
-                
-                // Dra
+
                 if (mouse.x != null) {
                     const dx = particles[i].x - mouse.x;
                     const dy = particles[i].y - mouse.y;
-                    const distance = Math.sqrt(dx*dx + dy*dy);
-                    if (d i stance  <  mouse.radius) {
-                         ctx.beginPath(                           ctx.strokeStyl                        ${1 - distance/mouse.radius})`; // Bright Neon lines  t o mouse
-                         ctx.lineWidth                              ctx.moveTo(particles[i].x, particles[i].y                           ctx.lineTo(mouse.x, mouse.y);
-                                   );
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < mouse.radius) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(102, 252, 241, ${1 - distance / mouse.radius})`;
+                        ctx.lineWidth = 1;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(mouse.x, mouse.y);
+                        ctx.stroke();
                     }
-                             }
+                }
+            }
         }
 
         initParticles();
         animate();
 
-        // UI Helpers
         window.ArizonaModule = {
             selectTool: (id, el) => {
                 document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-                if(el) el.classList.add('active');
-                document.querySel ectorAll('.arizona-workspace').forEach(x => x.classList.remove('active'));
-                const t = document.getElementById('arizona-tool-'+id);
-                if(t) t.classList.add('active');
-                  if(id==='news' && w indow.loadNews) window.loadNews();
+                if (el) el.classList.add('active');
+                document.querySelectorAll('.arizona-workspace').forEach(x => x.classList.remove('active'));
+                const t = document.getElementById('arizona-tool-' + id);
+                if (t) t.classList.add('active');
+                if (id === 'news' && window.loadNews) window.loadNews();
             }
-           };
-        // Re-bind loadNews when dashboard.js makes it available
+        };
         const checkLoadNews = setInterval(() => {
-             if(window.loadNews) { clearInterval(checkLoadNews); }
-             else if(window.ArizonaModule && window.ArizonaModule.loadNews) { 
-                   wi ndow.loadNews = window.A rizonaModule.loadNews;
-                 clearInterval(c heckLoadNews);
-             }
+            if (window.loadNews) { clearInterval(checkLoadNews); }
+            else if (window.ArizonaModule && window.ArizonaModule.loadNews) {
+                window.loadNews = window.ArizonaModule.loadNews;
+                clearInterval(checkLoadNews);
+            }
         }, 500);
     </script>
 </body>
