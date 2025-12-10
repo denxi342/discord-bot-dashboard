@@ -677,12 +677,67 @@ def api_arizona_smi_edit():
         response = AI_MODEL.generate_content(prompt)
         return jsonify({'success': True, 'response': response.text.strip()})
     except Exception as e:
-        # Fallback to Regex if AI fails (e.g. Quota Exceeded)
+        # Fallback to Regex if AI fails
         print(f"AI Error: {e}, using fallback")
         
         fallback_text = text
+        import re
         
-        # Dictionary of common Arizona substitutions (Comprehensive PRO)
+        # --- PHASE 0: Pre-cleanup ---
+        fallback_text = re.sub(r'\s+', ' ', fallback_text).strip()
+        # Quote extraction
+        quote_match = re.search(r'["\'](.*?)["\']', fallback_text)
+        if quote_match and len(quote_match.group(1)) > 3:
+            fallback_text = quote_match.group(1)
+
+        # --- PHASE 1: Vehicle Auto-Tagging (New Feature) ---
+        try:
+            from arizona_vehicles import VEHICLES, PREFIX_MAP
+            
+            words = fallback_text.split()
+            new_words = []
+            skip_next = False
+            
+            for i, word in enumerate(words):
+                if skip_next:
+                    skip_next = False
+                    continue
+                    
+                # Clean punctuation for lookup
+                clean_word = re.sub(r'[^\w\d]', '', word).lower()
+                
+                # Check if this word is a known vehicle
+                found_type = None
+                found_name = None
+                
+                # Check single words first
+                for v_type, v_list in VEHICLES.items():
+                    if clean_word in v_list:
+                        found_type = v_type
+                        found_name = word # Keep original case/punct if simple match
+                        break
+                
+                # Logic: If found vehicle, check if previous word was already a prefix
+                if found_type:
+                    prefix = PREFIX_MAP[found_type]
+                    # Check if previous word in new_words is the prefix
+                    prev_word = new_words[-1].lower() if new_words else ""
+                    
+                    # Don't add prefix if already exists (e.g. "а/м infernus")
+                    # Also handle "авто" -> "а/м" later, so just check generically
+                    if prefix.split('/')[0] not in prev_word and "авто" not in prev_word:
+                         new_words.append(prefix)
+                    
+                    new_words.append(word.title()) # Capitalize vehicle name
+                else:
+                    new_words.append(word)
+            
+            fallback_text = " ".join(new_words)
+            
+        except ImportError:
+            print("Vehicle DB not found, skipping auto-tagging")
+
+        # --- PHASE 2: Standard Substitions (PRO Rules) ---
         subs = {
             # 4.0 - 4.38 Specific Replacements
             r'\bнабор в семью\b': 'семья ищет родственников',
