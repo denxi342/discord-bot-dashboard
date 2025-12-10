@@ -679,6 +679,14 @@ def api_arizona_smi_edit():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)[:200]})
 
+@app.route('/api/arizona/smi/data')
+def api_arizona_smi_data():
+    """Get SMI Data (Rules logic)"""
+    return jsonify({
+        'ppe_summary': PPE_TEXT if SMI_RULES_LOADED else "Правила не загружены",
+        'templates': ETHER_TEMPLATES if SMI_RULES_LOADED else {}
+    })
+
 
 @app.route('/api/arizona/news')
 def api_arizona_news():
