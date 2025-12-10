@@ -691,19 +691,21 @@ def api_arizona_smi_edit():
             fallback_text = quote_match.group(1)
 
         # --- PHASE 1: Vehicle Auto-Tagging (New Feature) ---
+        # --- PHASE 1: Vehicle Auto-Tagging (New Feature) ---
         # Removed try-catch to expose errors
         try:
             import arizona_vehicles
             # Reload in case of hot-reload issues
             import importlib
             importlib.reload(arizona_vehicles)
-            from arizona_vehicles import VEHICLES, PREFIX_MAP
+            from arizona_vehicles import VEHICLES, PREFIX_MAP, FULL_NAMES
             
             db_status = "DB_OK"
         except ImportError as e:
             db_status = f"DB_FAIL_{str(e)}"
             VEHICLES = {}
             PREFIX_MAP = {}
+            FULL_NAMES = {}
 
         words = fallback_text.split()
         new_words = []
@@ -719,14 +721,18 @@ def api_arizona_smi_edit():
             
             # Check if this word is a known vehicle
             found_type = None
-            found_name = None
+            found_name = word # Default to original word
             
-            # Check single words first
+            # 1. Check for Full Name Expansion first
+            if clean_word in FULL_NAMES:
+                found_name = FULL_NAMES[clean_word] # Replace "g63" -> "Mercedes-AMG G 63"
+            
+            # 2. Check type (using clean_word OR the new expanded name parts if needed)
+            # We stick to clean_word for type lookup because map keys match vehicle lists mostly
             if VEHICLES:
                 for v_type, v_list in VEHICLES.items():
                     if clean_word in v_list:
                         found_type = v_type
-                        found_name = word 
                         break
             
             # Logic: If found vehicle, check if previous word was already a prefix
@@ -734,14 +740,17 @@ def api_arizona_smi_edit():
                 prefix = PREFIX_MAP[found_type]
                 prev_word_raw = new_words[-1].lower() if new_words else ""
                 
-                # Check for existing prefixes (including user typo variants if needed)
-                # But mostly check for standard ones
+                # Check for existing prefixes
                 bg_prefix_exists = any(p in prev_word_raw for p in ['а/м', 'м/ц', 'в/т', 'л/т', 'с/м', 'авто', 'мото'])
                 
                 if not bg_prefix_exists:
                      new_words.append(prefix)
                 
-                new_words.append(word.title()) 
+                # If name was expanded, use it. If not, title case the original.
+                if clean_word in FULL_NAMES:
+                    new_words.append(found_name)
+                else:
+                    new_words.append(word.title()) 
             else:
                 new_words.append(word)
         

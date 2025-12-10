@@ -88,6 +88,121 @@ VEHICLES = {
     ]
 }
 
+# Mapping: Slang/Short -> Full Official Name
+FULL_NAMES = {
+    # Mercedes
+    'g63': 'Mercedes-AMG G 63',
+    'гелик': 'Mercedes-AMG G 63',
+    'g-class': 'Mercedes-AMG G 63',
+    'e63': 'Mercedes-AMG E 63',
+    'cls': 'Mercedes-Benz CLS',
+    'maybach': 'Mercedes-Benz Maybach',
+    'майбах': 'Mercedes-Benz Maybach',
+    's-class': 'Mercedes-Benz S-Class',
+    'shark': 'Mercedes-Benz GT63 (Shark)',
+    'акула': 'Mercedes-Benz GT63 (Shark)',
+    
+    # BMW
+    'm5': 'BMW M5 f90',
+    'm5cs': 'BMW M5 CS',
+    'm3': 'BMW M3',
+    'm4': 'BMW M4',
+    'm8': 'BMW M8',
+    'x5': 'BMW X5',
+    'x6': 'BMW X6',
+    'x5m': 'BMW X5M',
+    'x6m': 'BMW X6M',
+    'e34': 'BMW 5-Series E34',
+    'e39': 'BMW 5-Series E39',
+    'e60': 'BMW 5-Series E60',
+    
+    # Audi
+    'rs6': 'Audi RS6',
+    'rs7': 'Audi RS7',
+    'r8': 'Audi R8',
+    'q7': 'Audi Q7',
+    'q8': 'Audi Q8',
+    
+    # Porsche
+    '911': 'Porsche 911',
+    'cayenne': 'Porsche Cayenne',
+    'кайен': 'Porsche Cayenne',
+    'panamera': 'Porsche Panamera',
+    'панамера': 'Porsche Panamera',
+    'taycan': 'Porsche Taycan',
+    'тайкан': 'Porsche Taycan',
+    
+    # Tesla
+    'cybertruck': 'Tesla Cybertruck',
+    'кибертрак': 'Tesla Cybertruck',
+    'model x': 'Tesla Model X',
+    'model s': 'Tesla Model S',
+    
+    # Supercars
+    'chiron': 'Bugatti Chiron',
+    'широн': 'Bugatti Chiron',
+    'veyron': 'Bugatti Veyron',
+    'дейво': 'Bugatti Divo',
+    'divo': 'Bugatti Divo',
+    'bolide': 'Bugatti Bolide',
+    'aventador': 'Lamborghini Aventador',
+    'авентадор': 'Lamborghini Aventador',
+    'urus': 'Lamborghini Urus',
+    'урус': 'Lamborghini Urus',
+    'huracan': 'Lamborghini Huracan',
+    'хуракан': 'Lamborghini Huracan',
+    'laferrari': 'Ferrari LaFerrari',
+    'p1': 'McLaren P1',
+    '720s': 'McLaren 720S',
+    
+    # Luxury
+    'cullinan': 'Rolls-Royce Cullinan',
+    'куллинан': 'Rolls-Royce Cullinan',
+    'phantom': 'Rolls-Royce Phantom',
+    'фантом': 'Rolls-Royce Phantom',
+    'ghost': 'Rolls-Royce Ghost',
+    'wraith': 'Rolls-Royce Wraith',
+    'bentayga': 'Bentley Bentayga',
+    'бентайга': 'Bentley Bentayga',
+    
+    # Popular
+    'lc200': 'Toyota Land Cruiser 200',
+    'lc300': 'Toyota Land Cruiser 300',
+    'крузак': 'Toyota Land Cruiser',
+    'camry': 'Toyota Camry',
+    'камри': 'Toyota Camry',
+    'supra': 'Toyota Supra A90',
+    'супра': 'Toyota Supra',
+    'gtr': 'Nissan GT-R',
+    'гтр': 'Nissan GT-R',
+    'evo': 'Mitsubishi Lancer Evolution',
+    'лансер': 'Mitsubishi Lancer',
+    'sti': 'Subaru WRX STI',
+    'subaru': 'Subaru Impreza',
+    'субару': 'Subaru Impreza',
+    
+    # Bikes
+    'nrg': 'NRG-500',
+    'нрг': 'NRG-500',
+    'fcr': 'FCR-900',
+    'pcj': 'PCJ-600',
+    'bf': 'BF-400',
+    'санчез': 'Sanchez',
+    
+    # Helis
+    'мавер': 'Maverick',
+    'маверик': 'Maverick',
+    'sparrow': 'Sparrow',
+    'ат-99': 'AT-99 Scorpion',
+    'at99': 'AT-99 Scorpion',
+    'skorpion': 'AT-99 Scorpion',
+    'скорпион': 'AT-99 Scorpion',
+    
+    # Other
+    'горник': 'Mountain Bike',
+    'велик': 'Mountain Bike'
+}
+
 # Mapping: If found -> Prefix with this
 PREFIX_MAP = {
     'cars': 'а/м',
