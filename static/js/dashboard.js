@@ -281,6 +281,7 @@ const ArizonaModule = {
         }
 
         if (toolId === 'news') ArizonaModule.loadNews();
+        if (toolId === 'smi') ArizonaModule.loadSmiRules();
     },
 
     loadNews: async () => {
