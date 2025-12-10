@@ -429,8 +429,22 @@ except ImportError:
     RULES_DB_LOADED = False
     ARIZONA_RULES = {}
 
-ARIZONA_SYSTEM_PROMPT = """Ты - умный помощник по игровому серверу Arizona RP (SAMP).
+# Import SMI Rules
+try:
+    from smi_rules_db import PPE_TEXT, PRO_TEXT, ETHER_TEMPLATES
+    SMI_RULES_LOADED = True
+except ImportError:
+    SMI_RULES_LOADED = False
+    PPE_TEXT = ""
+    PRO_TEXT = ""
+    ETHER_TEMPLATES = {}
+
+ARIZONA_SYSTEM_PROMPT = f"""Ты - умный помощник по игровому серверу Arizona RP (SAMP).
 Твоя задача - отвечать на вопросы игроков по правилам, командам и системам сервера.
+У тебя есть доступ к базе правил СМИ (ППЭ и ПРО):
+{PPE_TEXT[:1000] if SMI_RULES_LOADED else ""}
+{PRO_TEXT[:1000] if SMI_RULES_LOADED else ""}
+
 Используй свои знания о SAMP и Arizona RP.
 Если вопрос касается нарушения (DM, TK, SK и т.д.) - объясни что это и какое обычно наказание (Деморган/Варн).
 Отвечай вежливо, кратко и полезно. Не советуй просто смотреть /help, старайся дать ответ сразу."""
@@ -450,9 +464,8 @@ def api_arizona_helper():
             result = search_rules(question)
             if result:
                 return jsonify({'success': True, 'response': result, 'source': 'database'})
-        except Exception as e:
-            print(f"Error in search_rules: {e}")
-            # Continue to AI fallback if local search fails unexpectedly
+        except Exception:
+            pass # Fail silently to AI
 
     
     # Fallback to AI if available
@@ -482,7 +495,7 @@ def api_arizona_helper():
         except Exception as e:
             error_msg = str(e)
             if '429' in error_msg:
-                return jsonify({'success': False, 'error': 'Лимит запросов AI превышен. Попробуйте позже или задайте вопрос по правилам (DM, RK, PG, читы и т.д.)'})
+                return jsonify({'success': False, 'error': 'Лимит запросов AI превышен. Попробуйте позже или задайте вопрос по правилам (DM, RK, PG, читы и т.d.)'})
             return jsonify({'success': False, 'error': str(e)[:200]})
     
     return jsonify({'success': False, 'error': 'Не найдено в базе. Попробуйте: DM, RK, PG, читы, капт, полиция, жалоба'})
@@ -625,6 +638,46 @@ def api_arizona_rules_list():
     if RULES_DB_LOADED:
         return jsonify({'success': True, 'response': get_all_rules_list()})
     return jsonify({'success': False, 'error': 'База правил не загружена'})
+
+
+@app.route('/api/arizona/smi/edit', methods=['POST'])
+def api_arizona_smi_edit():
+    """Smart Ad Editor using AI"""
+    if not AI_MODEL:
+        return jsonify({'success': False, 'error': 'AI не настроен'})
+    
+    data = request.json
+    text = data.get('text', '').strip()
+    
+    if not text:
+        return jsonify({'success': False, 'error': 'Введите текст объявления'})
+    
+    try:
+        prompt = f"""Ты - профессиональный сотрудник СМИ на сервере Arizona RP.
+Твоя задача - отредактировать объявление игрока согласно ПРО (Правилам Редактирования Объявлений).
+
+Входящий текст: "{text}"
+
+Правила:
+1. Исправь грамматические ошибки.
+2. Используй полные названия транспорта/городов (нрг -> м/ц NRG-500, лс -> г. Лос-Сантос).
+3. Если цена не указана - пиши "Цена: Договорная".
+4. Если бюджет не указан - пиши "Бюджет: Свободный".
+5. Формат: [Тип] Текст объявления. Цена/Бюджет: ...
+6. Не добавляй "Контакт: ..." в конце, это делает игра сама.
+
+Примеры:
+- "продам нрг 500" -> "Продам м/ц NRG-500. Цена: Договорная"
+- "куплю дом лс 50кк" -> "Куплю дом в г. Лос-Сантос. Бюджет: 50 млн$"
+- "набор в фаму" -> "Идет набор в семью. Просьба связаться."
+- "продам акс попугай" -> "Продам а/с Попугай на плечо. Цена: Договорная"
+
+Верни ТОЛЬКО отредактированный текст."""
+        
+        response = AI_MODEL.generate_content(prompt)
+        return jsonify({'success': True, 'response': response.text.strip()})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)[:200]})
 
 
 @app.route('/api/arizona/news')

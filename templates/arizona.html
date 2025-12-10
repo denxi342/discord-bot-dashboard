@@ -372,6 +372,7 @@
         <button class="nav-btn" onclick="switchTab('rules', this)">📖 Поиск правил</button>
         <button class="nav-btn" onclick="switchTab('complaint', this)">⚖️ Генератор жалоб</button>
         <button class="nav-btn" onclick="switchTab('legend', this)">🎭 Био-генератор</button>
+        <button class="nav-btn" onclick="switchTab('smi', this)">📰 Помощник СМИ</button>
 
         <div class="tools-list">
             <a href="/dashboard" class="nav-btn">🔙 В Дашборд</a>
@@ -474,6 +475,34 @@
 
             <div id="bio-result" style="margin-top: 30px; display: none;">
                 <div class="msg-content" id="bio-text"></div>
+            </div>
+        </div>
+
+        <!-- SMI TAB -->
+        <div id="tab-smi" class="tool-view">
+            <h2>📰 Помощник СМИ (ПРО)</h2>
+            <p style="color: var(--text-muted); margin-bottom: 20px;">Умный редактор объявлений. Вставьте "сырой" текст,
+                и AI исправит его по правилам.</p>
+
+            <div class="form-group">
+                <label class="form-label">Текст объявления</label>
+                <textarea id="smi-text" class="form-textarea" placeholder="Пример: продам нрг 500 50кк торг"
+                    style="min-height: 100px;"></textarea>
+            </div>
+
+            <button onclick="editAd()" class="btn btn-orange">Отредактировать (AI)</button>
+
+            <div id="smi-result" style="margin-top: 30px; display: none;">
+                <h3>✅ Результат:</h3>
+                <div id="smi-output" class="msg-content" style="font-size: 18px; margin-top: 10px; cursor: pointer;"
+                    onclick="copySmi()" title="Нажмите чтобы скопировать"></div>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">Нажмите на текст, чтобы
+                    скопировать</p>
+            </div>
+
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <h3>📚 Шпаргалка (ПРО)</h3>
+                <p style="color: var(--text-muted); font-size: 13px;">Жду список правил от пользователя...</p>
             </div>
         </div>
 
@@ -687,6 +716,66 @@
 
             btn.innerText = 'Создать историю';
             btn.disabled = false;
+        }
+
+        // SMI Editor
+        async function editAd() {
+            const text = document.getElementById('smi-text').value;
+            if (!text) { alert('Введите текст!'); return; }
+
+            const btn = document.querySelector('#tab-smi .btn-orange');
+            btn.innerText = 'Редактирую...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/arizona/smi/edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('smi-result').style.display = 'block';
+                    document.getElementById('smi-output').innerText = data.response;
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            } catch (e) {
+                alert('Ошибка сети');
+            }
+            btn.innerText = 'Отредактировать (AI)';
+            btn.disabled = false;
+        }
+
+        function copySmi() {
+            const text = document.getElementById('smi-output').innerText;
+            navigator.clipboard.writeText(text);
+            alert('Скопировано!');
+        }
+
+        // Load SMI Rules
+        async function loadSmiData() {
+            const container = document.querySelector('#tab-smi h3 + p'); // Finding the "Waiting for rules..." paragraph
+            if (container && !container.dataset.loaded) {
+                try {
+                    const response = await fetch('/api/arizona/smi/data');
+                    const data = await response.json();
+
+                    if (data.ppe_summary) {
+                        const ppeHtml = marked.parse(data.ppe_summary);
+                        container.innerHTML = `<div style="max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">${ppeHtml}</div>`;
+                        container.dataset.loaded = "true";
+                    }
+                } catch (e) { console.log(e); }
+            }
+        }
+
+        // Update switchTab to load data
+        const oldSwitchTab = switchTab;
+        switchTab = function (tabId, btn) {
+            oldSwitchTab(tabId, btn);
+            if (tabId === 'smi') loadSmiData();
         }
 
         // Initial setup
