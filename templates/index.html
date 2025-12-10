@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arizona AI Assistant</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,13 +14,10 @@
     <style>
         :root {
             --bg-color: #050505;
-            /* Pitch Black */
             --card-bg: rgba(20, 20, 25, 0.6);
-            /* Transparent Glass */
             --border-color: rgba(69, 162, 158, 0.3);
             --text-primary: #e0e0e0;
             --text-secondary: #00f0ff;
-            /* Cyber Cyan */
             --accent-color: #45a29e;
         }
 
@@ -40,7 +38,6 @@
             position: relative;
         }
 
-        /* CANVAS - Z-Index 1 to be visible on black bg */
         #plexus-canvas {
             position: fixed;
             top: 0;
@@ -51,7 +48,6 @@
             pointer-events: none;
         }
 
-        /* APP CONTAINER - Z-Index 10 to float above canvas */
         .app-container {
             max-width: 1440px;
             margin: 0 auto;
@@ -64,11 +60,9 @@
             z-index: 10;
         }
 
-        /* CARDS */
         .spotlight-card {
             background-color: var(--card-bg);
             backdrop-filter: blur(12px);
-            /* Strong blur for readability */
             border: 1px solid var(--border-color);
             border-radius: 8px;
             position: relative;
@@ -89,7 +83,6 @@
             height: 100%;
         }
 
-        /* SIDEBAR */
         .sidebar {
             position: sticky;
             top: 40px;
@@ -146,7 +139,6 @@
             box-shadow: 0 0 15px rgba(0, 240, 255, 0.1);
         }
 
-        /* HEADER & TEXT */
         .main-header {
             margin-bottom: 30px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -184,49 +176,30 @@
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
         }
 
-        /* INPUTS & TABLES */
         textarea,
-        input[type="text"] {
+        input[type="text"],
+        select {
             width: 100%;
             background: rgba(0, 0, 0, 0.6);
             border: 1px solid var(--border-color);
             padding: 16px;
             color: #fff;
-            font-family: 'Courier New', monospace;
+            font-family: 'Inter', sans-serif;
             font-size: 14px;
             margin-bottom: 20px;
             border-radius: 4px;
         }
 
         textarea:focus,
-        input:focus {
+        input:focus,
+        select:focus {
             outline: none;
             border-color: var(--text-secondary);
             box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        th {
-            color: var(--text-secondary);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        tr:hover {
-            background: rgba(255, 255, 255, 0.05);
+        option {
+            background: #1a1a2e;
         }
 
         .btn {
@@ -240,6 +213,7 @@
             letter-spacing: 1px;
             transition: all 0.2s;
             border-radius: 4px;
+            display: inline-block;
         }
 
         .btn:hover {
@@ -270,23 +244,30 @@
             }
         }
 
-        #log-container {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            max-height: 400px;
-            overflow-y: auto;
-            color: #888;
-        }
-
-        .log-entry {
-            margin-bottom: 4px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-            padding: 4px;
-        }
-
-        .log-entry:hover {
+        /* Helpers */
+        .chat-msg {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 8px;
             background: rgba(255, 255, 255, 0.05);
-            color: #fff;
+        }
+
+        .chat-msg.ai {
+            border-left: 3px solid var(--text-secondary);
+        }
+
+        .chat-msg.user {
+            border-left: 3px solid #dbdee1;
+            text-align: right;
+        }
+
+        .result-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 20px;
+            display: none;
         }
     </style>
 </head>
@@ -297,27 +278,41 @@
     <div class="app-container">
         <!-- SIDEBAR -->
         <aside class="sidebar">
-            <div class="brand"><i class="fa-solid fa-cube"></i>&nbsp;NEXUS UI</div>
+            <div class="brand"><i class="fa-solid fa-gamepad"></i>&nbsp;ARIZONA AI</div>
             <nav class="nav-menu">
-                <div class="nav-item active spotlight-card" onclick="ArizonaModule.selectTool('dashboard', this)">
+                <div class="nav-item active spotlight-card" onclick="ArizonaModule.selectTool('helper', this)">
                     <div class="spotlight-content" style="padding:0; display:flex; align-items:center; gap:10px;">
-                        <i class="fa-solid fa-chart-pie"></i> Dashboard
-                    </div>
-                </div>
-                <!-- RESTORED: Web Monitor Tab -->
-                <div class="nav-item spotlight-card" onclick="ArizonaModule.selectTool('monitor', this)">
-                    <div class="spotlight-content" style="padding:0; display:flex; align-items:center; gap:10px;">
-                        <i class="fa-solid fa-server"></i> Web Monitor
-                    </div>
-                </div>
-                <div class="nav-item spotlight-card" onclick="ArizonaModule.selectTool('smi', this)">
-                    <div class="spotlight-content" style="padding:0; display:flex; align-items:center; gap:10px;">
-                        <i class="fa-solid fa-pen-to-square"></i> Ad Editor
+                        <i class="fa-solid fa-robot"></i> Помощник
                     </div>
                 </div>
                 <div class="nav-item spotlight-card" onclick="ArizonaModule.selectTool('news', this)">
                     <div class="spotlight-content" style="padding:0; display:flex; align-items:center; gap:10px;">
-                        <i class="fa-solid fa-rss"></i> News Feed
+                        <i class="fa-solid fa-newspaper"></i> Новости
+                    </div>
+                </div>
+                <div class="nav-item spotlight-card" onclick="ArizonaModule.selectTool('complaint', this)">
+                    <div class="spotlight-content" style="padding:0; display:flex; align-items:center; gap:10px;">
+                        <i class="fa-solid fa-scroll"></i> Жалобы
+                    </div>
+                </div>
+                <div class="nav-item spotlight-card" onclick="ArizonaModule.selectTool('legend', this)">
+                    <div class="spotlight-content" style="padding:0; display:flex; align-items:center; gap:10px;">
+                        <i class="fa-solid fa-user-secret"></i> RP Легенды
+                    </div>
+                </div>
+                <div class="nav-item spotlight-card" onclick="ArizonaModule.selectTool('rules', this)">
+                    <div class="spotlight-content" style="padding:0; display:flex; align-items:center; gap:10px;">
+                        <i class="fa-solid fa-book-open"></i> Правила
+                    </div>
+                </div>
+                <div class="nav-item spotlight-card" onclick="ArizonaModule.selectTool('smi', this)">
+                    <div class="spotlight-content" style="padding:0; display:flex; align-items:center; gap:10px;">
+                        <i class="fa-solid fa-pen-nib"></i> Помощник СМИ
+                    </div>
+                </div>
+                <div class="nav-item spotlight-card" onclick="ArizonaModule.selectTool('calc', this)">
+                    <div class="spotlight-content" style="padding:0; display:flex; align-items:center; gap:10px;">
+                        <i class="fa-solid fa-calculator"></i> Калькулятор
                     </div>
                 </div>
             </nav>
@@ -325,154 +320,200 @@
 
         <!-- CONTENT -->
         <main>
-            <!-- 1. DASHBOARD -->
-            <div id="arizona-tool-dashboard" class="arizona-workspace active">
+            <!-- 1. HELPER (AI Chat) -->
+            <div id="arizona-tool-helper" class="arizona-workspace active">
                 <header class="main-header">
-                    <p class="welcome-text">SYSTEM OVERVIEW</p>
-                    <h1 class="page-title">Operational</h1>
+                    <p class="welcome-text">AI ASSISTANT</p>
+                    <h1 class="page-title">Помощник</h1>
                 </header>
-                <div class="stats-grid">
-                    <div class="spotlight-card">
-                        <div class="spotlight-content">
-                            <p class="welcome-text">STATUS</p>
-                            <div class="stat-value" style="color:#00f0ff">{{ server_status }}</div>
+                <div class="spotlight-card" style="min-height: 500px; display:flex; flex-direction:column;">
+                    <div class="spotlight-content" style="flex:1; display:flex; flex-direction:column;">
+                        <div id="chat-history" style="flex:1; overflow-y:auto; margin-bottom:20px; max-height:400px;">
+                            <div class="chat-msg ai"><strong>AI:</strong> Привет! Я твой ассистент по Arizona RP.
+                                Спрашивай что угодно!</div>
                         </div>
-                    </div>
-                    <div class="spotlight-card">
-                        <div class="spotlight-content">
-                            <p class="welcome-text">UPTIME</p>
-                            <div class="stat-value">{{ uptime }}</div>
-                        </div>
-                    </div>
-                    <div class="spotlight-card">
-                        <div class="spotlight-content">
-                            <p class="welcome-text">ACTIVE NODES</p>
-                            <div class="stat-value">3</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="spotlight-card" style="min-height: 400px;">
-                    <div class="spotlight-content">
-                        <h3 style="color:#fff; margin-bottom:15px;">SYSTEM LOGS</h3>
-                        <div id="log-container">
-                            <div class="log-entry">> Core Systems Initialized...</div>
-                            <div class="log-entry">> Graphic Engine v2.0 Loaded...</div>
-                            <div class="log-entry">> Connection Established.</div>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="helper-input" style="margin:0;" placeholder="Ваш вопрос...">
+                            <button class="btn" onclick="window.askHelper()">➤</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 2. WEB MONITOR (RESTORED) -->
-            <div id="arizona-tool-monitor" class="arizona-workspace">
-                <header class="main-header">
-                    <p class="welcome-text">NETWORK TOOLS</p>
-                    <h1 class="page-title">Website Monitor</h1>
-                </header>
-
-                <div class="stats-grid">
-                    <div class="spotlight-card">
-                        <div class="spotlight-content">
-                            <p class="welcome-text">TOTAL SITES</p>
-                            <div class="stat-value" id="mon-total">-</div>
-                        </div>
-                    </div>
-                    <div class="spotlight-card">
-                        <div class="spotlight-content">
-                            <p class="welcome-text">ONLINE</p>
-                            <div class="stat-value" style="color:#4ade80" id="mon-online">-</div>
-                        </div>
-                    </div>
-                    <div class="spotlight-card">
-                        <div class="spotlight-content">
-                            <p class="welcome-text">OFFLINE</p>
-                            <div class="stat-value" style="color:#ef4444" id="mon-offline">-</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="spotlight-card">
-                    <div class="spotlight-content">
-                        <h3 style="color:#fff; margin-bottom:20px;">Add New Monitor</h3>
-                        <div style="display:grid; grid-template-columns: 2fr 1fr auto; gap: 15px;">
-                            <input type="text" id="monitor-url" placeholder="https://example.com" style="margin:0;">
-                            <input type="text" id="monitor-name" placeholder="Site Name" style="margin:0;">
-                            <button class="btn" onclick="window.addMonitor()">Add Target</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="spotlight-card" style="margin-top:20px;">
-                    <div class="spotlight-content">
-                        <table id="monitors-table">
-                            <thead>
-                                <tr>
-                                    <th>Status</th>
-                                    <th>Name</th>
-                                    <th>URL</th>
-                                    <th>Response</th>
-                                </tr>
-                            </thead>
-                            <tbody id="monitors-body">
-                                <tr>
-                                    <td colspan="4" style="text-align:center; padding:20px; opacity:0.5;">Loading active
-                                        monitors...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. SMI EDITOR -->
-            <div id="arizona-tool-smi" class="arizona-workspace">
-                <header class="main-header">
-                    <p class="welcome-text">AI ASSISTANCE</p>
-                    <h1 class="page-title">Ad Refiner</h1>
-                </header>
-                <div class="spotlight-card">
-                    <div class="spotlight-content">
-                        <textarea id="smi-input" rows="5" placeholder="// PASTE RAW ADVERTISEMENT TEXT HERE"></textarea>
-                        <button class="btn" onclick="window.editAd()"><i class="fa-solid fa-wand-magic-sparkles"></i>
-                            Process Text</button>
-                        <div id="smi-result-container"
-                            style="display:none; margin-top:20px; border-top:1px solid rgba(255,255,255,0.1); padding-top:20px;">
-                            <p class="welcome-text">OPTIMIZED OUTPUT</p>
-                            <div id="smi-result-text"
-                                style="font-size:20px; color:#fff; margin-top:10px; font-weight:500;"></div>
-                            <div id="smi-source-badge"
-                                style="font-size:10px; margin-top:5px; opacity:0.5; color:#00f0ff"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. NEWS -->
+            <!-- 2. NEWS -->
             <div id="arizona-tool-news" class="arizona-workspace">
                 <header class="main-header">
-                    <p class="welcome-text">LIVE FEED</p>
-                    <h1 class="page-title">News Stream</h1>
+                    <p class="welcome-text">UPDATES</p>
+                    <h1 class="page-title">Новости</h1>
                 </header>
                 <div id="news-container" class="stats-grid" style="grid-template-columns:1fr">
                     <div class="spotlight-card">
-                        <div class="spotlight-content">Fetching Data Packet...</div>
+                        <div class="spotlight-content">Загрузка новостей...</div>
                     </div>
                 </div>
             </div>
+
+            <!-- 3. COMPLAINTS -->
+            <div id="arizona-tool-complaint" class="arizona-workspace">
+                <header class="main-header">
+                    <p class="welcome-text">REPORT GENERATOR</p>
+                    <h1 class="page-title">Жалобы</h1>
+                </header>
+                <div class="spotlight-card">
+                    <div class="spotlight-content">
+                        <input type="text" id="comp-nick" placeholder="Ник нарушителя (Nick_Name)">
+                        <textarea id="comp-desc" placeholder="Описание ситуации..." style="height:120px;"></textarea>
+                        <button class="btn" onclick="window.genComplaint()">Сгенерировать Жалобу</button>
+                        <div id="comp-result" class="result-box">
+                            <pre id="comp-output" style="white-space:pre-wrap; color:#fff;"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. RP LEGEND -->
+            <div id="arizona-tool-legend" class="arizona-workspace">
+                <header class="main-header">
+                    <p class="welcome-text">ROLEPLAY</p>
+                    <h1 class="page-title">RP Биография</h1>
+                </header>
+                <div class="spotlight-card">
+                    <div class="spotlight-content">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                            <input type="text" id="bio-name" placeholder="Имя Персонажа">
+                            <select id="bio-style">
+                                <option value="neutral">Гражданский</option>
+                                <option value="criminal">Бандит</option>
+                                <option value="cop">Полицейский</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="window.genBio()">Создать Биографию</button>
+                        <div id="bio-result" class="result-box">
+                            <div id="bio-output" style="color:#fff;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. RULES -->
+            <div id="arizona-tool-rules" class="arizona-workspace">
+                <header class="main-header">
+                    <p class="welcome-text">KNOWLEDGE BASE</p>
+                    <h1 class="page-title">Правила</h1>
+                </header>
+                <div class="spotlight-card">
+                    <div class="spotlight-content">
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="rules-search" style="margin:0;"
+                                placeholder="Поиск (например: ДМ, Слет...)">
+                            <button class="btn" onclick="window.searchRules()">Поиск</button>
+                        </div>
+                        <div id="rules-result" class="result-box"
+                            style="display:block; margin-top:30px; border:none; padding:0;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. SMI EDITOR -->
+            <div id="arizona-tool-smi" class="arizona-workspace">
+                <header class="main-header">
+                    <p class="welcome-text">EDITOR</p>
+                    <h1 class="page-title">Помощник СМИ</h1>
+                </header>
+                <div class="spotlight-card">
+                    <div class="spotlight-content">
+                        <textarea id="smi-input" style="height:150px;" placeholder="Текст объявления..."></textarea>
+                        <button class="btn" onclick="window.editAd()">Редактировать</button>
+                        <div id="smi-result" class="result-box">
+                            <div id="smi-output" style="font-size:18px; color:#fff;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. CALCULATOR -->
+            <div id="arizona-tool-calc" class="arizona-workspace">
+                <header class="main-header">
+                    <p class="welcome-text">TOOLS</p>
+                    <h1 class="page-title">Калькуляторы</h1>
+                </header>
+                <div class="stats-grid">
+                    <div class="spotlight-card">
+                        <div class="spotlight-content">
+                            <h3>Депозит</h3><br>
+                            <input type="text" placeholder="Сумма вклада" id="calc-depo-sum">
+                            <button class="btn" onclick="alert('Пример расчета...')">Рассчитать</button>
+                        </div>
+                    </div>
+                    <!-- Placeholder for other calculators -->
+                </div>
+            </div>
+
         </main>
     </div>
 
-    <!-- MAIN DASHBOARD LOGIC (Includes Monitor logic now) -->
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=11"></script>
+    <!-- LOGIC -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=12"></script>
+    <script>
+        // --- HELPER WRAPPERS ---
+        window.askHelper = async () => {
+            const i = document.getElementById('helper-input');
+            const box = document.getElementById('chat-history');
+            if (!i.value) return;
+            box.innerHTML += `<div class="chat-msg user"><strong>Вы:</strong> ${i.value}</div>`;
+            const q = i.value; i.value = '';
 
-    <!-- PLEXUS v2 (BRIGHTER & BIGGER) -->
+            try {
+                const r = await fetch('/api/arizona/helper', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });
+                const d = await r.json();
+                box.innerHTML += `<div class="chat-msg ai"><strong>AI:</strong> ${marked.parse(d.response || d.error)}</div>`;
+                box.scrollTop = box.scrollHeight;
+            } catch (e) { box.innerHTML += `<div class="chat-msg ai" style="color:red">Ошибка сети</div>`; }
+        };
+
+        window.genComplaint = async () => {
+            const n = document.getElementById('comp-nick').value;
+            const d = document.getElementById('comp-desc').value;
+            try {
+                const r = await fetch('/api/arizona/complaint', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nickname: n, description: d }) });
+                const res = await r.json();
+                document.getElementById('comp-result').style.display = 'block';
+                document.getElementById('comp-output').innerText = res.response || res.error;
+            } catch (e) { alert('Ошибка'); }
+        };
+
+        window.genBio = async () => {
+            const n = document.getElementById('bio-name').value;
+            const s = document.getElementById('bio-style').value;
+            try {
+                const r = await fetch('/api/arizona/legend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: n, style: s }) });
+                const res = await r.json();
+                document.getElementById('bio-result').style.display = 'block';
+                document.getElementById('bio-output').innerHTML = marked.parse(res.response || res.error);
+            } catch (e) { alert('Ошибка'); }
+        };
+
+        window.searchRules = async () => {
+            const q = document.getElementById('rules-search').value;
+            const resBox = document.getElementById('rules-result');
+            resBox.innerHTML = 'Поиск...';
+            try {
+                const r = await fetch('/api/arizona/rules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });
+                const d = await r.json();
+                resBox.innerHTML = marked.parse(d.response || d.error);
+            } catch (e) { resBox.innerHTML = 'Ошибка'; }
+        };
+
+    </script>
+
+    <!-- PLEXUS ENGINE (Visible) -->
     <script>
         const canvas = document.getElementById('plexus-canvas');
         const ctx = canvas.getContext('2d');
         let width, height;
         let particles = [];
 
-        const mouse = { x: null, y: null, radius: 250 }; // Larger radius
+        const mouse = { x: null, y: null, radius: 250 };
         window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
         window.addEventListener('mouseout', () => { mouse.x = null; mouse.y = null; });
 
@@ -487,10 +528,10 @@
             constructor() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.vx = (Math.random() - 0.5) * 1.5; // Faster
+                this.vx = (Math.random() - 0.5) * 1.5;
                 this.vy = (Math.random() - 0.5) * 1.5;
-                this.size = Math.random() * 3 + 1; // Bigger (1-4px)
-                this.color = '#00f0ff'; // CYAN
+                this.size = Math.random() * 3 + 1;
+                this.color = '#00f0ff';
             }
             update() {
                 this.x += this.vx; this.y += this.vy;
@@ -503,7 +544,7 @@
                     let distance = Math.sqrt(dx * dx + dy * dy);
                     if (distance < mouse.radius) {
                         const force = (mouse.radius - distance) / mouse.radius;
-                        this.vx += (dx / distance) * force * 0.2; // Strong pull
+                        this.vx += (dx / distance) * force * 0.2;
                         this.vy += (dy / distance) * force * 0.2;
                     }
                 }
@@ -518,7 +559,7 @@
 
         function initParticles() {
             particles = [];
-            let count = (width * height) / 8000; // More particles
+            let count = (width * height) / 8000;
             for (let i = 0; i < count; i++) particles.push(new Particle());
         }
 
@@ -535,9 +576,9 @@
                     const dy = particles[i].y - particles[j].y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
 
-                    if (distance < 120) {
+                    if (distance < 150) {
                         ctx.beginPath();
-                        ctx.strokeStyle = `rgba(0, 240, 255, ${1 - distance / 120})`; // BRIGHT CYAN lines
+                        ctx.strokeStyle = `rgba(0, 240, 255, ${1 - distance / 150})`; // Cyan lines
                         ctx.lineWidth = 1;
                         ctx.moveTo(particles[i].x, particles[i].y);
                         ctx.lineTo(particles[j].x, particles[j].y);
@@ -551,7 +592,7 @@
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     if (distance < mouse.radius) {
                         ctx.beginPath();
-                        ctx.strokeStyle = `rgba(255, 255, 255, ${0.8 - distance / mouse.radius})`; // White lines to cursor
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${0.8 - distance / mouse.radius})`;
                         ctx.lineWidth = 1.5;
                         ctx.moveTo(particles[i].x, particles[i].y);
                         ctx.lineTo(mouse.x, mouse.y);
@@ -564,7 +605,6 @@
         initParticles();
         animate();
 
-        // UI & MONITOR LOGIC
         window.ArizonaModule = {
             selectTool: (id, el) => {
                 document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
@@ -573,46 +613,8 @@
                 const t = document.getElementById('arizona-tool-' + id);
                 if (t) t.classList.add('active');
                 if (id === 'news' && window.loadNews) window.loadNews();
-                if (id === 'monitor') loadMonitorStats();
             }
         };
-
-        // --- MONITOR FUNCTIONS (Inlined for reliability) ---
-        window.addMonitor = async () => {
-            const url = document.getElementById('monitor-url').value;
-            const name = document.getElementById('monitor-name').value;
-            if (!url) return alert('Enter URL');
-            await fetch('/api/monitor/add', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url, name })
-            });
-            document.getElementById('monitor-url').value = '';
-            loadMonitorStats();
-        };
-
-        async function loadMonitorStats() {
-            try {
-                const r = await fetch('/api/stats'); // Assuming this endpoint exists from backup
-                const data = await r.json();
-                if (data.monitors) {
-                    document.getElementById('mon-total').innerText = data.total_monitors || 0;
-                    document.getElementById('mon-online').innerText = data.monitors_online || 0;
-                    document.getElementById('mon-offline').innerText = data.monitors_offline || 0;
-
-                    const tbody = document.getElementById('monitors-body');
-                    tbody.innerHTML = data.monitors.map(m => `
-                        <tr>
-                            <td style="color:${m.status === 'online' ? '#4ade80' : '#ef4444'}">● ${m.status.toUpperCase()}</td>
-                            <td>${m.name || 'Unknown'}</td>
-                            <td style="opacity:0.6">${m.url}</td>
-                            <td>${m.last_check || 'Now'}</td>
-                        </tr>
-                    `).join('');
-                }
-            } catch (e) { console.log('Monitor load error', e); }
-        }
-
-        // Load news helper
         const checkLoadNews = setInterval(() => {
             if (window.loadNews) { clearInterval(checkLoadNews); }
             else if (window.ArizonaModule && window.ArizonaModule.loadNews) {
