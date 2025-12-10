@@ -461,14 +461,16 @@ const ArizonaModule = {
 
     // --- SMI Tool ---
     editAd: async () => {
-        const input = document.getElementById('smi-text');
-        const result = document.getElementById('smi-result');
-        const output = document.getElementById('smi-output');
+        // Updated for Premium UI 2.0
+        const input = document.getElementById('smi-input');
+        const resultContainer = document.getElementById('smi-result-container');
+        const resultText = document.getElementById('smi-result-text');
+        const sourceBadge = document.getElementById('smi-source-badge');
 
-        if (!input || !input.value.trim()) return Utils.showToast('Введите текст объявления', 'error');
+        if (!input || !input.value.trim()) return Utils.showToast('Введите текст объявления', 'warning');
 
-        result.style.display = 'block';
-        output.innerHTML = '<div class="loading-spinner"></div> Редактирую...';
+        if (resultContainer) resultContainer.style.display = 'block';
+        if (resultText) resultText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Обработка...';
 
         try {
             const res = await fetch('/api/arizona/smi/edit', {
@@ -479,13 +481,15 @@ const ArizonaModule = {
             const data = await res.json();
 
             if (data.success) {
-                output.textContent = data.response;
-                ArizonaModule.loadSmiRules();
+                if (resultText) resultText.textContent = data.response;
+                if (sourceBadge) sourceBadge.innerText = 'Source: ' + (data.source || 'AI');
+                // Removed loadSmiRules re-call as it might not be needed every time
             } else {
-                output.innerHTML = `<span style="color:#ff6b6b">Ошибка: ${data.error}</span>`;
+                if (resultText) resultText.innerHTML = `<span style="color:#ff6b6b">Ошибка: ${data.error}</span>`;
             }
         } catch (e) {
-            output.innerHTML = `<span style="color:#ff6b6b">Ошибка сети: ${e.message}</span>`;
+            console.error(e);
+            if (resultText) resultText.innerHTML = `<span style="color:#ff6b6b">Ошибка сети: ${e.message}</span>`;
         }
     },
 
