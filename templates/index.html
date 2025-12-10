@@ -524,8 +524,7 @@
         }
         window.addEventListener('resize', resize);
 
-        // TRIGGER RESIZE IMMEDIATELY TO SET WIDTH/HEIGHT
-        resize();
+
 
         class Particle {
             constructor() {
@@ -605,8 +604,14 @@
             }
         }
 
+
         initParticles();
         animate();
+
+        // TRIGGER RESIZE IMMEDIATELY TO SET WIDTH/HEIGHT
+        resize();
+
+
 
         window.ArizonaModule = {
             selectTool: (id, el) => {
