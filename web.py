@@ -682,9 +682,55 @@ def api_arizona_smi_edit():
         
         fallback_text = text
         
-        # Dictionary of common Arizona substitutions (Enhanced)
+        # Dictionary of common Arizona substitutions (Comprehensive PRO)
         subs = {
-            # Vehicles - Generic
+            # 4.0 - 4.38 Specific Replacements
+            r'\bнабор в семью\b': 'семья ищет родственников',
+            r'\bнабор в фаму\b': 'семья ищет родственников',
+            r'\bгетто\b': 'опасный район',
+            r'\bскин\b': 'одежда',
+            r'\bтт\b': 'Twin Turbo',
+            r'\bскайп\b': 'майка "Скайп"',
+            r'\bдискорд\b': 'майка "Дискорд"',
+            r'\bтелеграм\b': 'майка "Телеграм"',
+            r'\bскидочный талон\b': 'Сертификат на скидку',
+            r'\bгражданские талоны\b': 'Талоны для граждан',
+            r'\bгражданки\b': 'Талоны для граждан',
+            r'\bвышка с нефтью\b': 'Нефтяная вышка',
+            r'\bнефтевышка\b': 'Нефтяная вышка',
+            r'\badd vip\b': 'сертификат "ADD VIP"',
+            r'\bадд вип\b': 'сертификат "ADD VIP"',
+            r'\bsamp bet\b': 'Букмекерская контора',
+            r'\brare box\b': 'ларец', # Simplification, colors handled if needed
+            r'\bвидеокарта\b': 'Игровая видеокарта',
+            r'\bсмазка для видеокарты\b': 'термопаста',
+            r'\bларец с премией\b': 'премиальный ларец',
+            r'\bларец супер бокс кар\b': 'эксклюзивный ларец с т/с',
+            r'\bфулл семья\b': 'Семья со всеми удобствами',
+            r'\bбоксы с одеждой\b': 'коробка с одеждой',
+            r'\bларец организации\b': 'ларец организации',
+            r'\bбилет на антикомиссию\b': 'Билет на антиком',
+            r'\bталон антиварна\b': 'Сертификат на снятие предупреждения',
+            r'\bталон антидеморгана\b': 'Билет выхода из псих. больницы',
+            r'\bталон на смену ника\b': 'сертификат на смену имени',
+            r'\bзаточки\b': 'Гравировка',
+            r'\bзаточка\b': 'Гравировка',
+            r'\bобъект для дома\b': 'декорация',
+            r'\bобъект\b': 'декорация',
+            r'\bпередаваемая виза\b': 'разрешение на работу на острове VC',
+            r'\bbattlepass\b': 'билет "БатлПасс"',
+            r'\bбп\b': 'билет "БатлПасс"',
+            r'\bexp для battle pass\b': 'талон на получение "Боевого опыта"',
+            r'\bexp бп\b': 'талон на получение "Боевого опыта"',
+            r'\bфулл скиллы\b': 'мануал "обучение навыкам стрельбы"',
+            r'\bкод трилогии\b': 'Видеоигра трилогия',
+            r'\bпередаваемые az\b': 'AZ монеты',
+            r'\bталон на х4 пейдей\b': 'Сертификат х4 пейдей',
+            r'\bлавка\b': 'Торговая лавка',
+            r'\bопыт депозита\b': 'Коллекционная карточка "Опыт депозита"',
+
+            # Abbreviations (General)
+            r'\bа/м\b': 'а/м', # Keep valid ones
             r'\bавто\b': 'а/м',
             r'\bмашину\b': 'а/м',
             r'\bтачку\b': 'а/м',
@@ -693,21 +739,32 @@ def api_arizona_smi_edit():
             r'\bвелик\b': 'в/т',
             r'\bвелосипед\b': 'в/т',
             r'\bвертолет\b': 'в/т',
-            r'\bлодка\b': 'л/т',
-            r'\bлодку\b': 'л/т',
-            r'\bсамолет\b': 'с/т',
-
-            # Junk words to remove
-            r'\bмарки\b': '', 
-            r'\bфирмы\b': '',
-
-            # Common Vehicles (Specific)
-            r'\bнрг\b': 'м/ц NRG-500',
-            r'\bбулет\b': 'а/м Bullet',
-            r'\bинфернус\b': 'а/м Infernus',
-            r'\bкловер\b': 'а/м Clover',
             r'\bмавер\b': 'в/т Maverick',
             r'\bгорник\b': 'в/т Mountain Bike',
+            r'\bлодка\b': 'л/т',
+            r'\bсамолет\b': 'с/м',
+            r'\bакс\b': 'а/с',
+            r'\bброн\b': 'а/с', # Armor is accessory
+            r'\bпошив\b': 'о/п',
+            r'\bодежда\b': 'о/п', # Sometimes useful
+            r'\bмод\b': 'м/ф',
+            r'\bмодификация\b': 'м/ф',
+            r'\bобъекты\b': 'о/б',
+            r'\bларцы\b': 'л/ц',
+            r'\bларец\b': 'л/ц',
+            r'\bдет\b': 'д/т',
+            r'\bтюнинг\b': 'д/т',
+            r'\bресы\b': 'р/с',
+            r'\bресурсы\b': 'р/с',
+            r'\bбиз\b': 'б/з',
+            r'\bбизнес\b': 'б/з',
+            r'\bномер\b': 'н/з',
+            r'\bномера\b': 'н/з',
+
+            # Business Specific
+            r'\b24/7\b': 'магазин 24/7',
+            r'\bаммо\b': 'магазин оружия',
+            r'\bазс\b': 'АЗС',
 
             # Locations
             r'\bлс\b': 'г. Лос-Сантос',
@@ -715,54 +772,68 @@ def api_arizona_smi_edit():
             r'\bлв\b': 'г. Лас-Вентурас',
             r'\bцр\b': 'центрального рынка',
             r'\bаб\b': 'автобазара',
-            r'\bгетто\b': 'опасного района',
 
-            # Accessories & Tuning
-            r'\bакс\b': 'а/с',
-            r'\bтт\b': 'TwinTurbo',
-            r'\bфт\b': 'Full Tune',
-            r'\bстейдж\b': 'Stage',
+            # Junk Clean
+            r'\bмарки\b': '',
+            r'\bфирмы\b': '',
+            r'\bмодели\b': '',
 
-            # Action verbs & Pricing
+            # Actions & Prices
             r'\bп\b': 'Продам',
             r'\bк\b': 'Куплю',
             r'\bобменяю\b': 'Обменяю',
             r'\bторг\b': 'Цена: Договорная',
-            r'\bбез торга\b': 'Цена: Окончательная'
+            r'\bбез торга\b': 'Цена: Окончательная',
+            r'\bсвободный\b': 'Бюджет: Свободный'
         }
         
-        # Simple cleanup - Pre-parsing
-        # If user asks "How to edit...", try to extract quotes
+        # Pre-processing cleanup
         import re
-        quote_match = re.search(r'["\'](.*?)["\']', fallback_text)
-        if quote_match:
-            fallback_text = quote_match.group(1)
-
-        # Standard processing
-        if not any(x in fallback_text.lower() for x in ['продам', 'куплю', 'обменяю']):
-            fallback_text = "Продам/Куплю " + fallback_text
-            
-        for pattern, replacement in subs.items():
-            fallback_text = re.sub(pattern, replacement, fallback_text, flags=re.IGNORECASE)
-            
-        # Clean up double spaces created by removal
         fallback_text = re.sub(r'\s+', ' ', fallback_text).strip()
         
-        # Capitalize first letter
-        if fallback_text:
-            fallback_text = fallback_text[0].upper() + fallback_text[1:]
+        # Quote Extraction (if user asks question)
+        quote_match = re.search(r'["\'](.*?)["\']', fallback_text)
+        if quote_match and len(quote_match.group(1)) > 5:
+            fallback_text = quote_match.group(1)
+
+        # Apply Substitutions
+        for pattern, replacement in subs.items():
+            fallback_text = re.sub(pattern, replacement, fallback_text, flags=re.IGNORECASE)
+
+        # Price/Budget Logic (Rule 5.1 & Price Formats)
+        # Helper to detect if buying or selling
+        is_buying = any(x in fallback_text.lower() for x in ['куплю', 'ищу', 'возьму'])
         
-        # Add price stub if missing
-        if 'цена' not in fallback_text.lower() and 'бюджет' not in fallback_text.lower():
-            if 'куплю' in fallback_text.lower():
+        # Add prefix if missing
+        if not any(x in fallback_text.lower() for x in ['продам', 'куплю', 'обменяю', 'сдам', 'арендую']):
+            fallback_text = ("Куплю " if is_buying else "Продам ") + fallback_text
+
+        # Add Suffix (Price/Budget)
+        has_price = any(x in fallback_text.lower() for x in ['цена', 'бюджет', 'договорная', 'свободный'])
+        if not has_price:
+            if is_buying:
                 fallback_text += ". Бюджет: Свободный"
             else:
                 fallback_text += ". Цена: Договорная"
 
+        # Capitalize Sentence
+        if fallback_text:
+            fallback_text = fallback_text[0].upper() + fallback_text[1:]
+
+        # Price Formatting (1к -> 1.000$)
+        def format_price(match):
+            val = match.group(1)
+            suffix = match.group(2).lower()
+            if suffix == 'к': return f"{val}.000$"
+            if suffix == 'кк': return f"{val}.000.000$"
+            return match.group(0)
+        
+        fallback_text = re.sub(r'(\d+)(к{1,2})', format_price, fallback_text, flags=re.IGNORECASE)
+
         return jsonify({
             'success': True, 
             'response': f"{fallback_text} (Offline Mode)", 
-            'source': 'fallback'
+            'source': 'fallback_pro'
         })
 
 @app.route('/api/arizona/smi/data')
