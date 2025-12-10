@@ -691,53 +691,64 @@ def api_arizona_smi_edit():
             fallback_text = quote_match.group(1)
 
         # --- PHASE 1: Vehicle Auto-Tagging (New Feature) ---
+        # Removed try-catch to expose errors
         try:
+            import arizona_vehicles
+            # Reload in case of hot-reload issues
+            import importlib
+            importlib.reload(arizona_vehicles)
             from arizona_vehicles import VEHICLES, PREFIX_MAP
             
-            words = fallback_text.split()
-            new_words = []
-            skip_next = False
+            db_status = "DB_OK"
+        except ImportError as e:
+            db_status = f"DB_FAIL_{str(e)}"
+            VEHICLES = {}
+            PREFIX_MAP = {}
+
+        words = fallback_text.split()
+        new_words = []
+        skip_next = False
+        
+        for i, word in enumerate(words):
+            if skip_next:
+                skip_next = False
+                continue
+                
+            # Clean punctuation for lookup
+            clean_word = re.sub(r'[^\w\d]', '', word).lower()
             
-            for i, word in enumerate(words):
-                if skip_next:
-                    skip_next = False
-                    continue
-                    
-                # Clean punctuation for lookup
-                clean_word = re.sub(r'[^\w\d]', '', word).lower()
-                
-                # Check if this word is a known vehicle
-                found_type = None
-                found_name = None
-                
-                # Check single words first
+            # Check if this word is a known vehicle
+            found_type = None
+            found_name = None
+            
+            # Check single words first
+            if VEHICLES:
                 for v_type, v_list in VEHICLES.items():
                     if clean_word in v_list:
                         found_type = v_type
-                        found_name = word # Keep original case/punct if simple match
+                        found_name = word 
                         break
+            
+            # Logic: If found vehicle, check if previous word was already a prefix
+            if found_type:
+                prefix = PREFIX_MAP[found_type]
+                prev_word_raw = new_words[-1].lower() if new_words else ""
                 
-                # Logic: If found vehicle, check if previous word was already a prefix
-                if found_type:
-                    prefix = PREFIX_MAP[found_type]
-                    # Check if previous word in new_words is the prefix
-                    prev_word = new_words[-1].lower() if new_words else ""
-                    
-                    # Don't add prefix if already exists (e.g. "а/м infernus")
-                    # Also handle "авто" -> "а/м" later, so just check generically
-                    if prefix.split('/')[0] not in prev_word and "авто" not in prev_word:
-                         new_words.append(prefix)
-                    
-                    new_words.append(word.title()) # Capitalize vehicle name
-                else:
-                    new_words.append(word)
-            
-            fallback_text = " ".join(new_words)
-            
-        except ImportError:
-            print("Vehicle DB not found, skipping auto-tagging")
+                # Check for existing prefixes (including user typo variants if needed)
+                # But mostly check for standard ones
+                bg_prefix_exists = any(p in prev_word_raw for p in ['а/м', 'м/ц', 'в/т', 'л/т', 'с/м', 'авто', 'мото'])
+                
+                if not bg_prefix_exists:
+                     new_words.append(prefix)
+                
+                new_words.append(word.title()) 
+            else:
+                new_words.append(word)
+        
+        fallback_text = " ".join(new_words)
 
-        # --- PHASE 2: Standard Substitions (PRO Rules) ---
+        # --- PHASE 2: Standard Rules ---
+        # (Rest remains same, just ensuring fallback_text is passed through)
         subs = {
             # 4.0 - 4.38 Specific Replacements
             r'\bнабор в семью\b': 'семья ищет родственников',
@@ -887,8 +898,8 @@ def api_arizona_smi_edit():
 
         return jsonify({
             'success': True, 
-            'response': f"{fallback_text} (Offline Mode)", 
-            'source': 'fallback_pro'
+            'response': f"{fallback_text} (Offline Mode v2 - {db_status})", 
+            'source': 'fallback_pro_v2'
         })
 
 @app.route('/api/arizona/smi/data')
