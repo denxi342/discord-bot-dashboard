@@ -524,6 +524,9 @@
         }
         window.addEventListener('resize', resize);
 
+        // TRIGGER RESIZE IMMEDIATELY TO SET WIDTH/HEIGHT
+        resize();
+
         class Particle {
             constructor() {
                 this.x = Math.random() * width;
