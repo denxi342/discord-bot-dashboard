@@ -152,12 +152,8 @@ def api_get_prefixes():
 @app.route('/api/admin/users')
 def api_get_users():
     if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
-    # Check role
-    uid = str(session['user']['id'])
-    role = users_db.get(uid, {}).get('role', 'user')
-    
-    if role != 'developer': 
-        return jsonify({'error': 'Forbidden'}), 403
+    # Allow ALL logged in users to see the list (Community feature)
+    # Role check removed for GET
     
     # Convert dict to list for frontend
     users_list = []

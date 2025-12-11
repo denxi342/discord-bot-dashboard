@@ -142,6 +142,10 @@
                     <i class="fa-solid fa-newspaper"></i>
                     <span>Новости</span>
                 </div>
+                <div class="nav-item" onclick="ArizonaModule.selectTool('community', this)">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Сообщество</span>
+                </div>
                 <!-- Admin Only -->
                 <div class="nav-item admin-only" onclick="ArizonaModule.selectTool('admin', this)"
                     style="display:none; border-color:rgba(220, 38, 38, 0.5);">
@@ -175,12 +179,12 @@
             <!-- TAB 0: OVERVIEW (Bento Dashboard) -->
             <div id="arizona-tool-overview" class="workspace-tab active">
                 <div class="bento-header">
-                    <h1 class="bento-title">Обзор</h1>
+                    <h1 class="bento-title">Обзор Dashboard</h1>
                     <p class="bento-subtitle">С возвращением, {{ user.username if user else 'Гость' }}. Системы в норме.
                     </p>
                 </div>
 
-                <div class="bento-grid-dashboard">
+                <div class="bento-grid-dashboard" id="arizona-servers-grid">
                     <!-- Stat 1 -->
                     <div class="bento-card" style="grid-column: span 1;">
                         <div class="card-title"><span>Статус</span> <i class="fa-solid fa-wifi"></i></div>
