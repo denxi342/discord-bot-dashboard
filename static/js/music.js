@@ -58,7 +58,12 @@ class AudioPlayer {
             playerDiv = document.createElement('div');
             playerDiv.id = 'yt-player-hidden';
             playerDiv.style.position = 'absolute';
-            playerDiv.style.top = '-9999px';
+            // Use 1x1 pixel with opacity to ensure browser treats it as "visible" for audio priority
+            playerDiv.style.width = '1px';
+            playerDiv.style.height = '1px';
+            playerDiv.style.opacity = '0.001';
+            playerDiv.style.pointerEvents = 'none';
+            playerDiv.style.zIndex = '-1';
             document.body.appendChild(playerDiv);
         }
 
@@ -81,7 +86,8 @@ class AudioPlayer {
     onPlayerReady(event) {
         this.ready = true;
         this.setupEventListeners();
-        this.elements.container.style.display = 'flex'; // Show widget
+        this.elements.container.style.display = 'flex';
+        this.elements.artist.textContent = "Ready. Click Play.";
         this.loadTrack(0, false); // Load first track, don't auto-play immediately unless needed
     }
 
@@ -108,7 +114,19 @@ class AudioPlayer {
     }
 
     onPlayerStateChange(event) {
-        // YT.PlayerState.ENDED = 0
+        // -1: Unstarted, 0: Ended, 1: Playing, 2: Paused, 3: Buffering, 5: Cued
+        const states = {
+            '-1': 'Unstarted',
+            '0': 'Ended',
+            '1': 'Playing',
+            '2': 'Paused',
+            '3': 'Buffering...',
+            '5': 'Cued'
+        };
+        const stateName = states[event.data] || 'Unknown';
+        console.log("Player State:", stateName);
+        this.elements.artist.textContent = `Status: ${stateName}`;
+
         if (event.data === 0) {
             this.next();
         }
@@ -126,8 +144,14 @@ class AudioPlayer {
 
     onPlayerError(event) {
         console.error("YouTube Player Error:", event.data);
-        // Try next track if error (e.g., restricted video)
-        // this.next(); 
+        let errorMsg = "Error";
+        if (event.data === 101 || event.data === 150) errorMsg = "Restricted (No Embed)";
+        if (event.data === 2) errorMsg = "Invalid Parameter";
+        if (event.data === 5) errorMsg = "HTML5 Error";
+        if (event.data === 100) errorMsg = "Video Not Found";
+
+        this.elements.artist.textContent = `Error: ${errorMsg}`;
+        this.elements.artist.style.color = '#ff4444';
     }
 
     loadTrack(index, autoPlay = true) {
