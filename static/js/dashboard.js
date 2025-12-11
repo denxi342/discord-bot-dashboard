@@ -243,45 +243,50 @@ const WebSocketModule = {
 };
 
 // --- ARIZONA MODULE ---
-const ArizonaModule = {
+// Extend existing module from head or create new
+window.ArizonaModule = window.ArizonaModule || {};
+
+// Merge new methods
+Object.assign(window.ArizonaModule, {
     init: () => {
-        // Bind events if needed, mostly handled by onclick in HTML or rewrite here
-        // For now, exposing functions globally for HTML onclick compatibility is easier
-        // But better to bind:
-        window.selectArizonaTool = ArizonaModule.selectTool;
-        window.askArizonaHelper = ArizonaModule.askHelper;
-        window.generateComplaint = ArizonaModule.generateComplaint;
-        window.generateLegend = ArizonaModule.generateLegend;
-        window.checkRules = ArizonaModule.checkRules;
-        window.calculateBusiness = ArizonaModule.calculateBusiness;
-        window.calculateFaction = ArizonaModule.calculateFaction;
+        // Init logic
+        try {
+            window.ArizonaModule.selectTool('overview', document.querySelector('.nav-item.active'));
+        } catch (e) { console.warn('Init overview failed', e); }
     },
 
     loadServers: async () => {
-        // Placeholder for server loading
         const grid = document.getElementById('arizona-servers-grid');
         const loading = document.getElementById('arizona-loading');
         if (!grid) return;
 
         if (loading) loading.style.display = 'none';
         grid.style.display = 'grid';
-        // In a real app, fetch servers here.
     },
 
     selectTool: (toolId, element) => {
-        // UI Switching
+        console.log('[DashboardJS] SelectTool:', toolId);
+        // Use the head implementation if available for switching UI
+        // But we can add extra logic here if needed
+
+        // Re-implement UI switching just in case head script failed or is limited
         document.querySelectorAll('.arizona-tool-card').forEach(el => el.classList.remove('active'));
         if (element) element.classList.add('active');
 
-        document.querySelectorAll('.arizona-workspace').forEach(el => el.style.display = 'none');
-        const target = document.getElementById(`arizona-tool-${toolId}`);
+        document.querySelectorAll('.workspace-tab').forEach(el => {
+            el.style.display = 'none';
+            el.classList.remove('active');
+        });
+
+        const target = document.getElementById('arizona-tool-' + toolId);
         if (target) {
             target.style.display = 'block';
-            target.classList.add('fade-in');
+            // slight delay to allow display:block to apply before opacity transition if any
+            setTimeout(() => target.classList.add('active'), 10);
         }
 
-        if (toolId === 'news') ArizonaModule.loadNews();
-        if (toolId === 'smi') ArizonaModule.loadSmiRules();
+        if (toolId === 'news' && window.ArizonaModule.loadNews) window.ArizonaModule.loadNews();
+        if (toolId === 'smi' && window.ArizonaModule.loadSmiRules) window.ArizonaModule.loadSmiRules();
     },
 
     loadNews: async () => {
@@ -516,7 +521,7 @@ const ArizonaModule = {
         const text = document.getElementById('smi-output').textContent;
         if (text && !text.includes('Редактирую')) Utils.copyToClipboard(text);
     }
-};
+});
 
 
 const TempMailModule = {
