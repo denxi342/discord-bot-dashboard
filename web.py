@@ -673,23 +673,33 @@ def api_arizona_trainer():
     
     # Construct chat context
     import google.generativeai as genai
-    # Use gemini-1.5-flash if available, else fallback to gemini-pro
-    # For now, hardcode to gemini-pro as 1.5-flash seems unavailable in this environment
-    model = genai.GenerativeModel('gemini-pro', system_instruction=system_instruction)
     
+    # Try to pick a valid model
+    model_name = 'gemini-1.5-flash'
+    try:
+        model = genai.GenerativeModel(model_name, system_instruction=system_instruction)
+    except Exception:
+        model = genai.GenerativeModel('gemini-pro') # Fallback without system instruction if needed
+
     chat_history = []
     for msg in history:
         role = 'user' if msg['role'] == 'user' else 'model'
         chat_history.append({'role': role, 'parts': [msg['content']]})
     
-    chat = model.start_chat(history=chat_history)
-    
     try:
+        chat = model.start_chat(history=chat_history)
         response = chat.send_message(user_message)
         return jsonify({'success': True, 'reply': response.text})
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        # DEBUG: List available models if 404
+        error_str = str(e)
+        if '404' in error_str or 'not found' in error_str:
+            try:
+                available = [m.name for m in genai.list_models()]
+                return jsonify({'error': f"Model {model_name} not found. Available: {', '.join(available)}"})
+            except Exception as e2:
+                return jsonify({'error': f"Model Error: {error_str}. List failed: {e2}"})
+        
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/arizona/rules', methods=['POST'])
