@@ -166,6 +166,7 @@ def api_get_users():
             'username': data['username'],
             'avatar': data['avatar'],
             'role': data.get('role', 'user'),
+            'reputation': data.get('reputation', 0),
             'last_login': data.get('last_login', '')
         })
     return jsonify({'success': True, 'users': users_list})
@@ -1219,6 +1220,58 @@ def simulate():
             })
         except Exception as e:
             print(f"Stats emit error: {e}")
+
+# --- REPUTATION SYSTEM ---
+@app.route('/api/reputation/give', methods=['POST'])
+def api_reputation_give():
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth needed'}), 401
+    
+    data = request.json
+    target_id = str(data.get('target_id'))
+    sender_id = str(session['user']['id'])
+    
+    if not target_id or target_id not in users_db:
+        return jsonify({'success': False, 'error': 'User not found'})
+        
+    if target_id == sender_id:
+        return jsonify({'success': False, 'error': 'Нельзя повышать репутацию самому себе'})
+        
+    # Initialize rep data if missing
+    if 'reputation' not in users_db[target_id]: users_db[target_id]['reputation'] = 0
+    if 'given_rep_to' not in users_db[sender_id]: users_db[sender_id]['given_rep_to'] = []
+    
+    # Check if already given
+    if target_id in users_db[sender_id]['given_rep_to']:
+         return jsonify({'success': False, 'error': 'Вы уже повышали репутацию этому пользователю'})
+         
+    # Update logic
+    users_db[target_id]['reputation'] += 1
+    users_db[sender_id]['given_rep_to'].append(target_id)
+    save_users()
+    
+    add_log('info', f"Reputation given: {session['user']['username']} -> {users_db[target_id]['username']}")
+    
+    return jsonify({'success': True, 'new_rep': users_db[target_id]['reputation']})
+
+@app.route('/api/reputation/top')
+def api_reputation_top():
+    # Return top 10 users by reputation
+    sorted_users = sorted(
+        users_db.items(),
+        key=lambda item: item[1].get('reputation', 0),
+        reverse=True
+    )
+    
+    top_list = []
+    for uid, data in sorted_users[:10]:
+        top_list.append({
+            'username': data['username'],
+            'avatar': data['avatar'],
+            'reputation': data.get('reputation', 0),
+            'role': data.get('role', 'user')
+        })
+        
+    return jsonify({'success': True, 'top': top_list})
 
 threading.Thread(target=simulate, daemon=True).start()
 

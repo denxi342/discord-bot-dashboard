@@ -358,7 +358,66 @@ Object.assign(window.ArizonaModule, {
         if (toolId === 'news' && window.ArizonaModule.loadNews) window.ArizonaModule.loadNews();
         if (toolId === 'smi' && window.ArizonaModule.loadSmiRules) window.ArizonaModule.loadSmiRules();
         if (toolId === 'admin' && window.ArizonaModule.loadUsers) window.ArizonaModule.loadUsers();
-        if (toolId === 'community' && window.ArizonaModule.loadCommunity) window.ArizonaModule.loadCommunity();
+        if (toolId === 'community' && window.ArizonaModule.loadCommunity) {
+            window.ArizonaModule.loadCommunity();
+            window.ArizonaModule.loadLeaderboard();
+        }
+    },
+
+    loadLeaderboard: async () => {
+        const board = document.getElementById('dashboard-leaderboard');
+        if (!board) return;
+
+        try {
+            const res = await fetch('/api/reputation/top');
+            const data = await res.json();
+
+            if (data.success) {
+                if (data.top.length === 0) {
+                    board.innerHTML = '<div style="text-align:center; opacity:0.5;">Пока пусто...</div>';
+                    return;
+                }
+
+                board.innerHTML = data.top.map((u, i) => `
+                    <div style="display:flex; align-items:center; gap:10px; padding:8px; background:rgba(255,255,255,0.05); border-radius:10px;">
+                         <div style="font-weight:bold; color:${i === 0 ? '#fbbf24' : (i === 1 ? '#9ca3af' : (i === 2 ? '#b45309' : '#52525b'))}; width:20px; text-align:center;">#${i + 1}</div>
+                         <img src="${u.avatar}" style="width:30px; height:30px; border-radius:50%;">
+                         <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                             <div style="font-size:13px; font-weight:600;">${Utils.escapeHtml(u.username)}</div>
+                             <div style="font-size:10px; opacity:0.6;">${u.role}</div>
+                         </div>
+                         <div style="font-weight:bold; color:#fbbf24; display:flex; gap:4px; align-items:center;">
+                             <i class="fa-solid fa-star" style="font-size:10px;"></i> ${u.reputation}
+                             <button class="icon-btn-small" onclick="event.stopPropagation(); ArizonaModule.giveRep('${u.id || ''}', this)" style="background:none; border:none; color:#fbbf24; opacity:0.5; cursor:pointer;" title="+REP">
+                                <i class="fa-solid fa-plus"></i>
+                             </button>
+                         </div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) { console.error('Leaderboard error', e); }
+    },
+
+    giveRep: async (targetId, btn) => {
+        if (btn) btn.disabled = true;
+        try {
+            const res = await fetch('/api/reputation/give', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_id: targetId })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                Utils.showToast(`Репутация повышена! Теперь: ${data.new_rep}`, 'success');
+                // Update specific counters if visible
+                const counters = document.querySelectorAll(`[data-rep-user="${targetId}"]`);
+                counters.forEach(c => c.textContent = data.new_rep);
+            } else {
+                Utils.showToast(data.error, 'error');
+            }
+        } catch (e) { Utils.showToast('Ошибка сети', 'error'); }
+        if (btn) btn.disabled = false;
     },
 
     loadCommunity: async () => {

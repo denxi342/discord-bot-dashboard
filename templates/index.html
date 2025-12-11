@@ -244,6 +244,18 @@
                         <a href="{{ auth_url }}" class="btn primary" style="margin-top:20px;">Войти через Discord</a>
                         {% endif %}
                     </div>
+
+                    <!-- Top Users Leaderboard Widget -->
+                    <div class="bento-card"
+                        style="grid-column: span 4; display:flex; flex-direction:column; min-height: 180px;">
+                        <div class="card-title"><span>Топ Пользователей (Reputation)</span> <i
+                                class="fa-solid fa-trophy" style="color:#fbbf24;"></i></div>
+                        <div id="dashboard-leaderboard"
+                            style="flex:1; overflow-y:auto; display:flex; gap:15px; padding-bottom:5px; align-items: center; overflow-x: auto;">
+                            <div style="font-size:12px; opacity:0.5; width:100%; text-align:center;">Загрузка топа...
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -448,9 +460,67 @@
                             {{ user.role|upper if user.role else 'USER' }}
                         </span>
                     </div>
-                    <p style="color:gray; margin-bottom:30px;">ID: {{ user.id }}</p>
-                    <a href="/logout" class="btn" style="width:100%; display:block; border-color:red; color:red;">Выйти
-                        из аккаунта</a>
+
+                    <div style="margin: 15px 0; display:flex; justify-content:center; align-items:center; gap:10px;">
+                        <div class="rep-badge">
+                            <i class="fa-solid fa-star" style="color:#fbbf24;"></i>
+                            <span id="profile-rep-count" style="font-weight:bold; color:#fbbf24; font-size:18px;">{{
+                                user.reputation if user.reputation else 0 }}</span>
+                            <span style="color:rgba(255,255,255,0.7); font-size:12px;">REP</span>
+                        </div>
+                    </div>
+
+
+                    <div class="profile-stats-grid"
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0;">
+                        <div
+                            style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                            <div style="color: gray; font-size: 12px; margin-bottom: 5px;">Дата регистрации Discord
+                            </div>
+                            <div id="discord-join-date" style="font-weight: 600; font-size: 14px; color: #e2e8f0;">
+                                Loading...</div>
+                        </div>
+                        <div
+                            style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                            <div style="color: gray; font-size: 12px; margin-bottom: 5px;">AI Лимит</div>
+                            <div style="font-weight: 600; font-size: 14px; color: #4ade80;">∞ Unlimited</div>
+                        </div>
+                    </div>
+
+                    <div style="text-align: left; margin-bottom: 20px;">
+                        <button class="btn"
+                            style="width: 100%; margin-bottom: 10px; justify-content: flex-start; text-align: left;"><i
+                                class="fa-solid fa-server" style="margin-right: 10px; width: 20px;"></i> Мои
+                            Серверы</button>
+                        <button class="btn"
+                            style="width: 100%; margin-bottom: 10px; justify-content: flex-start; text-align: left;"><i
+                                class="fa-solid fa-bell" style="margin-right: 10px; width: 20px;"></i> Уведомления <span
+                                style="margin-left: auto; background: red; padding: 2px 6px; border-radius: 10px; font-size: 10px;">New</span></button>
+                        <button class="btn" style="width: 100%; justify-content: flex-start; text-align: left;"><i
+                                class="fa-solid fa-shield-halved" style="margin-right: 10px; width: 20px;"></i>
+                            Безопасность</button>
+                    </div>
+
+                    <p style="color:gray; margin-bottom:30px; font-family: monospace;">ID: {{ user.id }}</p>
+
+                    <script>
+                        // Calculate Discord Join Date from ID
+                        (function () {
+                            const id = "{{ user.id }}";
+                            if (id) {
+                                const bin = BigInt(id).toString(2).padStart(64, '0');
+                                const discordEpoch = 1420070400000n;
+                                const timestamp = (BigInt(id) >> 22n) + discordEpoch;
+                                const date = new Date(Number(timestamp));
+                                document.getElementById('discord-join-date').textContent = date.toLocaleDateString();
+                            }
+                        })();
+                    </script>
+
+                    <a href="/logout" class="btn"
+                        style="width:100%; display:block; border-color:rgba(239, 68, 68, 0.5); color:#f87171; background: rgba(220, 38, 38, 0.1);">
+                        <i class="fa-solid fa-right-from-bracket"></i> Выйти из аккаунта
+                    </a>
                     {% else %}
                     <p>Вы не авторизованы.</p>
                     {% endif %}
