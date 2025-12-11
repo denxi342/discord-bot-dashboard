@@ -1265,6 +1265,7 @@ def api_reputation_top():
     top_list = []
     for uid, data in sorted_users[:10]:
         top_list.append({
+            'id': uid,
             'username': data['username'],
             'avatar': data['avatar'],
             'reputation': data.get('reputation', 0),
