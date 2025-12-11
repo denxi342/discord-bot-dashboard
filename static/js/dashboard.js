@@ -148,6 +148,9 @@ const TabsModule = {
             case 'arizonaai':
                 ArizonaModule.loadServers();
                 break;
+            case 'overview':
+                if (window.ArizonaModule.loadLeaderboard) window.ArizonaModule.loadLeaderboard();
+                break;
             case 'profile':
                 // Load profile specific stuff if needed
                 break;
@@ -358,9 +361,9 @@ Object.assign(window.ArizonaModule, {
         if (toolId === 'news' && window.ArizonaModule.loadNews) window.ArizonaModule.loadNews();
         if (toolId === 'smi' && window.ArizonaModule.loadSmiRules) window.ArizonaModule.loadSmiRules();
         if (toolId === 'admin' && window.ArizonaModule.loadUsers) window.ArizonaModule.loadUsers();
-        if (toolId === 'community' && window.ArizonaModule.loadCommunity) {
-            window.ArizonaModule.loadCommunity();
-            window.ArizonaModule.loadLeaderboard();
+        if ((toolId === 'community' || toolId === 'overview') && window.ArizonaModule.loadCommunity) {
+            if (window.ArizonaModule.loadCommunity) window.ArizonaModule.loadCommunity();
+            if (window.ArizonaModule.loadLeaderboard) window.ArizonaModule.loadLeaderboard();
         }
     },
 
