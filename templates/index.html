@@ -146,6 +146,10 @@
                     <i class="fa-solid fa-users"></i>
                     <span>Сообщество</span>
                 </div>
+                <div class="nav-item" onclick="ArizonaModule.selectTool('trainer', this)">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>AI Тренер</span>
+                </div>
                 <!-- Admin Only -->
                 <div class="nav-item admin-only" onclick="ArizonaModule.selectTool('admin', this)"
                     style="display:none; border-color:rgba(220, 38, 38, 0.5);">
@@ -320,6 +324,46 @@
                     </div>
                     <button class="btn primary" onclick="window.genBio()">Написать историю</button>
                     <div id="bio-output" style="margin-top:30px; line-height:1.8; color:#ddd;"></div>
+                </div>
+            </div>
+
+            <!-- TAB: AI RP TRAINER -->
+            <div id="arizona-tool-trainer" class="workspace-tab">
+                <div class="bento-header">
+                    <h1 class="bento-title">AI Тренер РП</h1>
+                </div>
+                <div class="bento-grid-dashboard">
+                    <!-- Scenario Selector -->
+                    <div class="bento-card" style="grid-column: span 1;">
+                        <div class="card-title">Выбор Сценария</div>
+                        <select id="trainer-scenario"
+                            style="width:100%; padding:10px; background:rgba(0,0,0,0.3); color:white; border:1px solid #333; border-radius:8px; margin-bottom:15px;">
+                            <option value="traffic_stop">👮 Траффик-стоп (10-55)</option>
+                            <option value="medic_exam">👨‍⚕️ Мед. Осмотр</option>
+                            <option value="bar_fight">🍺 Разборка в Баре</option>
+                            <option value="interview">🎤 Собеседование СМИ</option>
+                        </select>
+                        <button class="btn primary" onclick="window.ArizonaModule.startTrainer()"
+                            style="width:100%;">Начать РП</button>
+                    </div>
+
+                    <!-- Chat Interface -->
+                    <div class="bento-card"
+                        style="grid-column: span 2; height: 500px; display:flex; flex-direction:column;">
+                        <div class="card-title">Чат с AI</div>
+                        <div id="trainer-chat-log"
+                            style="flex:1; overflow-y:auto; padding:10px; margin-bottom:15px; border:1px solid rgba(255,255,255,0.05); border-radius:8px; background:rgba(0,0,0,0.2);">
+                            <div style="text-align:center; color:gray; padding-top:100px;">Выберите сценарий и нажмите
+                                "Начать РП"</div>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <input id="trainer-input" placeholder="Ваша отыгровка (/me достал паспорт...)"
+                                style="flex:1; padding:10px; border-radius:8px; border:1px solid #333; background:rgba(0,0,0,0.3); color:white;">
+                            <button class="btn" onclick="window.ArizonaModule.sendTrainerMessage()">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 

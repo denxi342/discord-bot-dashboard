@@ -652,47 +652,43 @@ def api_arizona_complaint():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)[:200]})
 
-@app.route('/api/arizona/legend', methods=['POST'])
-def api_arizona_legend():
-    """Generate RP character legend"""
-    if not AI_MODEL:
-        return jsonify({'success': False, 'error': 'AI не настроен'})
+@app.route('/api/arizona/trainer', methods=['POST'])
+def api_arizona_trainer():
+    if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
     
     data = request.json
-    name = data.get('name', '').strip()
-    age = data.get('age', '25')
-    style = data.get('style', 'neutral')
-    
-    if not name:
-        return jsonify({'success': False, 'error': 'Введите имя персонажа'})
-    
-    style_desc = {
-        'criminal': 'криминальный элемент, бандит или мафиози',
-        'cop': 'сотрудник полиции или государственных структур',
-        'business': 'бизнесмен, предприниматель',
-        'street': 'уличный гонщик, стритрейсер',
-        'neutral': 'обычный гражданин, работяга'
+    scenario = data.get('scenario', 'traffic_stop')
+    user_message = data.get('message', '')
+    history = data.get('history', [])
+
+    # System prompts for different scenarios
+    prompts = {
+        'traffic_stop': "Ты - офицер полиции LSPD на сервере Arizona RP. Твоя задача: остановить игрока за нарушение ПДД и отыграть РП ситуацию (траффик-стоп 10-55). Будь строгим, используй биндерные отыгровки, но реагируй на действия игрока. Если игрок хорошо отыгрывает (/me, /do), хвали его в NonRP чате (( )). Если плохо - подсказывай. Начни с требования заглушить двигатель.",
+        'medic_exam': "Ты - врач больницы ЛС. Твоя задача: провести мед. осмотр игрока призывника. Спрашивай жалобы, проверяй зрение, слушай сердце. Используй /me и /do. Оценивай уровень РП игрока.",
+        'bar_fight': "Ты - бандит из Гетто (Vagos). Ты в баре, пьяный. Докопайся до игрока, провоцируй драку, используй сленг гетто. Проверь, как игрок будет реагировать: испугается (ПГ?) или ответит.",
+        'interview': "Ты - Заместитель Директора СМИ. Проводишь собеседование игроку на должность Стажера. Проверь его паспорт, медкарту и лицензии по РП. Спроси термины (МГ, ТК, ДМ) в /b чат."
     }
+
+    system_instruction = prompts.get(scenario, prompts['traffic_stop'])
+    
+    # Construct chat context
+    import google.generativeai as genai
+    model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=system_instruction)
+    
+    chat_history = []
+    for msg in history:
+        role = 'user' if msg['role'] == 'user' else 'model'
+        chat_history.append({'role': role, 'parts': [msg['content']]})
+    
+    chat = model.start_chat(history=chat_history)
     
     try:
-        prompt = f"""Создай RP-легенду (биографию) для персонажа GTA San Andreas / Arizona RP.
-
-Имя персонажа: {name}
-Возраст: {age} лет
-Типаж: {style_desc.get(style, 'обычный гражданин')}
-
-Напиши детальную биографию в 3-4 абзаца:
-1. Детство и юность (откуда родом, семья)
-2. Как попал в Лос-Сантос / Сан-Фиерро / Лас-Вентурас
-3. Чем занимается сейчас, цели в жизни
-4. Характер, привычки, особенности
-
-Сделай историю интересной и реалистичной для RP."""
-        
-        response = AI_MODEL.generate_content(prompt)
-        return jsonify({'success': True, 'response': response.text})
+        response = chat.send_message(user_message)
+        return jsonify({'success': True, 'reply': response.text})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)[:200]})
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/arizona/rules', methods=['POST'])
 def api_arizona_rules():
