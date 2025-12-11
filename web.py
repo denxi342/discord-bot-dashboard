@@ -19,7 +19,12 @@ CLIENT_ID = os.environ.get('CLIENT_ID', '1211664015646916670')
 CLIENT_SECRET = os.environ.get('CLIENT_SECRET', 'ykwvV-Jg6WaWey-bsejTTEPTsho2NiAd')
 # Автоматически определяем URL в зависимости от окружения
 REDIRECT_URI = os.environ.get('REDIRECT_URI', 'http://localhost:5000/callback')
-FOUNDERS = [os.environ.get('FOUNDER_USERNAME', 'kompd')] # Usernames or IDs with God Mode permission
+FOUNDERS = [
+    os.environ.get('FOUNDER_USERNAME', 'kompd'),
+    'henryesc', 
+    '406028216537579532',
+    '339121870882308106' # Just in case (kompd ID)
+] # Usernames or IDs with God Mode permission
 
 API_BASE_URL = "https://discord.com/api"
 AUTHORIZATION_BASE_URL = API_BASE_URL + "/oauth2/authorize"
