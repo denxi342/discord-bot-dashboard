@@ -310,146 +310,181 @@
                         <i class="fa-solid fa-pen-nib"></i> Помощник СМИ
                     </div>
                 </div>
-                <div class="nav-item spotlight-card" onclick="ArizonaModule.selectTool('calc', this)">
-                    <div class="spotlight-content" style="padding:0; display:flex; align-items:center; gap:10px;">
-                        <i class="fa-solid fa-calculator"></i> Калькулятор
-                    </div>
+                <div class="spotlight-content" style="padding:0; display:flex; align-items:center; gap:10px;">
+                    <i class="fa-solid fa-calculator"></i> Калькулятор
                 </div>
-            </nav>
-        </aside>
+    </div>
+    <!-- PROFILE TAB -->
+    <div class="nav-item spotlight-card" onclick="ArizonaModule.selectTool('profile', this)">
+        <div class="spotlight-content" style="padding:0; display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-user"></i> Профиль
+        </div>
+    </div>
+    </nav>
+    </aside>
 
-        <!-- CONTENT -->
-        <main>
-            <!-- 1. HELPER (AI Chat) -->
-            <div id="arizona-tool-helper" class="arizona-workspace active">
-                <header class="main-header">
-                    <p class="welcome-text">AI ASSISTANT</p>
-                    <h1 class="page-title">Помощник</h1>
-                </header>
-                <div class="spotlight-card" style="min-height: 500px; display:flex; flex-direction:column;">
-                    <div class="spotlight-content" style="flex:1; display:flex; flex-direction:column;">
-                        <div id="chat-history" style="flex:1; overflow-y:auto; margin-bottom:20px; max-height:400px;">
-                            <div class="chat-msg ai"><strong>AI:</strong> Привет! Я твой ассистент по Arizona RP.
-                                Спрашивай что угодно!</div>
-                        </div>
-                        <div style="display:flex; gap:10px;">
-                            <input type="text" id="helper-input" style="margin:0;" placeholder="Ваш вопрос...">
-                            <button class="btn" onclick="window.askHelper()">➤</button>
-                        </div>
+    <!-- CONTENT -->
+    <main>
+        <!-- 1. HELPER (AI Chat) -->
+        <div id="arizona-tool-helper" class="arizona-workspace active">
+            <header class="main-header">
+                <p class="welcome-text">AI ASSISTANT</p>
+                <h1 class="page-title">Помощник</h1>
+            </header>
+            <div class="spotlight-card" style="min-height: 500px; display:flex; flex-direction:column;">
+                <div class="spotlight-content" style="flex:1; display:flex; flex-direction:column;">
+                    <div id="chat-history" style="flex:1; overflow-y:auto; margin-bottom:20px; max-height:400px;">
+                        <div class="chat-msg ai"><strong>AI:</strong> Привет! Я твой ассистент по Arizona RP.
+                            Спрашивай что угодно!</div>
                     </div>
-                </div>
-            </div>
-
-            <!-- 2. NEWS -->
-            <div id="arizona-tool-news" class="arizona-workspace">
-                <header class="main-header">
-                    <p class="welcome-text">UPDATES</p>
-                    <h1 class="page-title">Новости</h1>
-                </header>
-                <div id="news-container" class="stats-grid" style="grid-template-columns:1fr">
-                    <div class="spotlight-card">
-                        <div class="spotlight-content">Загрузка новостей...</div>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="helper-input" style="margin:0;" placeholder="Ваш вопрос...">
+                        <button class="btn" onclick="window.askHelper()">➤</button>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- 3. COMPLAINTS -->
-            <div id="arizona-tool-complaint" class="arizona-workspace">
-                <header class="main-header">
-                    <p class="welcome-text">REPORT GENERATOR</p>
-                    <h1 class="page-title">Жалобы</h1>
-                </header>
+        <!-- 2. NEWS -->
+        <div id="arizona-tool-news" class="arizona-workspace">
+            <header class="main-header">
+                <p class="welcome-text">UPDATES</p>
+                <h1 class="page-title">Новости</h1>
+            </header>
+            <div id="news-container" class="stats-grid" style="grid-template-columns:1fr">
+                <div class="spotlight-card">
+                    <div class="spotlight-content">Загрузка новостей...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. COMPLAINTS -->
+        <div id="arizona-tool-complaint" class="arizona-workspace">
+            <header class="main-header">
+                <p class="welcome-text">REPORT GENERATOR</p>
+                <h1 class="page-title">Жалобы</h1>
+            </header>
+            <div class="spotlight-card">
+                <div class="spotlight-content">
+                    <input type="text" id="comp-nick" placeholder="Ник нарушителя (Nick_Name)">
+                    <textarea id="comp-desc" placeholder="Описание ситуации..." style="height:120px;"></textarea>
+                    <button class="btn" onclick="window.genComplaint()">Сгенерировать Жалобу</button>
+                    <div id="comp-result" class="result-box">
+                        <pre id="comp-output" style="white-space:pre-wrap; color:#fff;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. RP LEGEND -->
+        <div id="arizona-tool-legend" class="arizona-workspace">
+            <header class="main-header">
+                <p class="welcome-text">ROLEPLAY</p>
+                <h1 class="page-title">RP Биография</h1>
+            </header>
+            <div class="spotlight-card">
+                <div class="spotlight-content">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                        <input type="text" id="bio-name" placeholder="Имя Персонажа">
+                        <select id="bio-style">
+                            <option value="neutral">Гражданский</option>
+                            <option value="criminal">Бандит</option>
+                            <option value="cop">Полицейский</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="window.genBio()">Создать Биографию</button>
+                    <div id="bio-result" class="result-box">
+                        <div id="bio-output" style="color:#fff;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. RULES -->
+        <div id="arizona-tool-rules" class="arizona-workspace">
+            <header class="main-header">
+                <p class="welcome-text">KNOWLEDGE BASE</p>
+                <h1 class="page-title">Правила</h1>
+            </header>
+            <div class="spotlight-card">
+                <div class="spotlight-content">
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="rules-search" style="margin:0;"
+                            placeholder="Поиск (например: ДМ, Слет...)">
+                        <button class="btn" onclick="window.searchRules()">Поиск</button>
+                    </div>
+                    <div id="rules-result" class="result-box"
+                        style="display:block; margin-top:30px; border:none; padding:0;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. SMI EDITOR -->
+        <div id="arizona-tool-smi" class="arizona-workspace">
+            <header class="main-header">
+                <p class="welcome-text">EDITOR</p>
+                <h1 class="page-title">Помощник СМИ</h1>
+            </header>
+            <div class="spotlight-card">
+                <div class="spotlight-content">
+                    <textarea id="smi-input" style="height:150px;" placeholder="Текст объявления..."></textarea>
+                    <button class="btn" onclick="window.editAd()">Редактировать</button>
+                    <div id="smi-result" class="result-box">
+                        <div id="smi-output" style="font-size:18px; color:#fff;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. CALCULATOR -->
+        <div id="arizona-tool-calc" class="arizona-workspace">
+            <header class="main-header">
+                <p class="welcome-text">TOOLS</p>
+                <h1 class="page-title">Калькуляторы</h1>
+            </header>
+            <div class="stats-grid">
                 <div class="spotlight-card">
                     <div class="spotlight-content">
-                        <input type="text" id="comp-nick" placeholder="Ник нарушителя (Nick_Name)">
-                        <textarea id="comp-desc" placeholder="Описание ситуации..." style="height:120px;"></textarea>
-                        <button class="btn" onclick="window.genComplaint()">Сгенерировать Жалобу</button>
-                        <div id="comp-result" class="result-box">
-                            <pre id="comp-output" style="white-space:pre-wrap; color:#fff;"></pre>
-                        </div>
+                        <h3>Депозит</h3><br>
+                        <input type="text" placeholder="Сумма вклада" id="calc-depo-sum">
+                        <button class="btn" onclick="alert('Пример расчета...')">Рассчитать</button>
                     </div>
                 </div>
+                <!-- Placeholder for other calculators -->
             </div>
+        </div>
 
-            <!-- 4. RP LEGEND -->
-            <div id="arizona-tool-legend" class="arizona-workspace">
-                <header class="main-header">
-                    <p class="welcome-text">ROLEPLAY</p>
-                    <h1 class="page-title">RP Биография</h1>
-                </header>
-                <div class="spotlight-card">
-                    <div class="spotlight-content">
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                            <input type="text" id="bio-name" placeholder="Имя Персонажа">
-                            <select id="bio-style">
-                                <option value="neutral">Гражданский</option>
-                                <option value="criminal">Бандит</option>
-                                <option value="cop">Полицейский</option>
-                            </select>
-                        </div>
-                        <button class="btn" onclick="window.genBio()">Создать Биографию</button>
-                        <div id="bio-result" class="result-box">
-                            <div id="bio-output" style="color:#fff;"></div>
-                        </div>
-                    </div>
+        <!-- 8. PROFILE -->
+        <div id="arizona-tool-profile" class="arizona-workspace">
+            <header class="main-header">
+                <p class="welcome-text">USER ACCOUNT</p>
+                <h1 class="page-title">Профиль</h1>
+            </header>
+            <div class="spotlight-card">
+                <div class="spotlight-content" style="text-align:center; padding: 40px;">
+                    {% if user %}
+                    <img src="{{ user.avatar }}" alt="Avatar"
+                        style="width:100px; height:100px; border-radius:50%; border: 3px solid var(--text-secondary); margin-bottom: 20px;">
+                    <h2 style="font-size: 28px; margin-bottom: 10px; color: #fff;">{{ user.username }}</h2>
+                    <p style="color: #999; margin-bottom: 30px;">ID: {{ user.id }}</p>
+
+                    <a href="/logout" class="btn"
+                        style="background: rgba(255, 50, 50, 0.2); border-color: #ff4444; color: #ff4444; text-decoration: none;">
+                        <i class="fa-solid fa-sign-out-alt"></i> Выйти
+                    </a>
+                    {% else %}
+                    <h2 style="margin-bottom: 20px;">Вы не авторизованы</h2>
+                    <p style="color: #999; margin-bottom: 30px;">Войдите через Discord, чтобы получить доступ ко всем
+                        функциям.</p>
+                    <a href="{{ auth_url }}" class="btn">
+                        <i class="fa-brands fa-discord"></i> Войти через Discord
+                    </a>
+                    {% endif %}
                 </div>
             </div>
+        </div>
 
-            <!-- 5. RULES -->
-            <div id="arizona-tool-rules" class="arizona-workspace">
-                <header class="main-header">
-                    <p class="welcome-text">KNOWLEDGE BASE</p>
-                    <h1 class="page-title">Правила</h1>
-                </header>
-                <div class="spotlight-card">
-                    <div class="spotlight-content">
-                        <div style="display:flex; gap:10px;">
-                            <input type="text" id="rules-search" style="margin:0;"
-                                placeholder="Поиск (например: ДМ, Слет...)">
-                            <button class="btn" onclick="window.searchRules()">Поиск</button>
-                        </div>
-                        <div id="rules-result" class="result-box"
-                            style="display:block; margin-top:30px; border:none; padding:0;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 6. SMI EDITOR -->
-            <div id="arizona-tool-smi" class="arizona-workspace">
-                <header class="main-header">
-                    <p class="welcome-text">EDITOR</p>
-                    <h1 class="page-title">Помощник СМИ</h1>
-                </header>
-                <div class="spotlight-card">
-                    <div class="spotlight-content">
-                        <textarea id="smi-input" style="height:150px;" placeholder="Текст объявления..."></textarea>
-                        <button class="btn" onclick="window.editAd()">Редактировать</button>
-                        <div id="smi-result" class="result-box">
-                            <div id="smi-output" style="font-size:18px; color:#fff;"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 7. CALCULATOR -->
-            <div id="arizona-tool-calc" class="arizona-workspace">
-                <header class="main-header">
-                    <p class="welcome-text">TOOLS</p>
-                    <h1 class="page-title">Калькуляторы</h1>
-                </header>
-                <div class="stats-grid">
-                    <div class="spotlight-card">
-                        <div class="spotlight-content">
-                            <h3>Депозит</h3><br>
-                            <input type="text" placeholder="Сумма вклада" id="calc-depo-sum">
-                            <button class="btn" onclick="alert('Пример расчета...')">Рассчитать</button>
-                        </div>
-                    </div>
-                    <!-- Placeholder for other calculators -->
-                </div>
-            </div>
-
-        </main>
+    </main>
     </div>
 
     <!-- LOGIC -->
