@@ -673,7 +673,9 @@ def api_arizona_trainer():
     
     # Construct chat context
     import google.generativeai as genai
-    model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=system_instruction)
+    # Use gemini-1.5-flash if available, else fallback to gemini-pro
+    # For now, hardcode to gemini-pro as 1.5-flash seems unavailable in this environment
+    model = genai.GenerativeModel('gemini-pro', system_instruction=system_instruction)
     
     chat_history = []
     for msg in history:
