@@ -673,28 +673,46 @@ def api_arizona_trainer():
     
     # Construct chat context
     import google.generativeai as genai
+    import time
     
-    # Use available model from user list
-    model_name = 'gemini-2.0-flash'
-    try:
-        model = genai.GenerativeModel(model_name, system_instruction=system_instruction)
-    except Exception:
-        # Fallback to just model name if system instruction fails (unlikely for 2.0)
-        model = genai.GenerativeModel(model_name)
-
+    # List of models to try (prioritizing experimental/preview as they often have separate quotas)
+    candidate_models = [
+        'gemini-2.0-flash-exp',  # Experimental often has loose quotas
+        'gemini-2.5-flash',      # Newest
+        'gemini-2.0-flash',      # Stable
+        'gemini-2.0-flash-lite-preview-02-05', # Lite version
+        'gemini-2.0-flash-001'
+    ]
+    
     chat_history = []
     for msg in history:
         role = 'user' if msg['role'] == 'user' else 'model'
         chat_history.append({'role': role, 'parts': [msg['content']]})
+
+    last_error = None
     
-    try:
-        chat = model.start_chat(history=chat_history)
-        response = chat.send_message(user_message)
-        return jsonify({'success': True, 'reply': response.text})
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+    for model_name in candidate_models:
+        try:
+            # print(f"Trying model: {model_name}") 
+            model = genai.GenerativeModel(model_name, system_instruction=system_instruction)
+            chat = model.start_chat(history=chat_history)
+            response = chat.send_message(user_message)
+            return jsonify({'success': True, 'reply': response.text})
+            
+        except Exception as e:
+            last_error = e
+            error_str = str(e)
+            # If 404 (Not Found) or 429 (Quota), continue to next model
+            if '404' in error_str or '429' in error_str or 'quota' in error_str.lower():
+                continue
+            else:
+                # If random other error, probably stop? No, keep trying just in case.
+                continue
+                
+    # If all failed
+    import traceback
+    traceback.print_exc()
+    return jsonify({'error': f"All models failed. Last error: {str(last_error)}"}), 500
 
 @app.route('/api/arizona/rules', methods=['POST'])
 def api_arizona_rules():
