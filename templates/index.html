@@ -538,6 +538,33 @@
         window.addEventListener('resize', resize);
         resize(); animate();
     </script>
+    <!-- Music Widget -->
+    <div id="music-widget" class="glass-panel"
+        style="display: none; position: fixed; bottom: 20px; right: 20px; width: 300px; padding: 15px; border-radius: 16px; align-items: center; gap: 15px; z-index: 1000; background: rgba(16, 18, 27, 0.9); border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <img id="music-cover" src="" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
+        <div style="flex: 1; overflow: hidden;">
+            <div id="music-title"
+                style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">
+                Loading...</div>
+            <div id="music-artist" style="font-size: 12px; color: rgba(255,255,255,0.5);">Unknown</div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button id="music-prev" class="icon-btn-small"
+                style="background: none; border: none; color: white; cursor: pointer;"><i
+                    class="fas fa-step-backward"></i></button>
+            <button id="music-play" class="icon-btn-small"
+                style="background: none; border: none; color: white; cursor: pointer;"><i
+                    class="fas fa-play"></i></button>
+            <button id="music-next" class="icon-btn-small"
+                style="background: none; border: none; color: white; cursor: pointer;"><i
+                    class="fas fa-step-forward"></i></button>
+        </div>
+        <input type="range" id="music-volume" min="0" max="100" value="50" style="width: 60px; accent-color: #818cf8;">
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/music.js') }}"></script>
 </body>
 
 </html>
