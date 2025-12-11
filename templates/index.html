@@ -331,6 +331,34 @@
                     style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:20px;"></div>
             </div>
 
+            <div id="arizona-tool-community" class="workspace-tab">
+                <div class="bento-header">
+                    <h1 class="bento-title">Сообщество</h1>
+                </div>
+                <div class="bento-grid-dashboard">
+                    <div class="bento-card" style="grid-column: span 2;">
+                        <div class="card-title">Игроки проекта</div>
+                        <div style="overflow-x: auto;">
+                            <table style="width:100%; text-align:left; border-collapse:collapse;">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid rgba(255,255,255,0.1);">
+                                        <th style="padding:10px;">Пользователь</th>
+                                        <th style="padding:10px;">ID</th>
+                                        <th style="padding:10px;">Роль</th>
+                                        <th style="padding:10px;">Вход</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="community-users-list">
+                                    <tr>
+                                        <td colspan="4" style="padding:20px; text-align:center;">Загрузка...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="arizona-tool-admin" class="workspace-tab">
                 <div class="bento-header">
                     <h1 class="bento-title">Панель Управления</h1>
