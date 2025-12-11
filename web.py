@@ -97,6 +97,9 @@ def dashboard():
     # Dashboard page - requires authentication
     user = session.get('user', None)
     
+    if not user:
+        return redirect(url_for('index'))
+    
     # Generate OAuth URL for login button (in case not logged in)
     params = {
         'client_id': CLIENT_ID,
