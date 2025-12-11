@@ -398,6 +398,91 @@ Object.assign(window.ArizonaModule, {
         }
     },
 
+    // --- AI TRAINER LOGIC ---
+    trainerHistory: [],
+
+    startTrainer: async () => {
+        const scenario = document.getElementById('trainer-scenario').value;
+        const chatLog = document.getElementById('trainer-chat-log');
+
+        // Reset
+        window.ArizonaModule.trainerHistory = [];
+        chatLog.innerHTML = `<div style="text-align:center; color:#ccc; padding:20px;">
+            <i class="fa-solid fa-spinner fa-spin"></i> Подготовка сценария...
+        </div>`;
+
+        // Initial Message to AI to start context
+        await window.ArizonaModule.sendTrainerRequest(scenario, "Начинай РП ситуацию.");
+    },
+
+    sendTrainerMessage: async () => {
+        const input = document.getElementById('trainer-input');
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        const scenario = document.getElementById('trainer-scenario').value;
+        const chatLog = document.getElementById('trainer-chat-log');
+
+        // Add User Message
+        chatLog.innerHTML += `
+            <div style="margin:10px; text-align:right;">
+                <span style="background:rgba(59, 130, 246, 0.3); padding:8px 12px; border-radius:12px 12px 0 12px; display:inline-block; color:white; max-width:80%;">
+                    ${msg}
+                </span>
+            </div>
+        `;
+        chatLog.scrollTop = chatLog.scrollHeight;
+        input.value = '';
+
+        // Generate AI Reply
+        await window.ArizonaModule.sendTrainerRequest(scenario, msg);
+    },
+
+    sendTrainerRequest: async (scenario, msg) => {
+        const chatLog = document.getElementById('trainer-chat-log');
+
+        // Add message to history
+        window.ArizonaModule.trainerHistory.push({ role: 'user', content: msg });
+
+        try {
+            const res = await fetch('/api/arizona/trainer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    scenario: scenario,
+                    message: msg,
+                    history: window.ArizonaModule.trainerHistory
+                })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                // Remove loading if it was start
+                if (msg === "Начинай РП ситуацию.") chatLog.innerHTML = '';
+
+                // Add AI Reply
+                window.ArizonaModule.trainerHistory.push({ role: 'model', content: data.reply });
+
+                // Use window.marked if available, else plain text
+                const replyText = window.marked ? window.marked.parse(data.reply) : data.reply;
+
+                chatLog.innerHTML += `
+                    <div style="margin:10px; text-align:left;">
+                        <span style="background:rgba(16, 185, 129, 0.2); border:1px solid rgba(16, 185, 129, 0.4); padding:8px 12px; border-radius:12px 12px 12px 0; display:inline-block; color:#eee; max-width:80%;">
+                            ${replyText}
+                        </span>
+                    </div>
+                `;
+                chatLog.scrollTop = chatLog.scrollHeight;
+            } else {
+                alert('Ошибка AI: ' + data.error);
+            }
+        } catch (e) {
+            console.error(e);
+            chatLog.innerHTML += '<div style="color:red; text-align:center;">Ошибка соединения с сервером</div>';
+        }
+    },
+
     loadNews: async () => {
         const grid = document.getElementById('arizona-news-grid');
         const loading = document.getElementById('arizona-news-loading');
