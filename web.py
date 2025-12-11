@@ -233,11 +233,14 @@ def callback():
         r_user.raise_for_status()
         user_data = r_user.json()
         
+        # Determine if founder
+        is_founder = user_data['username'] in FOUNDERS or str(user_data['id']) in FOUNDERS
+        
         session['user'] = {
             'id': user_data['id'],
             'username': user_data['username'],
             'avatar': f"https://cdn.discordapp.com/avatars/{user_data['id']}/{user_data['avatar']}.png" if user_data.get('avatar') else "https://cdn.discordapp.com/embed/avatars/0.png",
-            'is_founder': user_data['username'] in FOUNDERS or user_data['id'] in FOUNDERS
+            'is_founder': is_founder
         }
 
         # Update Users DB
@@ -248,8 +251,8 @@ def callback():
         if uid in users_db:
             role = users_db[uid].get('role', 'user')
         
-        # Founders always get developer
-        if user_data['username'] in FOUNDERS or str(user_data['id']) in FOUNDERS:
+        # Founders always force developer role
+        if is_founder:
             role = 'developer'
 
         users_db[uid] = {
