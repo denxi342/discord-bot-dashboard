@@ -1,6 +1,13 @@
 import os
 import time
 import requests
+
+# FIX: Python 3.13 dropped 'cgi', but feedparser needs it via 'import cgi'
+import sys
+import types
+if 'cgi' not in sys.modules:
+    sys.modules['cgi'] = types.ModuleType('cgi')
+
 import feedparser
 import threading
 import json
