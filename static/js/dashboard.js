@@ -288,8 +288,11 @@ const ArizonaModule = {
         const grid = document.getElementById('arizona-news-grid');
         const loading = document.getElementById('arizona-news-loading');
 
+        // Safe null check
+        if (!grid) return;
+
         // Don't reload if already populated (optional, but good for perf)
-        if (grid.children.length > 0) return;
+        if (grid.children && grid.children.length > 0) return;
 
         grid.style.display = 'none';
         loading.style.display = 'block';
@@ -516,7 +519,6 @@ const ArizonaModule = {
 };
 
 
-// --- TEMP MAIL MODULE (Stub/Placeholder to fix ReferenceError) ---
 const TempMailModule = {
     accounts: [],
     activeIdx: 0,
@@ -525,6 +527,20 @@ const TempMailModule = {
     checkMail: () => { Utils.showToast('Функция временно отключена для отладки', 'warning'); },
     deleteAccount: () => { Utils.showToast('Функция временно отключена для отладки', 'warning'); },
     save: () => { }
+};
+
+// --- CONTROL MODULE (Bot Control - Stub) ---
+const ControlModule = {
+    controlBot: async (action) => {
+        try {
+            const res = await fetch(`/api/bot/control/${action}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) Utils.showToast(data.message, 'success');
+            else Utils.showToast(data.message || 'Ошибка', 'error');
+        } catch (e) {
+            Utils.showToast('Ошибка сети', 'error');
+        }
+    }
 };
 
 
