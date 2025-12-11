@@ -85,6 +85,28 @@ class AudioPlayer {
         this.loadTrack(0, false); // Load first track, don't auto-play immediately unless needed
     }
 
+    togglePlay() {
+        if (!this.ready) return;
+
+        // Optimistic UI update
+        this.isPlaying = !this.isPlaying;
+        this.updatePlayButton();
+
+        if (this.isPlaying) {
+            this.player.playVideo();
+        } else {
+            this.player.pauseVideo();
+        }
+    }
+
+    updatePlayButton() {
+        if (this.isPlaying) {
+            this.elements.playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        } else {
+            this.elements.playBtn.innerHTML = '<i class="fas fa-play"></i>';
+        }
+    }
+
     onPlayerStateChange(event) {
         // YT.PlayerState.ENDED = 0
         if (event.data === 0) {
@@ -93,12 +115,12 @@ class AudioPlayer {
         // YT.PlayerState.PLAYING = 1
         if (event.data === 1) {
             this.isPlaying = true;
-            this.elements.playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            this.updatePlayButton();
         }
         // YT.PlayerState.PAUSED = 2
         if (event.data === 2) {
             this.isPlaying = false;
-            this.elements.playBtn.innerHTML = '<i class="fas fa-play"></i>';
+            this.updatePlayButton();
         }
     }
 
@@ -130,15 +152,6 @@ class AudioPlayer {
         }
 
         this.player.setVolume(this.volume);
-    }
-
-    togglePlay() {
-        if (!this.ready) return;
-        if (this.isPlaying) {
-            this.player.pauseVideo();
-        } else {
-            this.player.playVideo();
-        }
     }
 
     next() {
