@@ -53,6 +53,72 @@ def save_users():
 
 load_users()
 
+# --- SERVERS STORAGE ---
+SERVERS_FILE = 'servers.json'
+servers_db = {}
+
+def load_servers():
+    global servers_db
+    try:
+        if os.path.exists(SERVERS_FILE):
+            with open(SERVERS_FILE, 'r', encoding='utf-8') as f:
+                servers_db = json.load(f)
+        else:
+            # Seed Defaults
+            servers_db = {
+                'home': {
+                    'name': 'Главная',
+                    'icon': 'discord', # fa-brand
+                    'owner': 'system',
+                    'channels': [
+                        { 'id': 'cat-info', 'type': 'category', 'name': 'ИНФОРМАЦИЯ' },
+                        { 'id': 'general', 'type': 'channel', 'name': 'general', 'icon': 'hashtag' },
+                        { 'id': 'news', 'type': 'channel', 'name': 'news-feed', 'icon': 'newspaper' },
+                        { 'id': 'community', 'type': 'channel', 'name': 'leaderboard', 'icon': 'trophy' }
+                    ]
+                },
+                'ai': {
+                    'name': 'Arizona AI',
+                    'icon': 'robot',
+                    'owner': 'system',
+                    'channels': [
+                        { 'id': 'cat-ai', 'type': 'category', 'name': 'ASSISTANT' },
+                        { 'id': 'helper', 'type': 'channel', 'name': 'chat-gpt', 'icon': 'robot' },
+                        { 'id': 'biography', 'type': 'channel', 'name': 'search-rules', 'icon': 'magnifying-glass' }
+                    ]
+                },
+                'smi': {
+                    'name': 'СМИ WORK',
+                    'icon': 'newspaper',
+                    'owner': 'system',
+                    'channels': [
+                        { 'id': 'cat-work', 'type': 'category', 'name': 'TOOLS' },
+                        { 'id': 'smi', 'type': 'channel', 'name': 'ad-editor', 'icon': 'pen-to-square' }
+                    ]
+                },
+                'admin': {
+                    'name': 'Admin Control',
+                    'icon': 'shield-halved',
+                    'owner': 'system',
+                    'channels': [
+                        { 'id': 'cat-admin', 'type': 'category', 'name': 'ADMINISTRATION' },
+                        { 'id': 'admin', 'type': 'channel', 'name': 'users', 'icon': 'users-gear' }
+                    ]
+                }
+            }
+            save_servers()
+    except Exception as e:
+        print(f"Error loading servers: {e}")
+
+def save_servers():
+    try:
+        with open(SERVERS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(servers_db, f, indent=4)
+    except Exception as e:
+        print(f"Error saving servers: {e}")
+
+load_servers()
+
 # Bot status tracking
 bot_status = {
     'running': True,
@@ -1275,6 +1341,73 @@ def api_reputation_top():
         })
         
     return jsonify({'success': True, 'top': top_list})
+
+    return jsonify({'success': True, 'top': top_list})
+
+# --- SERVER MANAGEMENT API ---
+@app.route('/api/servers', methods=['GET'])
+def api_get_servers():
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth required'}), 401
+    # Check permissions? For now everyone sees all, or we could filter by visibility
+    # For now, return ALL servers (Global List)
+    return jsonify({'success': True, 'servers': servers_db})
+
+@app.route('/api/servers/create', methods=['POST'])
+def api_create_server():
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth required'}), 401
+    
+    data = request.json
+    name = data.get('name')
+    if not name: return jsonify({'success': False, 'error': 'Name required'})
+
+    sid = f"srv_{int(time.time()*1000)}"
+    servers_db[sid] = {
+        'name': name,
+        'icon': 'server', # default icon
+        'owner': session['user']['id'],
+        'channels': [
+            { 'id': f'cat_{sid}_1', 'type': 'category', 'name': 'GENERAL' },
+            { 'id': f'chan_{sid}_1', 'type': 'channel', 'name': 'general', 'icon': 'hashtag' }
+        ]
+    }
+    save_servers()
+    return jsonify({'success': True, 'server': servers_db[sid], 'id': sid})
+
+@app.route('/api/servers/<sid>/channels/create', methods=['POST'])
+def api_create_channel(sid):
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth required'}), 401
+    if sid not in servers_db: return jsonify({'success': False, 'error': 'Server not found'})
+    
+    # Permission check: Only owner or admin (simplified)
+    # if servers_db[sid]['owner'] != session['user']['id'] and session['user']['role'] not in ['developer']:
+    #     return jsonify({'success': False, 'error': 'No permission'})
+
+    data = request.json
+    name = data.get('name')
+    ctype = data.get('type', 'channel') # channel, voice, category
+    
+    if not name: return jsonify({'success': False, 'error': 'Name required'})
+
+    cid = f"ch_{int(time.time()*1000)}"
+    new_chan = {
+        'id': cid,
+        'type': ctype, 
+        'name': name,
+        'icon': 'hashtag' if ctype == 'channel' else ('microphone' if ctype == 'voice' else '')
+    }
+    
+    servers_db[sid]['channels'].append(new_chan)
+    save_servers()
+    return jsonify({'success': True, 'channel': new_chan})
+
+@app.route('/api/servers/<sid>/channels/<cid>/delete', methods=['POST'])
+def api_delete_channel(sid, cid):
+     if 'user' not in session: return jsonify({'success': False, 'error': 'Auth required'}), 401
+     if sid not in servers_db: return jsonify({'success': False, 'error': 'Server not found'})
+     
+     servers_db[sid]['channels'] = [c for c in servers_db[sid]['channels'] if c['id'] != cid]
+     save_servers()
+     return jsonify({'success': True})
 
 threading.Thread(target=simulate, daemon=True).start()
 

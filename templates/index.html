@@ -18,58 +18,28 @@
         crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=16">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=18">
 
     <!-- Required Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"
         crossorigin="anonymous"></script>
-
-    <style>
-        /* Fallback styles inline strictly for critical load */
-        .workspace-tab {
-            display: none;
-        }
-
-        .workspace-tab.active {
-            display: block !important;
-            animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(5px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
 </head>
 
 <body>
-    <!-- Background Animation (Optional) -->
-    <!-- <canvas id="plexus-canvas" style="position:fixed; top:0; left:0; z-index:-1; opacity:0.05;"></canvas> -->
-
     <div class="discord-app">
-        <!-- 1. SERVER LIST (Leftmost) -->
+        <!-- 1. SERVER LIST -->
         <nav class="server-list">
-            <!-- Home Server -->
             <div class="server-icon active" id="server-home" onclick="DiscordModule.selectServer('home')"
                 data-tooltip="Главная">
                 <i class="fa-brands fa-discord"></i>
             </div>
             <div class="server-sep"></div>
 
-            <!-- AI Server -->
             <div class="server-icon" id="server-ai" onclick="DiscordModule.selectServer('ai')"
                 data-tooltip="Arizona AI">
                 <i class="fa-solid fa-robot"></i>
             </div>
 
-            <!-- Admin Server -->
             {% if user.role in ['developer', 'tester'] %}
             <div class="server-icon" id="server-admin" onclick="DiscordModule.selectServer('admin')"
                 data-tooltip="Админ-панель">
@@ -77,7 +47,6 @@
             </div>
             {% endif %}
 
-            <!-- SMI/Work Server -->
             <div class="server-icon" id="server-smi" onclick="DiscordModule.selectServer('smi')"
                 data-tooltip="СМИ Тулс">
                 <i class="fa-solid fa-newspaper"></i>
@@ -85,31 +54,28 @@
 
             <div class="server-sep"></div>
 
-            <!-- Add Server (Placeholder) -->
-            <div class="server-icon add-server" onclick="Utils.showToast('Создание серверов скоро', 'info')">
+            <div class="server-icon add-server" onclick="DiscordModule.uiCreateServer()" data-tooltip="Создать сервер">
                 <i class="fa-solid fa-plus" style="color:#22c55e;"></i>
             </div>
 
-            <!-- Profile (Bottom) -->
             <div class="server-icon" id="server-profile" onclick="DiscordModule.selectServer('profile')"
-                data-tooltip="Настройки" style="margin-top:auto; margin-bottom:12px;">
+                style="margin-top:auto; margin-bottom:12px;">
                 <img src="{{ user.avatar }}" style="width:100%; height:100%; border-radius:50%;">
             </div>
         </nav>
 
-        <!-- 2. CHANNEL SIDEBAR (Middle) -->
+        <!-- 2. CHANNEL SIDEBAR -->
         <div class="channel-sidebar">
             <div class="server-header">
-                <h3 id="current-server-name">Главная</h3>
+                <h3 id="current-server-name">Main Server</h3>
                 <i class="fa-solid fa-chevron-down"></i>
             </div>
 
             <div id="channel-list-container" class="channel-list">
-                <!-- Dynamic Content via JS -->
-                <div style="padding:20px; text-align:center; color:gray;">Загрузка...</div>
+                <!-- Dynamic Content -->
+                <div style="padding:20px; text-align:center; color:gray;">Loading context...</div>
             </div>
 
-            <!-- User Bar (Bottom) -->
             <div class="user-bar">
                 <img src="{{ user.avatar }}" class="user-avatar">
                 <div class="user-info">
@@ -117,23 +83,20 @@
                     <div class="discriminator">#{{ user.id[-4:] }}</div>
                 </div>
                 <div class="user-controls">
-                    <i class="fa-solid fa-microphone" title="Mute"></i>
-                    <i class="fa-solid fa-headphones" title="Deafen"></i>
-                    <i class="fa-solid fa-gear" onclick="DiscordModule.selectServer('profile')"
-                        title="User Settings"></i>
+                    <i class="fa-solid fa-microphone"></i>
+                    <i class="fa-solid fa-headphones"></i>
+                    <i class="fa-solid fa-gear" onclick="DiscordModule.selectServer('profile')"></i>
                 </div>
             </div>
         </div>
 
-        <!-- 3. MAIN CHAT AREA (Right) -->
+        <!-- 3. MAIN CHAT AREA -->
         <main class="chat-area">
-            <!-- Top Header -->
+            <!-- Header -->
             <header class="chat-header">
                 <i class="fa-solid fa-hashtag" style="color:var(--text-muted); margin-right:10px;"></i>
                 <h3 id="current-channel-name">general</h3>
                 <div class="topic-divider"></div>
-                <!-- <span id="current-channel-topic" class="channel-topic">Главный чат</span> -->
-
                 <div class="header-toolbar">
                     <i class="fa-solid fa-phone"></i>
                     <i class="fa-solid fa-video"></i>
@@ -145,166 +108,96 @@
                 </div>
             </header>
 
-            <!-- Content/Messages -->
-            <div class="chat-content" id="main-content-area">
+            <!-- Scrollable Stream Area -->
+            <div class="chat-scroll-area" id="main-scroll-area">
 
-                <!-- 1. OVERVIEW / NEWS -->
-                <div id="arizona-tool-overview" class="workspace-tab">
+                <!-- STREAMS (Hidden by default, toggled by JS) -->
 
+                <!-- General -->
+                <div id="channel-view-general" class="channel-view active">
                     <div class="welcome-message">
                         <div class="welcome-icon"><i class="fa-solid fa-hashtag"></i></div>
-                        <h1>Добро пожаловать в #general!</h1>
-                        <p>Здесь публикуются новости и сводка состояния бота.</p>
+                        <h1>Welcome to #general</h1>
+                        <p>This is the start of the general channel.</p>
                     </div>
-
-                    <!-- BENTO GRID (Embedded in Chat) -->
-                    <div class="bento-grid" style="padding-bottom: 20px;">
-                        <!-- Mini Stats -->
-                        <div class="bento-card">
-                            <div class="card-title"><span>Статус</span></div>
-                            <div class="stat-value" id="bot-servers">loading...</div>
-                        </div>
-                        <div class="bento-card">
-                            <div class="card-title"><span>AI Model</span></div>
-                            <div class="stat-value" style="font-size:20px;">Gemini 2.0</div>
-                        </div>
-
-                        <!-- News Feed -->
-                        <div class="bento-card" style="grid-column: span 2;">
-                            <div class="card-title"><span>Лента Новостей</span> <i class="fa-solid fa-refresh"
-                                    onclick="window.ArizonaModule.loadNews()" style="cursor:pointer"></i></div>
-                            <div id="arizona-news-grid" style="display:flex; flex-direction:column; gap:10px;"></div>
-                            <div id="arizona-news-loading" style="display:none;">Загрузка...</div>
-                        </div>
-
-                        <!-- Leaderboard (Top Users) -->
-                        <div class="bento-card" style="grid-column: span 2;">
-                            <div class="card-title"><span>Топ Репутации</span></div>
-                            <div id="dashboard-leaderboard" style="display:flex; gap:10px; overflow-x:auto;">Loading...
-                            </div>
-                        </div>
-                    </div>
+                    <div id="stream-general"></div>
                 </div>
 
-                <!-- 2. AI HELPER (Chat Interface) -->
-                <div id="arizona-tool-helper" class="workspace-tab">
+                <!-- News -->
+                <div id="channel-view-news" class="channel-view">
+                    <div class="welcome-message">
+                        <div class="welcome-icon"><i class="fa-solid fa-newspaper"></i></div>
+                        <h1>News Feed</h1>
+                        <p>Latest updates from the server.</p>
+                    </div>
+                    <div id="stream-news"></div>
+                </div>
+
+                <!-- AI Data Base -->
+                <div id="channel-view-helper" class="channel-view">
                     <div class="welcome-message">
                         <div class="welcome-icon"><i class="fa-solid fa-robot"></i></div>
-                        <h1>Чат с Arizona AI</h1>
-                        <p>Задавайте вопросы по правилам или игровому моду.</p>
+                        <h1>Arizona AI Assistant</h1>
+                        <p>I can help you with server rules and commands.</p>
                     </div>
-
-                    <div id="chat-history" style="display:flex; flex-direction:column; gap:15px; padding-bottom:20px;">
-                        <div class="message ai"
-                            style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
-                            <strong>Arizona AI:</strong> Привет! Я готов помочь.
-                        </div>
-                    </div>
+                    <div id="stream-helper"></div>
                 </div>
 
-                <!-- 3. SEARCH (Rules) -->
-                <div id="arizona-tool-search" class="workspace-tab">
+                <!-- Search -->
+                <div id="channel-view-search" class="channel-view">
                     <div class="welcome-message">
-                        <div class="welcome-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-                        <h1>Поиск Правил</h1>
+                        <h1>Rules Search</h1>
                     </div>
-                    <div style="padding:20px;">
-                        <input id="rules-search" placeholder="МГ, ДМ, Ск..."
-                            style="width:100%; padding:10px; background:#1e1f22; border:none; color:white; border-radius:4px; margin-bottom:10px;">
-                        <button class="btn primary" onclick="window.searchRules()">Найти</button>
-                        <div id="rules-result" class="markdown-body" style="margin-top:20px;"></div>
-                    </div>
+                    <div id="stream-search"></div> <!-- Mapped from biography key in JS just for example -->
                 </div>
 
-                <!-- 4. Community -->
-                <div id="arizona-tool-community" class="workspace-tab">
+                <!-- Leaderboard -->
+                <div id="channel-view-community" class="channel-view">
                     <div class="welcome-message">
-                        <div class="welcome-icon"><i class="fa-solid fa-users"></i></div>
-                        <h1>Сообщество</h1>
+                        <div class="welcome-icon"><i class="fa-solid fa-trophy"></i></div>
+                        <h1>Leaderboard</h1>
                     </div>
-                    <div class="bento-card" style="margin:20px;">
-                        <table style="width:100%; text-align:left;">
-                            <thead>
-                                <tr>
-                                    <th>User</th>
-                                    <th>ID</th>
-                                    <th>Role</th>
-                                </tr>
-                            </thead>
-                            <tbody id="community-users-list"></tbody>
-                        </table>
-                    </div>
+                    <div id="stream-leaderboard"></div>
                 </div>
 
-                <!-- 5. Profile -->
-                <div id="arizona-tool-profile" class="workspace-tab" style="max-width:600px; margin:0 auto;">
-                    <div style="text-align:center; padding:40px;">
-                        <img src="{{ user.avatar }}"
-                            style="width:120px; height:120px; border-radius:50%; margin-bottom:20px;">
-                        <h1>{{ user.username }}</h1>
-                        <div
-                            style="margin: 15px 0; display:flex; justify-content:center; align-items:center; gap:10px;">
-                            <div class="rep-badge">
-                                <i class="fa-solid fa-star" style="color:#fbbf24;"></i>
-                                <span style="font-weight:bold; color:#fbbf24; font-size:18px;">{{ user.reputation if
-                                    user.reputation else 0 }}</span>
-                            </div>
-                        </div>
-                        <a href="/logout" class="btn" style="color:#f87171; border:1px solid #f87171;">Выйти</a>
+                <!-- Admin -->
+                <div id="channel-view-admin" class="channel-view">
+                    <div class="welcome-message">
+                        <div class="welcome-icon"><i class="fa-solid fa-terminal"></i></div>
+                        <h1>Admin Console</h1>
                     </div>
+                    <div id="stream-admin"></div>
                 </div>
 
-                <!-- 6. Admin Panel -->
-                {% if user.role in ['developer', 'tester'] %}
-                <div id="arizona-tool-admin" class="workspace-tab">
-                    <h1 style="padding:20px;">Admin Control</h1>
-                    <div class="bento-card" style="margin:0 20px;">
-                        <table style="width:100%;">
-                            <tbody id="admin-users-list"></tbody>
-                        </table>
+                <!-- SMI -->
+                <div id="channel-view-smi" class="channel-view">
+                    <div class="welcome-message">
+                        <div class="welcome-icon"><i class="fa-solid fa-pen-to-square"></i></div>
+                        <h1>Ad Editor</h1>
                     </div>
-                </div>
-                {% endif %}
-
-                <!-- 7. SMI Tool -->
-                <div id="arizona-tool-smi" class="workspace-tab">
-                    <div style="padding:20px;">
-                        <h3>Редактор объявлений</h3>
-                        <input id="smi-input" placeholder="Текст объявления"
-                            style="width:100%; padding:10px; background:#1e1f22; border:none; color:white;">
-                        <button class="btn primary" onclick="window.editAd()"
-                            style="margin-top:10px;">Редактировать</button>
-                        <div id="smi-output" style="margin-top:20px; font-size:20px; color:#4ade80;"></div>
-                    </div>
+                    <div id="stream-smi"></div>
                 </div>
 
-                <!-- 8. Bio & Complaint -->
-                <div id="arizona-tool-biography" class="workspace-tab">
-                    <div style="padding:20px;">
-                        <h2>Generator Bio (WIP)</h2><input id="bio-name" placeholder="Name"><button
-                            onclick="window.genBio()">Go</button>
-                        <div id="bio-output"></div>
+                <!-- Profile -->
+                <div id="channel-view-profile" class="channel-view">
+                    <div class="welcome-message">
+                        <div class="welcome-icon"><i class="fa-solid fa-user"></i></div>
+                        <h1>Profile</h1>
                     </div>
-                </div>
-                <div id="arizona-tool-complaint" class="workspace-tab">
-                    <div style="padding:20px;">
-                        <h2>Complaint Gen</h2><input id="comp-nick"><textarea id="comp-desc"></textarea><button
-                            onclick="window.genComplaint()">Go</button>
-                        <pre id="comp-output"></pre>
-                    </div>
+                    <div id="stream-profile"></div>
                 </div>
 
             </div>
 
-            <!-- Message Input Area (Dynamic visibility potentially) -->
-            <div class="chat-input-area" id="global-input-area">
+            <!-- Global Input -->
+            <div class="chat-input-area">
                 <div class="chat-input-wrapper">
                     <button class="input-btn"><i class="fa-solid fa-circle-plus"></i></button>
-                    <!-- We'll attach this input to the active tool if it supports chat -->
-                    <input id="helper-input" placeholder="Написать сообщение..."
-                        onkeydown="if(event.key==='Enter') window.askHelper()">
+                    <input id="global-input" placeholder="Message #general"
+                        onkeydown="if(event.key==='Enter') DiscordModule.handleInput()">
                     <div class="right-icons">
                         <i class="fa-solid fa-gift"></i>
+                        <i class="fa-solid fa-sticky-note"></i>
                         <i class="fa-solid fa-face-smile"></i>
                     </div>
                 </div>
@@ -312,60 +205,8 @@
         </main>
     </div>
 
-    <!-- SCRIPTS -->
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=17"></script>
-    <script>
-        // Inline Helper bridges for onclicks defined in HTML
-        window.askHelper = async () => {
-            // Check if Helper tab is active, otherwise this might be weird
-            const input = document.getElementById('helper-input'); // The input in bottom bar
-            if (!input.value) return;
-            const history = document.getElementById('chat-history');
-
-            // Optimistic UI
-            history.innerHTML += `<div class="message user" style="text-align:right; margin:10px;"><span style="background:#5865F2; padding:8px 12px; border-radius:8px;">${Utils.escapeHtml(input.value)}</span></div>`;
-            const q = input.value;
-            input.value = '';
-
-            // Scroll
-            // history.scrollIntoView({ behavior: 'smooth', block: 'end' }); // logic in JS
-
-            if (window.ArizonaModule.askHelper) {
-                // Call module (stub for now, needs real integration)
-                // Actually ArizonaModule.askHelper reads from specific ID, let's fix that in JS or here
-                // We'll reimplement simple fetch here since IDs changed
-                try {
-                    const r = await fetch('/api/arizona/helper', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });
-                    const d = await r.json();
-                    history.innerHTML += `<div class="message ai" style="margin:10px;"><strong style="color:#5865F2;">AI:</strong> ${marked.parse(d.response || d.error)}</div>`;
-                } catch (e) { console.error(e); }
-            }
-        };
-
-        // Other bridges
-        window.genBio = async () => {
-            const res = await fetch('/api/arizona/legend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: document.getElementById('bio-name').value }) });
-            const d = await res.json();
-            document.getElementById('bio-output').innerHTML = marked.parse(d.response);
-        };
-        window.genComplaint = async () => {
-            // ... existing logic
-        };
-        window.searchRules = async () => {
-            const r = document.getElementById('rules-result');
-            r.innerHTML = 'Thinking...';
-            const res = await fetch('/api/arizona/rules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: document.getElementById('rules-search').value }) });
-            const d = await res.json();
-            r.innerHTML = marked.parse(d.response);
-        };
-        window.editAd = async () => {
-            const out = document.getElementById('smi-output');
-            out.innerText = '...';
-            const res = await fetch('/api/arizona/smi/edit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: document.getElementById('smi-input').value }) });
-            const d = await res.json();
-            out.innerText = d.response;
-        };
-    </script>
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=18"></script>
 </body>
 
 </html>
