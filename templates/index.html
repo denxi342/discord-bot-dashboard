@@ -6,45 +6,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arizona AI | Dashboard</title>
 
-    <!-- CDN Scripts with fallback -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" crossorigin="anonymous"></script>
-    <script>
-        // Fallback if marked.js is blocked
-        if (typeof marked === 'undefined') {
-            window.marked = { parse: (text) => text.replace(/\n/g, '<br>') };
-        }
-    </script>
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"
-        crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-        crossorigin="anonymous">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=15">
-
-    <!-- CRITICAL FALLBACK STYLES -->
+    <!-- NO EXTERNAL DEPENDENCIES - ALL INLINE -->
     <style>
-        .workspace-tab {
-            display: none !important;
-            opacity: 0;
-            transition: opacity 0.3s;
+        /* RESET */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .workspace-tab.active {
-            display: block !important;
-            opacity: 1;
+        /* VARIABLES */
+        :root {
+            --bg-dark: #09090b;
+            --card-glass: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --primary: #6366f1;
         }
 
-        /* Ensure layout doesn't break if CSS is missing */
+        /* BASE */
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* LAYOUT */
         .app-container {
             display: flex;
             gap: 20px;
             height: 100vh;
-            overflow: hidden;
+            padding: 20px;
         }
 
         .sidebar {
             width: 280px;
-            flex-shrink: 0;
+            background: var(--card-glass);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
         }
@@ -55,53 +58,190 @@
             padding: 20px;
         }
 
-        /* Fallback icons if Font Awesome blocked */
-        .nav-item i {
-            font-style: normal;
+        /* BRAND */
+        .brand {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 40px;
+            color: #fff;
+        }
+
+        /* NAV */
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-item {
+            padding: 14px 18px;
+            border-radius: 14px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            font-size: 14px;
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+
+        .nav-item.active {
+            background: rgba(99, 102, 241, 0.15);
+            color: #fff;
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        /* TABS */
+        .workspace-tab {
+            display: none !important;
+        }
+
+        .workspace-tab.active {
+            display: block !important;
+        }
+
+        /* CARDS */
+        .bento-card {
+            background: var(--card-glass);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+
+        /* BUTTONS */
+        .btn {
+            border: 1px solid var(--card-border);
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn.primary {
+            background: var(--primary);
+            border: none;
+        }
+
+        /* INPUTS */
+        input,
+        textarea {
+            width: 100%;
+            padding: 14px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* PROFILE */
+        .sidebar-profile {
+            margin-top: auto;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mini-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .mini-username {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .mini-status {
+            font-size: 12px;
+            color: #4ade80;
         }
     </style>
 
-    <!-- CRITICAL: Define ArizonaModule BEFORE page loads -->
+    <!-- CRITICAL JS - MUST LOAD FIRST -->
     <script>
-        console.log('[INIT] Defining ArizonaModule in head...');
+        console.log('[INIT] Loading ArizonaModule...');
 
+        // MAIN MODULE
         window.ArizonaModule = {
-            selectTool: (id, el) => {
-                console.log('[ArizonaModule] Switching to:', id);
+            selectTool: function (id, el) {
+                console.log('[CLICK] Button clicked:', id);
 
-                // Clear active states
-                document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-                document.querySelectorAll('.workspace-tab').forEach(x => {
-                    x.style.display = 'none';
-                    x.classList.remove('active');
-                });
+                try {
+                    // Remove all active states
+                    var navItems = document.querySelectorAll('.nav-item');
+                    for (var i = 0; i < navItems.length; i++) {
+                        navItems[i].classList.remove('active');
+                    }
 
-                // Set new active
-                if (el && !el.classList.contains('profile-dummy')) el.classList.add('active');
+                    var tabs = document.querySelectorAll('.workspace-tab');
+                    for (var i = 0; i < tabs.length; i++) {
+                        tabs[i].classList.remove('active');
+                        tabs[i].style.display = 'none';
+                    }
 
-                const t = document.getElementById('arizona-tool-' + id);
-                if (t) {
-                    t.style.display = 'block';
-                    setTimeout(() => t.classList.add('active'), 10);
-                } else {
-                    console.error('[ArizonaModule] Tab not found:', 'arizona-tool-' + id);
+                    // Activate clicked button
+                    if (el) {
+                        el.classList.add('active');
+                    }
+
+                    // Show target tab
+                    var targetTab = document.getElementById('arizona-tool-' + id);
+                    if (targetTab) {
+                        targetTab.style.display = 'block';
+                        targetTab.classList.add('active');
+                        console.log('[SUCCESS] Tab shown:', id);
+                    } else {
+                        console.error('[ERROR] Tab not found:', 'arizona-tool-' + id);
+                    }
+                } catch (e) {
+                    console.error('[ERROR] selectTool failed:', e);
+                    alert('Ошибка переключения вкладки: ' + e.message);
                 }
-
-                if (id === 'news' && window.loadNews) window.loadNews();
-            },
-
-            askQuickHelper: async () => {
-                const q = document.getElementById('overview-input')?.value;
-                if (!q) return;
-                window.ArizonaModule.selectTool('helper', document.querySelectorAll('.nav-item')[1]);
-                if (document.getElementById('helper-input')) {
-                    document.getElementById('helper-input').value = q;
-                }
-                if (window.askHelper) window.askHelper();
             }
         };
 
         console.log('[INIT] ArizonaModule ready!');
+
+        // Fallback for marked.js
+        window.marked = window.marked || {
+            parse: function (text) {
+                return text ? text.replace(/\n/g, '<br>') : '';
+            }
+        };
     </script>
 </head>
 
@@ -111,36 +251,29 @@
     <div class="app-container">
         <!-- SIDEBAR -->
         <aside class="sidebar">
-            <div class="brand"><i class="fa-solid fa-layer-group"></i>&nbsp;Arizona AI</div>
+            <div class="brand">🎮 Arizona AI</div>
 
             <nav class="nav-menu">
                 <div class="nav-item active" onclick="ArizonaModule.selectTool('overview', this)">
-                    <i class="fa-solid fa-grid-2"></i>
-                    <span>Обзор</span>
+                    📊 Обзор
                 </div>
                 <div class="nav-item" onclick="ArizonaModule.selectTool('helper', this)">
-                    <i class="fa-solid fa-robot"></i>
-                    <span>AI Помощник</span>
+                    🤖 AI Помощник
                 </div>
                 <div class="nav-item" onclick="ArizonaModule.selectTool('rules', this)">
-                    <i class="fa-solid fa-book"></i>
-                    <span>База Правил</span>
+                    📖 База Правил
                 </div>
                 <div class="nav-item" onclick="ArizonaModule.selectTool('smi', this)">
-                    <i class="fa-solid fa-pen-nib"></i>
-                    <span>СМИ Редактор</span>
+                    ✏️ СМИ Редактор
                 </div>
                 <div class="nav-item" onclick="ArizonaModule.selectTool('complaint', this)">
-                    <i class="fa-solid fa-gavel"></i>
-                    <span>Генератор Жалоб</span>
+                    ⚖️ Генератор Жалоб
                 </div>
                 <div class="nav-item" onclick="ArizonaModule.selectTool('legend', this)">
-                    <i class="fa-solid fa-user-secret"></i>
-                    <span>RP Биография</span>
+                    🕵️ RP Биография
                 </div>
                 <div class="nav-item" onclick="ArizonaModule.selectTool('news', this)">
-                    <i class="fa-solid fa-newspaper"></i>
-                    <span>Новости</span>
+                    📰 Новости
                 </div>
             </nav>
 
@@ -148,19 +281,18 @@
                 onclick="ArizonaModule.selectTool('profile', document.querySelector('.nav-item.profile-dummy'))">
                 {% if user %}
                 <img src="{{ user.avatar }}" alt="Avatar" class="mini-avatar">
-                <div class="mini-user-info">
-                    <span class="mini-username">{{ user.username }}</span>
-                    <span class="mini-status">Online</span>
+                <div>
+                    <div class="mini-username">{{ user.username }}</div>
+                    <div class="mini-status">Online</div>
                 </div>
                 {% else %}
-                <div class="mini-user-info">
-                    <span class="mini-username">Guest</span>
-                    <span class="mini-status" style="color:var(--text-secondary);">Not authorized</span>
+                <div>
+                    <div class="mini-username">Guest</div>
+                    <div class="mini-status" style="color:#666;">Not authorized</div>
                 </div>
                 {% endif %}
             </div>
-            <div class="nav-item profile-dummy hidden" onclick="ArizonaModule.selectTool('profile', this)"
-                style="display:none;"></div>
+            <div class="nav-item profile-dummy" style="display:none;"></div>
         </aside>
 
         <!-- MAIN CONTENT -->
