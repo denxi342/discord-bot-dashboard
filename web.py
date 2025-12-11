@@ -388,10 +388,7 @@ def callback():
         traceback.print_exc()
         return f"Auth Error: {e}. Keys valid? Redirect URI match?<br><a href='/'>Retry</a>", 400
 
-@app.route('/logout')
-def logout():
-    session.pop('user', None)
-    return redirect(url_for('index'))
+
 
 # --- API ROUTES ---
 
