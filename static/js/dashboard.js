@@ -252,7 +252,77 @@ Object.assign(window.ArizonaModule, {
         // Init logic
         try {
             window.ArizonaModule.selectTool('overview', document.querySelector('.nav-item.active'));
+            window.ArizonaModule.checkAdminAccess();
         } catch (e) { console.warn('Init overview failed', e); }
+    },
+
+    checkAdminAccess: async () => {
+        try {
+            const res = await fetch('/api/admin/users');
+            if (res.status === 200) {
+                // User is dev
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'flex');
+            }
+        } catch (e) { }
+    },
+
+    loadUsers: async () => {
+        const tbody = document.getElementById('admin-users-list');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="4" style="padding:20px; text-align:center;">Загрузка...</td></tr>';
+
+        try {
+            const res = await fetch('/api/admin/users');
+            const data = await res.json();
+
+            if (data.success) {
+                tbody.innerHTML = data.users.map(u => `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:10px; display:flex; align-items:center; gap:10px;">
+                            <img src="${u.avatar}" style="width:30px; height:30px; border-radius:50%;">
+                            ${u.username}
+                        </td>
+                        <td style="padding:10px; opacity:0.6; font-size:12px;">${u.id}</td>
+                        <td style="padding:10px;">
+                            <span style="padding:4px 8px; border-radius:4px; font-size:12px; 
+                                background:${u.role === 'developer' ? 'rgba(220,38,38,0.2)' : (u.role === 'tester' ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.05)')};
+                                color:${u.role === 'developer' ? '#f87171' : (u.role === 'tester' ? '#facc15' : '#ccc')}">
+                                ${u.role}
+                            </span>
+                        </td>
+                        <td style="padding:10px;">
+                            <select onchange="window.ArizonaModule.setRole('${u.id}', this.value)" style="background:rgba(0,0,0,0.3); border:1px solid #333; color:white; padding:4px; border-radius:4px;">
+                                <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
+                                <option value="tester" ${u.role === 'tester' ? 'selected' : ''}>Tester</option>
+                                <option value="developer" ${u.role === 'developer' ? 'selected' : ''}>Developer</option>
+                            </select>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">Ошибка доступа</td></tr>';
+            }
+        } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">Ошибка сети</td></tr>';
+        }
+    },
+
+    setRole: async (uid, role) => {
+        if (!confirm(`Выдать роль ${role} пользователю ${uid}?`)) return;
+        try {
+            const res = await fetch('/api/admin/role', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: uid, role: role })
+            });
+            const d = await res.json();
+            if (d.success) {
+                alert('Роль изменена!');
+                window.ArizonaModule.loadUsers();
+            } else {
+                alert('Ошибка: ' + d.error);
+            }
+        } catch (e) { alert('Ошибка сети'); }
     },
 
     loadServers: async () => {
@@ -287,6 +357,7 @@ Object.assign(window.ArizonaModule, {
 
         if (toolId === 'news' && window.ArizonaModule.loadNews) window.ArizonaModule.loadNews();
         if (toolId === 'smi' && window.ArizonaModule.loadSmiRules) window.ArizonaModule.loadSmiRules();
+        if (toolId === 'admin' && window.ArizonaModule.loadUsers) window.ArizonaModule.loadUsers();
     },
 
     loadNews: async () => {

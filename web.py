@@ -4,6 +4,7 @@ import utils
 import psutil
 import time
 import requests
+import json
 from datetime import datetime, timedelta
 import threading
 import os
@@ -23,6 +24,28 @@ FOUNDERS = [os.environ.get('FOUNDER_USERNAME', 'kompd')] # Usernames or IDs with
 API_BASE_URL = "https://discord.com/api"
 AUTHORIZATION_BASE_URL = API_BASE_URL + "/oauth2/authorize"
 TOKEN_URL = API_BASE_URL + "/oauth2/token"
+
+# --- USERS STORAGE ---
+USERS_FILE = 'users.json'
+users_db = {}
+
+def load_users():
+    global users_db
+    try:
+        if os.path.exists(USERS_FILE):
+            with open(USERS_FILE, 'r', encoding='utf-8') as f:
+                users_db = json.load(f)
+    except Exception as e:
+        print(f"Error loading users: {e}")
+
+def save_users():
+    try:
+        with open(USERS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(users_db, f, indent=4)
+    except Exception as e:
+        print(f"Error saving users: {e}")
+
+load_users()
 
 # Bot status tracking
 bot_status = {
@@ -121,6 +144,61 @@ def api_get_prefixes():
     if not is_founder: return jsonify({'error': 'Forbidden'}), 403
     return jsonify(utils.get_all_prefixes())
 
+@app.route('/api/admin/users')
+def api_get_users():
+    if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
+    # Check role
+    uid = str(session['user']['id'])
+    role = users_db.get(uid, {}).get('role', 'user')
+    
+    if role != 'developer': 
+        return jsonify({'error': 'Forbidden'}), 403
+    
+    # Convert dict to list for frontend
+    users_list = []
+    for uid, data in users_db.items():
+        users_list.append({
+            'id': uid,
+            'username': data['username'],
+            'avatar': data['avatar'],
+            'role': data.get('role', 'user'),
+            'last_login': data.get('last_login', '')
+        })
+    return jsonify({'success': True, 'users': users_list})
+
+@app.route('/api/admin/role', methods=['POST'])
+def api_set_role():
+    if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
+    
+    # Check requester role
+    requester_id = str(session['user']['id'])
+    requester_role = users_db.get(requester_id, {}).get('role', 'user')
+    
+    if requester_role != 'developer': 
+        return jsonify({'error': 'Forbidden'}), 403
+        
+    data = request.json
+    target_id = str(data.get('user_id'))
+    new_role = data.get('role')
+    
+    if target_id not in users_db:
+        return jsonify({'success': False, 'error': 'User not found'})
+        
+    if new_role not in ['developer', 'tester', 'user']:
+        return jsonify({'success': False, 'error': 'Invalid role'})
+        
+    # Prevent demoting founders
+    target_username = users_db[target_id]['username']
+    if target_username in FOUNDERS or target_id in FOUNDERS:
+        return jsonify({'success': False, 'error': 'Cannot change role of Founder'})
+        
+    users_db[target_id]['role'] = new_role
+    save_users()
+    
+    add_log('warning', f"Role changed for {target_username} to {new_role} by {session['user']['username']}")
+    
+    return jsonify({'success': True})
+
 
 @app.route('/callback')
 def callback():
@@ -156,8 +234,34 @@ def callback():
             'avatar': f"https://cdn.discordapp.com/avatars/{user_data['id']}/{user_data['avatar']}.png" if user_data.get('avatar') else "https://cdn.discordapp.com/embed/avatars/0.png",
             'is_founder': user_data['username'] in FOUNDERS or user_data['id'] in FOUNDERS
         }
+
+        # Update Users DB
+        uid = str(user_data['id'])
+        role = 'user'
+        
+        # Check if already exists to keep role
+        if uid in users_db:
+            role = users_db[uid].get('role', 'user')
+        
+        # Founders always get developer
+        if user_data['username'] in FOUNDERS or str(user_data['id']) in FOUNDERS:
+            role = 'developer'
+
+        users_db[uid] = {
+            'username': user_data['username'],
+            'avatar': session['user']['avatar'],
+            'role': role,
+            'last_login': datetime.now().isoformat()
+        }
+        save_users()
+        
+        # Add role to session for easy access
+        session['user']['role'] = role
+
         return redirect(url_for('index'))
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return f"Auth Error: {e}. Keys valid? Redirect URI match?<br><a href='/'>Retry</a>", 400
 
 @app.route('/logout')
