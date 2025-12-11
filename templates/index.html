@@ -60,6 +60,49 @@
             font-style: normal;
         }
     </style>
+
+    <!-- CRITICAL: Define ArizonaModule BEFORE page loads -->
+    <script>
+        console.log('[INIT] Defining ArizonaModule in head...');
+
+        window.ArizonaModule = {
+            selectTool: (id, el) => {
+                console.log('[ArizonaModule] Switching to:', id);
+
+                // Clear active states
+                document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+                document.querySelectorAll('.workspace-tab').forEach(x => {
+                    x.style.display = 'none';
+                    x.classList.remove('active');
+                });
+
+                // Set new active
+                if (el && !el.classList.contains('profile-dummy')) el.classList.add('active');
+
+                const t = document.getElementById('arizona-tool-' + id);
+                if (t) {
+                    t.style.display = 'block';
+                    setTimeout(() => t.classList.add('active'), 10);
+                } else {
+                    console.error('[ArizonaModule] Tab not found:', 'arizona-tool-' + id);
+                }
+
+                if (id === 'news' && window.loadNews) window.loadNews();
+            },
+
+            askQuickHelper: async () => {
+                const q = document.getElementById('overview-input')?.value;
+                if (!q) return;
+                window.ArizonaModule.selectTool('helper', document.querySelectorAll('.nav-item')[1]);
+                if (document.getElementById('helper-input')) {
+                    document.getElementById('helper-input').value = q;
+                }
+                if (window.askHelper) window.askHelper();
+            }
+        };
+
+        console.log('[INIT] ArizonaModule ready!');
+    </script>
 </head>
 
 <body>
@@ -300,37 +343,7 @@
     <!-- SCRIPTS -->
     <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=13"></script>
     <script>
-        // --- BENTO LOGIC REINFORCED ---
-        window.ArizonaModule = {
-            selectTool: (id, el) => {
-                // Clear active states
-                document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-                document.querySelectorAll('.workspace-tab').forEach(x => {
-                    x.style.display = 'none'; // Force JS hide
-                    x.classList.remove('active');
-                });
-
-                // Set new active
-                if (el && !el.classList.contains('profile-dummy')) el.classList.add('active');
-
-                const t = document.getElementById('arizona-tool-' + id);
-                if (t) {
-                    t.style.display = 'block'; // Force JS show
-                    setTimeout(() => t.classList.add('active'), 10);
-                }
-
-                if (id === 'news' && window.loadNews) window.loadNews();
-            },
-            askQuickHelper: async () => {
-                const q = document.getElementById('overview-input').value;
-                if (!q) return;
-                window.ArizonaModule.selectTool('helper', document.querySelectorAll('.nav-item')[1]);
-                document.getElementById('helper-input').value = q;
-                window.askHelper();
-            }
-        };
-
-        // --- Compatible Global Functions ---
+        // --- Helper Functions (defined after dashboard.js loads) ---
         window.askHelper = async () => {
             const i = document.getElementById('helper-input');
             const box = document.getElementById('chat-history');
