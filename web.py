@@ -91,7 +91,7 @@ def api_login():
     conn.close()
     
     if user and check_password_hash(user[2], password):
-        session['user'] = {'id': user[0], 'username': user[1], 'avatar': user[3], 'role': 'user'}
+        session['user'] = {'id': str(user[0]), 'username': user[1], 'avatar': user[3], 'role': 'user'}
         session.permanent = True
         return jsonify({'success': True})
     
