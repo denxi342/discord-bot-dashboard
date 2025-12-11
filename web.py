@@ -674,12 +674,13 @@ def api_arizona_trainer():
     # Construct chat context
     import google.generativeai as genai
     
-    # Try to pick a valid model
-    model_name = 'gemini-1.5-flash'
+    # Use available model from user list
+    model_name = 'gemini-2.0-flash'
     try:
         model = genai.GenerativeModel(model_name, system_instruction=system_instruction)
     except Exception:
-        model = genai.GenerativeModel('gemini-pro') # Fallback without system instruction if needed
+        # Fallback to just model name if system instruction fails (unlikely for 2.0)
+        model = genai.GenerativeModel(model_name)
 
     chat_history = []
     for msg in history:
@@ -691,15 +692,8 @@ def api_arizona_trainer():
         response = chat.send_message(user_message)
         return jsonify({'success': True, 'reply': response.text})
     except Exception as e:
-        # DEBUG: List available models if 404
-        error_str = str(e)
-        if '404' in error_str or 'not found' in error_str:
-            try:
-                available = [m.name for m in genai.list_models()]
-                return jsonify({'error': f"Model {model_name} not found. Available: {', '.join(available)}"})
-            except Exception as e2:
-                return jsonify({'error': f"Model Error: {error_str}. List failed: {e2}"})
-        
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/arizona/rules', methods=['POST'])
