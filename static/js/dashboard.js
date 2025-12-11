@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize Modules
     try {
-        if (typeof TabsModule !== 'undefined') TabsModule.init();
+        if (typeof DiscordModule !== 'undefined') DiscordModule.init();
         if (typeof WebSocketModule !== 'undefined') WebSocketModule.init();
         if (typeof ArizonaModule !== 'undefined') ArizonaModule.init();
         if (typeof UIModule !== 'undefined') UIModule.init();
