@@ -93,6 +93,12 @@ const DiscordModule = {
     renderChannels: (serverId) => {
         const container = document.getElementById('channel-list-container');
         container.innerHTML = '';
+
+        if (serverId === 'home') {
+            DiscordModule.renderHomeSidebar(container);
+            return;
+        }
+
         const data = DiscordModule.serverData[serverId];
         if (!data) return;
 
@@ -114,6 +120,50 @@ const DiscordModule = {
 
         const first = data.channels.find(c => c.type === 'channel');
         if (first) DiscordModule.selectChannel(first.id, 'channel');
+    },
+
+    renderHomeSidebar: (container) => {
+        // Search Button
+        container.innerHTML += `
+        <div style="padding:0 8px; margin-bottom:8px;">
+            <button style="width:100%; background:#1E1F22; color:#949BA4; border:none; border-radius:4px; padding:6px; text-align:left; font-size:13px; cursor:pointer;">
+                Найти или начать беседу
+            </button>
+        </div>`;
+
+        // Static Items (Friends, Nitro)
+        container.innerHTML += `
+        <div class="channel-item active" onclick="DiscordModule.selectChannel('friends', 'channel')"><i class="fa-solid fa-user-group"></i> Друзья</div>
+        <div class="channel-item" onclick="Utils.showToast('Nitro Store is closed')"><i class="fa-solid fa-bolt"></i> Nitro</div>
+        <div class="channel-item" onclick="Utils.showToast('Shop is closed')"><i class="fa-solid fa-shop"></i> Магазин</div>
+        `;
+
+        // Direct Messages Header
+        container.innerHTML += `
+        <div class="channel-category" style="margin-top:16px;">
+            ЛИЧНЫЕ СООБЩЕНИЯ <i class="fa-solid fa-plus" style="margin-left:auto;"></i>
+        </div>`;
+
+        // DM Items (Tools mapped as Users)
+        const dms = [
+            { id: 'helper', name: 'Arizona AI', icon: 'https://cdn-icons-png.flaticon.com/512/4712/4712027.png', status: 'online' },
+            { id: 'news', name: 'News Feed', icon: 'https://cdn-icons-png.flaticon.com/512/2540/2540832.png', status: 'dnd' },
+            { id: 'users', name: 'Admin Console', icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png', status: 'idle' },
+            { id: 'smi', name: 'SMI Editor', icon: 'https://cdn-icons-png.flaticon.com/512/2919/2919601.png', status: 'online' },
+            { id: 'community', name: 'Leaderboard', icon: 'https://cdn-icons-png.flaticon.com/512/3112/3112946.png', status: 'online' }
+        ];
+
+        dms.forEach(dm => {
+            const statusColor = dm.status === 'online' ? '#23A559' : (dm.status === 'dnd' ? '#F23F42' : '#F0B232');
+            container.innerHTML += `
+            <div class="dm-item" id="btn-ch-${dm.id}" onclick="DiscordModule.selectChannel('${dm.id}')">
+                <div class="dm-avatar-wrapper">
+                    <img src="${dm.icon}" class="dm-avatar">
+                    <div class="dm-status" style="background-color:${statusColor};"></div>
+                </div>
+                <div class="dm-name">${dm.name}</div>
+            </div>`;
+        });
     },
 
     selectChannel: (chanId, type = 'channel') => {

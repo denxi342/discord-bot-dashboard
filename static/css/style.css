@@ -599,3 +599,58 @@ body {
 .footer-btn.text:hover {
     text-decoration: underline;
 }
+
+/* --- DM Sidebar Styles --- */
+.dm-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 8px;
+    margin: 1px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: background-color 0.1s;
+}
+
+.dm-item:hover,
+.dm-item.active {
+    background-color: var(--channel-hover);
+    color: var(--text-normal);
+}
+
+.dm-item.active {
+    background-color: var(--channel-active);
+    color: white;
+}
+
+.dm-avatar-wrapper {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    margin-right: 12px;
+}
+
+.dm-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+.dm-status {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 3px solid var(--sidebar-bg);
+    /* Mask */
+}
+
+.dm-name {
+    font-weight: 500;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
