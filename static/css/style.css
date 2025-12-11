@@ -409,3 +409,193 @@ body {
 ::-webkit-scrollbar-track {
     background-color: #2B2D31;
 }
+
+/* --- MODAL STYLES (New) --- */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    animation: fadeIn 0.2s forwards;
+}
+
+.discord-modal {
+    background: #313338;
+    width: 440px;
+    max-height: 90vh;
+    /* Handle small screens */
+    overflow-y: auto;
+    border-radius: 5px;
+    padding: 24px;
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(32, 34, 37, .6), 0 2px 10px 0 rgba(0, 0, 0, .2);
+    transform: scale(0.9);
+    animation: scaleIn 0.2s forwards;
+    color: var(--text-normal);
+}
+
+@keyframes scaleIn {
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.close-modal {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 20px;
+    cursor: pointer;
+    transition: color 0.1s;
+}
+
+.close-modal:hover {
+    color: var(--text-normal);
+}
+
+.template-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto max-height: 400px;
+}
+
+.template-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-top: 16px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.template-item {
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(78, 80, 88, 0.48);
+    border-radius: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    background: #313338;
+    transition: background-color 0.1s;
+    height: 64px;
+    box-sizing: border-box;
+}
+
+.template-item:hover {
+    background-color: rgba(78, 80, 88, 0.2);
+}
+
+.template-item:active {
+    background-color: rgba(78, 80, 88, 0.3);
+}
+
+.template-icon {
+    width: 40px;
+    height: 40px;
+    margin-right: 12px;
+}
+
+.template-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-normal);
+    flex: 1;
+}
+
+.arrow {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* Modal Inputs Step 2 */
+.upload-container {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.upload-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px dashed var(--text-muted);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.input-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.input-group input {
+    width: 100%;
+    background: #1E1F22;
+    border: none;
+    padding: 10px;
+    color: var(--text-normal);
+    font-size: 16px;
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+.input-group input:focus {
+    outline: 1px solid #00A8FC;
+}
+
+.footer-btn {
+    padding: 10px 24px;
+    border-radius: 3px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.1s;
+    border: none;
+}
+
+.footer-btn.primary {
+    background: #5865F2;
+    color: white;
+}
+
+.footer-btn.primary:hover {
+    background: #4752C4;
+}
+
+.footer-btn.secondary {
+    background: #4E5058;
+    color: white;
+}
+
+.footer-btn.secondary:hover {
+    background: #6D6F78;
+}
+
+.footer-btn.text {
+    background: none;
+    color: white;
+}
+
+.footer-btn.text:hover {
+    text-decoration: underline;
+}

@@ -41,22 +41,11 @@ const DiscordModule = {
 
     renderServerList: () => {
         const list = document.querySelector('.server-list');
-        // Keep the top static ones or re-render all?
-        // Let's re-render all dynamic ones below the separator
-        // For simplicity, we assume the HTML has the static slots, we just append user servers
-        // BUT the plan says "All from DB". Let's try to map DB to UI.
-
-        // We will clear the list and rebuild it based on DB, preserving the "Profile" at bottom
-        // P.S. If we use the provided DB structure, it has 'home', 'ai' etc. 
-        // So we can just iterate.
-
-        // Find Profile to save it
         const profile = list.querySelector('#server-profile');
         const addBtn = list.querySelector('.add-server');
 
         list.innerHTML = '';
 
-        // Sort keys to ensure Home is top
         const keys = Object.keys(DiscordModule.serverData).sort((a, b) => {
             if (a === 'home') return -1;
             if (b === 'home') return 1;
@@ -67,8 +56,6 @@ const DiscordModule = {
             const s = DiscordModule.serverData[sid];
             const active = (sid === DiscordModule.currentServer) ? 'active' : '';
             let iconHtml = `<i class="fa-solid fa-${s.icon || 'server'}"></i>`;
-
-            // Check for special icons mapping if needed, or simple FA
             if (s.icon === 'discord') iconHtml = `<i class="fa-brands fa-discord"></i>`;
 
             const html = `
@@ -77,8 +64,6 @@ const DiscordModule = {
             </div>`;
 
             list.innerHTML += html;
-
-            // Separator after Home
             if (sid === 'home') list.innerHTML += `<div class="server-sep"></div>`;
         });
 
@@ -89,26 +74,21 @@ const DiscordModule = {
 
     selectServer: (serverId) => {
         if (!DiscordModule.serverData[serverId]) return;
-
         DiscordModule.currentServer = serverId;
 
-        // UI Active State
         document.querySelectorAll('.server-icon').forEach(el => el.classList.remove('active'));
         const btn = document.getElementById(`server-${serverId}`);
         if (btn) btn.classList.add('active');
 
-        // Header
         const s = DiscordModule.serverData[serverId];
         document.getElementById('current-server-name').textContent = s.name;
 
-        // Render Channels
         DiscordModule.renderChannels(serverId);
     },
 
     renderChannels: (serverId) => {
         const container = document.getElementById('channel-list-container');
         container.innerHTML = '';
-
         const data = DiscordModule.serverData[serverId];
         if (!data) return;
 
@@ -128,21 +108,18 @@ const DiscordModule = {
             }
         });
 
-        // Auto-select first text channel
         const first = data.channels.find(c => c.type === 'channel');
         if (first) DiscordModule.selectChannel(first.id, 'channel');
     },
 
     selectChannel: (chanId, type = 'channel') => {
         if (type === 'voice') {
-            // Visual Voice Connect
             DiscordModule.connectVoice(chanId);
             return;
         }
 
         DiscordModule.currentChannel = chanId;
 
-        // Active visual
         document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
         const btn = document.getElementById(`btn-ch-${chanId}`);
         if (btn) {
@@ -150,41 +127,28 @@ const DiscordModule = {
             document.getElementById('current-channel-name').innerText = btn.innerText.trim();
         }
 
-        // View logic (Mapped or Generated)
-        // 1. Check if special tool view exists
         const mappedViews = {
             'news': 'news', 'leaderboard': 'community', 'video-feed': 'general',
             'chat-gpt': 'helper', 'search-rules': 'search', 'ad-editor': 'smi', 'users': 'admin', 'my-profile': 'profile'
         };
 
-        // Try to find by name first (legacy mapping) or ID
-        // The ID of channel from DB might be 'general', 'news' etc.
         let viewKey = 'general';
         const chNameData = DiscordModule.serverData[DiscordModule.currentServer].channels.find(c => c.id === chanId);
         if (chNameData && mappedViews[chNameData.name]) viewKey = mappedViews[chNameData.name];
         else if (mappedViews[chanId]) viewKey = mappedViews[chanId];
         else if (chanId === 'general') viewKey = 'general';
 
-        // Switch View
         document.querySelectorAll('.channel-view').forEach(el => el.classList.remove('active'));
-
-        // Use mapped view or generic 'general' view
         let targetView = document.getElementById(`channel-view-${viewKey}`);
 
-        // If no mapped view found, use general-like stream for custom channels
         if (!targetView) {
-            // We need a generic dynamic view? 
-            // For now, re-use "general" view ID but clear it? 
-            // Or easier: Just map everything unknown to 'general' view.
             targetView = document.getElementById('channel-view-general');
-            // Update title
             const welcome = targetView.querySelector('h1');
             if (welcome) welcome.textContent = `Welcome to #${chNameData ? chNameData.name : 'channel'}`;
         }
 
         if (targetView) {
             targetView.classList.add('active');
-            // Load Data specific to this view
             if (viewKey === 'news') DiscordModule.loadNews();
             if (viewKey === 'community') DiscordModule.loadLeaderboard();
             if (viewKey === 'admin') DiscordModule.loadUsers();
@@ -193,15 +157,54 @@ const DiscordModule = {
     },
 
     connectVoice: (chanId) => {
-        // Visual
         document.querySelector('.user-controls i.fa-microphone').style.color = '#23a559';
-        alert("Voice Connected (Visual Only)");
+        // toast?
     },
 
-    // --- CREATION UTILS ---
+    // --- CREATION UTILS (NEW MODAL LOGIC) ---
     uiCreateServer: () => {
-        const name = prompt("Название сервера:");
-        if (name) DiscordModule.apiCreateServer(name);
+        // Open Modal Step 1
+        const modal = document.getElementById('create-server-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.style.opacity = '1';
+            DiscordModule.uiServerStep1();
+        }
+    },
+
+    closeModal: () => {
+        const modal = document.getElementById('create-server-modal');
+        if (modal) {
+            modal.style.opacity = '0';
+            setTimeout(() => modal.style.display = 'none', 200);
+        }
+    },
+
+    uiServerStep1: () => {
+        document.getElementById('modal-step-1').style.display = 'block';
+        document.getElementById('modal-step-2').style.display = 'none';
+    },
+
+    uiServerStep2: (templateName) => {
+        document.getElementById('modal-step-1').style.display = 'none';
+        document.getElementById('modal-step-2').style.display = 'block';
+
+        // Auto-fill name logic
+        const input = document.getElementById('new-server-name');
+        if (templateName === 'Свой шаблон') {
+            input.value = "Сервер пользователя";
+        } else {
+            input.value = templateName;
+        }
+        input.focus();
+    },
+
+    finishCreateServer: async () => {
+        const name = document.getElementById('new-server-name').value;
+        if (name) {
+            await DiscordModule.apiCreateServer(name);
+            DiscordModule.closeModal();
+        }
     },
 
     uiCreateChannel: (sid) => {
@@ -215,7 +218,6 @@ const DiscordModule = {
             const res = await fetch('/api/servers/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
             const d = await res.json();
             if (d.success) {
-                // Add to local data
                 DiscordModule.serverData[d.id] = d.server;
                 DiscordModule.renderServerList();
                 DiscordModule.selectServer(d.id);
@@ -234,18 +236,9 @@ const DiscordModule = {
         } catch (e) { console.error(e); }
     },
 
-    // ... (Keep Message Sending / Loading logic from steps 410-412. Copying essential parts below) ...
     addMessage: (channelId, msgData) => {
-        // ... (Same logic, target specific stream IDs) ...
-        // We'll trust the previous implementation of addMessage is compatible or re-paste it if needed.
-        // For brevity in this tool call, I assume I'm overwriting the file so I MUST include it.
-
-        // Find general container as fallback
         const main = document.getElementById('channel-view-general').querySelector('#stream-general');
-
-        // Dynamic find
         let container = null;
-        // Try mapping
         if (channelId === 'news') container = document.getElementById('stream-news');
         else if (channelId === 'community') container = document.getElementById('stream-leaderboard');
         else if (channelId === 'helper') container = document.getElementById('stream-helper');
@@ -253,7 +246,7 @@ const DiscordModule = {
         else if (channelId === 'admin') container = document.getElementById('stream-admin');
         else if (channelId === 'profile') container = document.getElementById('stream-profile');
         else if (channelId === 'biography') container = document.getElementById('stream-search');
-        else container = main; // Default to general stream
+        else container = main;
 
         if (!container) return;
 
@@ -297,22 +290,62 @@ const DiscordModule = {
         if (!text) return;
         input.value = '';
 
-        // Echo
         DiscordModule.addMessage(DiscordModule.currentChannel, {
             author: 'You', avatar: 'https://cdn.discordapp.com/embed/avatars/1.png', text: text
         });
 
-        // Handlers
         if (DiscordModule.currentChannel === 'helper' || DiscordModule.serverData.ai?.channels.find(c => c.id === DiscordModule.currentChannel)?.name === 'chat-gpt') {
             await DiscordModule.askAI(text);
         }
     },
 
-    // Stub Helpers
-    loadNews: async () => { /* ... existing fetch */ },
-    loadLeaderboard: async () => { /* ... existing fetch */ },
-    loadUsers: async () => { /* ... existing fetch */ },
-    loadProfile: async () => { /* ... existing fetch */ },
+    // Stub Helpers (Re-implement if needed fully, but keeping brief for now as they trigger server side mostly)
+    loadNews: async () => {
+        const container = document.getElementById('stream-news');
+        if (container.innerHTML.trim()) return;
+        try {
+            const res = await fetch('/api/arizona/news');
+            const d = await res.json();
+            if (d.news) {
+                d.news.forEach(n => {
+                    DiscordModule.addMessage('news', {
+                        author: 'News Bot', bot: true, avatar: 'https://cdn-icons-png.flaticon.com/512/2540/2540832.png',
+                        text: '',
+                        embed: { title: n.title, desc: n.summary, image: n.image, color: '#F47B67' }
+                    });
+                });
+            }
+        } catch (e) { }
+    },
+    loadLeaderboard: async () => {
+        const container = document.getElementById('stream-leaderboard');
+        if (container.innerHTML.trim()) return;
+        try {
+            const res = await fetch('/api/reputation/top');
+            const d = await res.json();
+            if (d.top) {
+                let fields = d.top.map((u, i) => ({ name: `#${i + 1} ${u.username}`, value: `Reputation: ${u.reputation}` }));
+                DiscordModule.addMessage('community', {
+                    author: 'Leaderboard Bot', bot: true, avatar: 'https://cdn-icons-png.flaticon.com/512/3112/3112946.png',
+                    text: 'Top users by reputation:',
+                    embed: { title: 'Hall of Fame', color: '#FFD700', fields: fields }
+                });
+            }
+        } catch (e) { }
+    },
+    loadUsers: async () => {
+        // Simple stub
+        const container = document.getElementById('stream-admin');
+        if (container.innerHTML.trim()) return;
+        DiscordModule.addMessage('admin', { author: 'Admin Bot', bot: true, text: 'Ready for commands. Type /users to see list.' });
+    },
+    loadProfile: async () => {
+        // Simple stub
+        const container = document.getElementById('stream-profile');
+        if (container.innerHTML.trim()) return;
+        DiscordModule.addMessage('profile', { author: 'Profile System', bot: true, text: 'Your profile stats will appear here.' });
+    },
+
     askAI: async (q) => {
         try {
             const res = await fetch('/api/arizona/helper', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });

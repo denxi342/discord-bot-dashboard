@@ -205,6 +205,87 @@
         </main>
     </div>
 
+    <!-- Create Server Modal -->
+    <div id="create-server-modal" class="modal-backdrop" style="display:none;">
+        <div class="discord-modal">
+            <button class="close-modal" onclick="DiscordModule.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+
+            <!-- STEP 1: Templates -->
+            <div id="modal-step-1">
+                <h2 style="text-align:center; font-weight:700; margin-bottom:8px;">Создайте свой сервер</h2>
+                <p
+                    style="text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:24px; padding:0 20px;">
+                    Ваш сервер — это место, где вы можете тусоваться со своими друзьями. Создайте сервер и начните
+                    общаться.
+                </p>
+
+                <div class="template-list">
+                    <div class="template-item" onclick="DiscordModule.uiServerStep2('Свой шаблон')">
+                        <img src="https://assets-global.website-files.com/6257adef93867e56f84d3092/62594f7b0f0a8d6b6371cb15_Create%20My%20Own.svg"
+                            class="template-icon">
+                        <span class="template-name">Свой шаблон</span>
+                        <i class="fa-solid fa-chevron-right arrow"></i>
+                    </div>
+
+                    <div class="template-header">НАЧНИТЕ С ШАБЛОНА</div>
+
+                    <div class="template-item" onclick="DiscordModule.uiServerStep2('Игры')">
+                        <img src="https://assets-global.website-files.com/6257adef93867e56f84d3092/62594f7b9f1d436154564c48_Gaming.svg"
+                            class="template-icon">
+                        <span class="template-name">Игры</span>
+                        <i class="fa-solid fa-chevron-right arrow"></i>
+                    </div>
+
+                    <div class="template-item" onclick="DiscordModule.uiServerStep2('Друзья')">
+                        <img src="https://assets-global.website-files.com/6257adef93867e56f84d3092/62594f7b2c62c2f6f59d288d_Friends.svg"
+                            class="template-icon">
+                        <span class="template-name">Друзья</span>
+                        <i class="fa-solid fa-chevron-right arrow"></i>
+                    </div>
+
+                    <div class="template-item" onclick="DiscordModule.uiServerStep2('Учебная группа')">
+                        <img src="https://assets-global.website-files.com/6257adef93867e56f84d3092/62594f7b154564344c564c47_Study%20Group.svg"
+                            class="template-icon">
+                        <span class="template-name">Учебная группа</span>
+                        <i class="fa-solid fa-chevron-right arrow"></i>
+                    </div>
+                </div>
+
+                <div class="modal-footer"
+                    style="background:transparent; padding:0; margin-top:16px; text-align:center;">
+                    <button class="footer-btn secondary" style="width:100%;" onclick="DiscordModule.closeModal()">Уже
+                        есть приглашение?</button>
+                </div>
+            </div>
+
+            <!-- STEP 2: Customize -->
+            <div id="modal-step-2" style="display:none;">
+                <h2 style="text-align:center; font-weight:700; margin-bottom:8px;">Персонализация сервера</h2>
+                <p style="text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:24px;">
+                    Дайте новому серверу имя и значок. Их можно будет изменить в любое время.
+                </p>
+
+                <div class="upload-container">
+                    <div class="upload-circle">
+                        <i class="fa-solid fa-camera"></i>
+                        <span style="font-size:10px; font-weight:bold; margin-top:4px;">UPLOAD</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>НАЗВАНИЕ СЕРВERA</label>
+                    <input id="new-server-name" type="text" value="Сервер пользователя">
+                </div>
+
+                <div class="modal-footer"
+                    style="background:var(--sidebar-bg); margin:-24px; margin-top:24px; padding:16px; display:flex; justify-content:space-between; align-items:center;">
+                    <button class="footer-btn text" onclick="DiscordModule.uiServerStep1()">Назад</button>
+                    <button class="footer-btn primary" onclick="DiscordModule.finishCreateServer()">Создать</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=18"></script>
 </body>
