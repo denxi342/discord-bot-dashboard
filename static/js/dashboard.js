@@ -96,70 +96,158 @@ const UIModule = {
     }
 };
 
-// --- TABS MODULE ---
-const TabsModule = {
+// --- DISCORD NAVIGATION MODULE ---
+const DiscordModule = {
+    currentServer: 'home',
+    currentChannel: 'general',
+
+    serverData: {
+        'home': {
+            name: 'Главная',
+            channels: [
+                { id: 'cat-info', type: 'category', name: 'ИНФОРМАЦИЯ' },
+                { id: 'general', type: 'channel', name: 'general', icon: 'hashtag' },
+                { id: 'news', type: 'channel', name: 'news', icon: 'newspaper' },
+                { id: 'community', type: 'channel', name: 'leaderboard', icon: 'trophy' }
+            ]
+        },
+        'ai': {
+            name: 'Arizona AI',
+            channels: [
+                { id: 'cat-ai', type: 'category', name: 'ASSISTANT' },
+                { id: 'helper', type: 'channel', name: 'chat-gpt', icon: 'robot' },
+                { id: 'biography', type: 'channel', name: 'biography-gen', icon: 'feather' },
+                { id: 'complaint', type: 'channel', name: 'complaint-gen', icon: 'gavel' },
+                { id: 'search', type: 'channel', name: 'rules-search', icon: 'magnifying-glass' }
+            ]
+        },
+        'smi': {
+            name: 'СМИ WORK',
+            channels: [
+                { id: 'cat-work', type: 'category', name: 'WORK TOOLS' },
+                { id: 'smi', type: 'channel', name: 'ad-editor', icon: 'pen-to-square' }
+            ]
+        },
+        'admin': {
+            name: 'Admin Control',
+            channels: [
+                { id: 'cat-admin', type: 'category', name: 'ADMINISTRATION' },
+                { id: 'admin', type: 'channel', name: 'user-management', icon: 'users-gear' },
+                { id: 'logs', type: 'channel', name: 'server-logs', icon: 'file-code' }
+            ]
+        },
+        'profile': {
+            name: 'User Settings',
+            channels: [
+                { id: 'cat-settings', type: 'category', name: 'SETTINGS' },
+                { id: 'profile', type: 'channel', name: 'my-account', icon: 'user' },
+            ]
+        }
+    },
+
     init: () => {
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        tabButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tabName = btn.getAttribute('data-tab') || btn.id.replace('btn-', '');
-                TabsModule.switchTab(tabName);
-            });
-        });
-
-        // Load initial tab (default to dashboard or from URL hash if we implemented that)
-        // TabsModule.switchTab('dashboard'); // Already active in HTML usually
+        // Default load
+        DiscordModule.selectServer('home');
     },
 
-    switchTab: (tabName) => {
-        console.log('Switching to tab:', tabName);
+    selectServer: (serverId) => {
+        console.log('Select Server:', serverId);
 
-        // 1. Deactivate all
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-        // 2. Activate button
-        // Try strict ID first, then loose check
-        let btn = document.getElementById(`btn-${tabName}`);
-        if (!btn) {
-            // Fallback: look for button with data-tab attribute
-            btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
-        }
-
+        // 1. Update Server Loop UI
+        document.querySelectorAll('.server-icon').forEach(el => el.classList.remove('active'));
+        const btn = document.getElementById(`server-${serverId}`);
         if (btn) btn.classList.add('active');
-        else console.warn(`Button for tab "${tabName}" not found`);
 
-        // 3. Activate content
-        const content = document.getElementById(`tab-${tabName}`);
-        if (content) {
-            content.classList.add('active');
-            window.scrollTo(0, 0);
-        } else {
-            console.error(`Content for tab "${tabName}" not found`);
-            return;
+        DiscordModule.currentServer = serverId;
+        const data = DiscordModule.serverData[serverId];
+
+        // 2. Update Server Header in Channel List
+        // Need to make sure this element exists in new layout
+        const serverHeader = document.getElementById('current-server-name');
+        if (serverHeader && data) serverHeader.textContent = data.name;
+
+        // 3. Render Channels
+        DiscordModule.renderChannels(serverId);
+
+        // 4. Select first channel by default
+        if (data && data.channels.length > 0) {
+            const firstChan = data.channels.find(c => c.type === 'channel');
+            if (firstChan) DiscordModule.selectChannel(firstChan.id);
         }
-
-        // 4. Load Tab Data
-        TabsModule.loadTabData(tabName);
     },
 
-    loadTabData: (tab) => {
-        switch (tab) {
-            case 'arizonaai':
-                ArizonaModule.loadServers();
-                break;
-            case 'overview':
-                if (window.ArizonaModule.loadLeaderboard) window.ArizonaModule.loadLeaderboard();
-                break;
-            case 'profile':
-                // Load profile specific stuff if needed
-                break;
+    renderChannels: (serverId) => {
+        const container = document.getElementById('channel-list-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+        const data = DiscordModule.serverData[serverId];
+        if (!data) return;
+
+        data.channels.forEach(item => {
+            if (item.type === 'category') {
+                container.innerHTML += `
+                    <div class="channel-category">
+                        <i class="fa-solid fa-angle-down"></i> <span>${item.name}</span>
+                    </div>
+                `;
+            } else {
+                container.innerHTML += `
+                    <div class="channel-item" id="chan-btn-${item.id}" onclick="DiscordModule.selectChannel('${item.id}')">
+                        <i class="fa-solid fa-${item.icon || 'hashtag'}"></i> ${item.name}
+                    </div>
+                `;
+            }
+        });
+    },
+
+    selectChannel: (channelId) => {
+        console.log('Select Channel:', channelId);
+        DiscordModule.currentChannel = channelId;
+
+        // 1. Update Channel UI
+        document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+        const btn = document.getElementById(`chan-btn-${channelId}`);
+        if (btn) btn.classList.add('active');
+
+        // 2. Update Main Header
+        const headerName = document.getElementById('current-channel-name');
+        if (headerName) headerName.textContent = btn ? btn.innerText.trim() : channelId;
+
+        // 3. Switch Content View
+        // Hide all tabs
+        document.querySelectorAll('.workspace-tab').forEach(el => el.classList.remove('active'));
+
+        // MAPPING
+        let targetId = 'arizona-tool-' + channelId;
+        if (channelId === 'general') targetId = 'arizona-tool-overview';
+        if (channelId === 'news') targetId = 'arizona-tool-overview';
+        if (channelId === 'leaderboard') targetId = 'arizona-tool-community';
+        if (channelId === 'chat-gpt') targetId = 'arizona-tool-helper';
+        if (channelId === 'biography-gen') targetId = 'arizona-tool-biography';
+        if (channelId === 'complaint-gen') targetId = 'arizona-tool-complaint';
+        if (channelId === 'rules-search') targetId = 'arizona-tool-search';
+        if (channelId === 'ad-editor') targetId = 'arizona-tool-smi';
+        if (channelId === 'user-management') targetId = 'arizona-tool-admin';
+        if (channelId === 'server-logs') targetId = 'arizona-tool-admin';
+        if (channelId === 'my-account') targetId = 'arizona-tool-profile';
+
+        const target = document.getElementById(targetId);
+        if (target) {
+            target.classList.add('active');
         }
+
+        // Trigger Loaders
+        // Handle Overview/Community specific loading
+        if (channelId === 'community' || channelId === 'leaderboard' || channelId === 'general') {
+            if (window.ArizonaModule.loadLeaderboard) window.ArizonaModule.loadLeaderboard();
+        }
+        if (channelId === 'user-management' && window.ArizonaModule.loadUsers) window.ArizonaModule.loadUsers();
     }
 };
 
-// Expose globally for inline onclicks
-window.switchTab = TabsModule.switchTab;
+// Expose globally for inline onclicks (Backwards compat)
+window.switchTab = (ignore) => { }; // No-op or map to DiscordModule
 
 // --- WEBSOCKET MODULE ---
 const WebSocketModule = {
@@ -221,7 +309,7 @@ const WebSocketModule = {
     },
 
     addLog: (log) => {
-        const container = document.getElementById('log-container');
+        const container = document.getElementById('log-container'); // Legacy container, might need update in HTML if used
         if (!container) return;
 
         const entry = document.createElement('div');
@@ -254,7 +342,7 @@ Object.assign(window.ArizonaModule, {
     init: () => {
         // Init logic
         try {
-            window.ArizonaModule.selectTool('overview', document.querySelector('.nav-item.active'));
+            // Note: DiscordModule handles selection now, so we might just check admin access
             window.ArizonaModule.checkAdminAccess();
         } catch (e) { console.warn('Init overview failed', e); }
     },
@@ -338,65 +426,53 @@ Object.assign(window.ArizonaModule, {
     },
 
     selectTool: (toolId, element) => {
-        console.log('[DashboardJS] SelectTool:', toolId);
-        // Use the head implementation if available for switching UI
-        // But we can add extra logic here if needed
+        // Compatibility wrapper for OLD selectTool calls
+        // Map to Discord channels if possible
+        let channelId = toolId;
+        if (toolId === 'overview') channelId = 'general';
 
-        // Re-implement UI switching just in case head script failed or is limited
-        document.querySelectorAll('.arizona-tool-card').forEach(el => el.classList.remove('active'));
-        if (element) element.classList.add('active');
-
-        document.querySelectorAll('.workspace-tab').forEach(el => {
-            el.style.display = 'none';
-            el.classList.remove('active');
-        });
-
-        const target = document.getElementById('arizona-tool-' + toolId);
-        if (target) {
-            target.style.display = 'block';
-            // slight delay to allow display:block to apply before opacity transition if any
-            setTimeout(() => target.classList.add('active'), 10);
-        }
-
-        if (toolId === 'news' && window.ArizonaModule.loadNews) window.ArizonaModule.loadNews();
-        if (toolId === 'smi' && window.ArizonaModule.loadSmiRules) window.ArizonaModule.loadSmiRules();
-        if (toolId === 'admin' && window.ArizonaModule.loadUsers) window.ArizonaModule.loadUsers();
-        if ((toolId === 'community' || toolId === 'overview') && window.ArizonaModule.loadCommunity) {
-            if (window.ArizonaModule.loadCommunity) window.ArizonaModule.loadCommunity();
-            if (window.ArizonaModule.loadLeaderboard) window.ArizonaModule.loadLeaderboard();
-        }
+        // Use Discord Module
+        if (DiscordModule) DiscordModule.selectChannel(channelId);
     },
 
     loadLeaderboard: async () => {
         const board = document.getElementById('dashboard-leaderboard');
-        if (!board) return;
+        // Also check community-leaderboard because we duplicated it in HTML
+        const commBoard = document.getElementById('community-leaderboard');
+
+        if (!board && !commBoard) return;
 
         try {
             const res = await fetch('/api/reputation/top');
             const data = await res.json();
 
             if (data.success) {
-                if (data.top.length === 0) {
-                    board.innerHTML = '<div style="text-align:center; opacity:0.5;">Пока пусто...</div>';
-                    return;
-                }
+                const renderBoard = (target) => {
+                    if (data.top.length === 0) {
+                        target.innerHTML = '<div style="text-align:center; opacity:0.5;">Пока пусто...</div>';
+                        return;
+                    }
+                    target.innerHTML = data.top.map((u, i) => `
+                        <div style="display:flex; align-items:center; gap:10px; padding:8px; background:rgba(255,255,255,0.05); border-radius:10px; min-width:200px;">
+                             <div style="font-weight:bold; color:${i === 0 ? '#fbbf24' : (i === 1 ? '#9ca3af' : (i === 2 ? '#b45309' : '#52525b'))}; width:20px; text-align:center;">#${i + 1}</div>
+                             <img src="${u.avatar}" style="width:30px; height:30px; border-radius:50%;">
+                             <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                 <div style="font-size:13px; font-weight:600;">${Utils.escapeHtml(u.username)}</div>
+                                 <div style="font-size:10px; opacity:0.6;">${u.role}</div>
+                             </div>
+                             <div style="font-weight:bold; color:#fbbf24; display:flex; gap:4px; align-items:center;">
+                                 <i class="fa-solid fa-star" style="font-size:10px;"></i> ${u.reputation}
+                                 <button class="icon-btn-small" onclick="event.stopPropagation(); ArizonaModule.giveRep('${u.id || ''}', this)" style="background:none; border:none; color:#fbbf24; opacity:0.5; cursor:pointer;" title="+REP">
+                                    <i class="fa-solid fa-plus"></i>
+                                 </button>
+                             </div>
+                        </div>
+                    `).join('');
+                };
 
-                board.innerHTML = data.top.map((u, i) => `
-                    <div style="display:flex; align-items:center; gap:10px; padding:8px; background:rgba(255,255,255,0.05); border-radius:10px;">
-                         <div style="font-weight:bold; color:${i === 0 ? '#fbbf24' : (i === 1 ? '#9ca3af' : (i === 2 ? '#b45309' : '#52525b'))}; width:20px; text-align:center;">#${i + 1}</div>
-                         <img src="${u.avatar}" style="width:30px; height:30px; border-radius:50%;">
-                         <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                             <div style="font-size:13px; font-weight:600;">${Utils.escapeHtml(u.username)}</div>
-                             <div style="font-size:10px; opacity:0.6;">${u.role}</div>
-                         </div>
-                         <div style="font-weight:bold; color:#fbbf24; display:flex; gap:4px; align-items:center;">
-                             <i class="fa-solid fa-star" style="font-size:10px;"></i> ${u.reputation}
-                             <button class="icon-btn-small" onclick="event.stopPropagation(); ArizonaModule.giveRep('${u.id || ''}', this)" style="background:none; border:none; color:#fbbf24; opacity:0.5; cursor:pointer;" title="+REP">
-                                <i class="fa-solid fa-plus"></i>
-                             </button>
-                         </div>
-                    </div>
-                `).join('');
+                if (board) renderBoard(board);
+                if (commBoard) renderBoard(commBoard);
+
             }
         } catch (e) { console.error('Leaderboard error', e); }
     },
@@ -416,6 +492,9 @@ Object.assign(window.ArizonaModule, {
                 // Update specific counters if visible
                 const counters = document.querySelectorAll(`[data-rep-user="${targetId}"]`);
                 counters.forEach(c => c.textContent = data.new_rep);
+
+                // Reload board
+                window.ArizonaModule.loadLeaderboard();
             } else {
                 Utils.showToast(data.error, 'error');
             }
@@ -934,7 +1013,7 @@ const MonitorLogsModule = {
 // Utils
 window.showToast = Utils.showToast;
 // Tabs
-window.switchTab = TabsModule.switchTab;
+// window.switchTab is now handled by legacy wrapper or direct call
 // Temp Mail
 window.createTempMail = TempMailModule.create;
 window.checkCurrentMail = TempMailModule.checkMail;
@@ -957,36 +1036,5 @@ window.addMonitor = async () => {
     const url = document.getElementById('monitor-url').value;
     const name = document.getElementById('monitor-name').value;
     if (!url) return Utils.showToast('URL обязателен');
-    const res = await fetch('/api/monitors/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, name })
-    });
-    const d = await res.json();
-    if (d.success) { Utils.showToast('Монитор добавлен'); /* FavoritesModule.loadAllMonitors(); */ }
-    else Utils.showToast(d.error || 'Ошибка', 'error');
+    // Implement add logic
 };
-window.exportData = () => window.location.href = '/api/backup'; // Assuming backup route
-// Arizona
-window.selectArizonaTool = ArizonaModule.selectTool;
-window.askArizonaHelper = ArizonaModule.askHelper;
-window.generateComplaint = ArizonaModule.generateComplaint;
-window.generateLegend = ArizonaModule.generateLegend;
-window.checkRules = ArizonaModule.checkRules;
-window.showRulesList = ArizonaModule.showRulesList;
-window.calculateBusiness = ArizonaModule.calculateBusiness;
-window.calculateFaction = ArizonaModule.calculateFaction;
-window.editAd = ArizonaModule.editAd;
-window.copySmiResult = ArizonaModule.copySmiResult;
-// Control
-window.controlBot = ControlModule.controlBot;
-// AI Chat
-window.sendAiMessage = AIChatModule.send;
-window.clearAiChat = AIChatModule.clear;
-window.aiQuickAction = AIChatModule.quickAction;
-// Admin
-window.godSetPrefix = AdminModule.setPrefix;
-// Monitor Logs
-window.showMonitorLogs = MonitorLogsModule.show; // Need to check if html uses this
-window.closeMonitorLogsModal = MonitorLogsModule.close;
-window.clearMonitorLogs = MonitorLogsModule.clear;
