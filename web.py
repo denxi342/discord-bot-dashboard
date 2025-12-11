@@ -12,6 +12,7 @@ import concurrent.futures
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'super-secret-key-change-me-123')
+app.permanent_session_lifetime = timedelta(days=30)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # --- DISCORD OAUTH2 CONFIG ---
@@ -236,6 +237,7 @@ def callback():
         # Determine if founder
         is_founder = user_data['username'] in FOUNDERS or str(user_data['id']) in FOUNDERS
         
+        session.permanent = True
         session['user'] = {
             'id': user_data['id'],
             'username': user_data['username'],
