@@ -1,0 +1,6 @@
+# Force Render Redeploy
+
+This file was created to trigger a Render redeploy.
+Timestamp: 2025-12-11T14:28:44+03:00
+
+The issue was that Render was serving an old version of index.html without the ArizonaModule fix in the <head> tag.

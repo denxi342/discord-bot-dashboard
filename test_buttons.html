@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Button Test</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: white;
+            font-family: Arial;
+            padding: 50px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            background: #6366f1;
+            border: none;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            background: #4f46e5;
+        }
+
+        .tab {
+            display: none;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .tab.active {
+            display: block;
+        }
+    </style>
+
+    <script>
+        console.log('[TEST] Script loaded!');
+
+        window.switchTab = function (tabId) {
+            console.log('[TEST] Switching to:', tabId);
+
+            // Hide all tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+            // Show selected tab
+            const tab = document.getElementById('tab-' + tabId);
+            if (tab) {
+                tab.classList.add('active');
+                console.log('[TEST] Tab shown:', tabId);
+            } else {
+                console.error('[TEST] Tab not found:', tabId);
+            }
+        };
+
+        console.log('[TEST] switchTab function ready!');
+    </script>
+</head>
+
+<body>
+    <h1>🧪 Button Functionality Test</h1>
+    <p>Если эти кнопки работают — проблема в деплое, а не в коде.</p>
+
+    <div>
+        <button class="btn" onclick="switchTab('overview')">Overview</button>
+        <button class="btn" onclick="switchTab('helper')">Helper</button>
+        <button class="btn" onclick="switchTab('rules')">Rules</button>
+    </div>
+
+    <div id="tab-overview" class="tab active">
+        <h2>✅ Overview Tab</h2>
+        <p>Если ты видишь это — кнопка "Overview" работает!</p>
+    </div>
+
+    <div id="tab-helper" class="tab">
+        <h2>✅ Helper Tab</h2>
+        <p>Если ты видишь это — кнопка "Helper" работает!</p>
+    </div>
+
+    <div id="tab-rules" class="tab">
+        <h2>✅ Rules Tab</h2>
+        <p>Если ты видишь это — кнопка "Rules" работает!</p>
+    </div>
+
+    <hr style="margin: 40px 0; border-color: rgba(255,255,255,0.1);">
+
+    <h3>📋 Инструкция:</h3>
+    <ol>
+        <li>Открой консоль (F12)</li>
+        <li>Кликни на кнопки выше</li>
+        <li>Если вкладки переключаются — <strong>код работает</strong>, проблема в деплое</li>
+        <li>Если не работает — проблема в браузере (попробуй Chrome)</li>
+    </ol>
+
+    <p style="margin-top: 30px; opacity: 0.5;">
+        Если тест прошел успешно, нужно:<br>
+        1. Перезапустить деплой на Railway/Render<br>
+        2. Или запустить локально: <code>python web.py</code> и открыть <code>http://localhost:5000/dashboard</code>
+    </p>
+</body>
+
+</html>
