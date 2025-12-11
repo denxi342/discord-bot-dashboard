@@ -138,11 +138,11 @@ const DiscordModule = {
         <div class="channel-item" onclick="Utils.showToast('Shop is closed')"><i class="fa-solid fa-shop"></i> Магазин</div>
         `;
 
-        // Direct Messages Header
-        container.innerHTML += `
-        <div class="channel-category" style="margin-top:16px;">
-            ЛИЧНЫЕ СООБЩЕНИЯ <i class="fa-solid fa-plus" style="margin-left:auto;"></i>
-        </div>`;
+        // Direct Messages Header (Removed per user request)
+        // container.innerHTML += `
+        // <div class="channel-category" style="margin-top:16px;">
+        //    ЛИЧНЫЕ СООБЩЕНИЯ <i class="fa-solid fa-plus" style="margin-left:auto;"></i>
+        // </div>`;
 
         // DM Items (Tools mapped as Users)
         const dms = [

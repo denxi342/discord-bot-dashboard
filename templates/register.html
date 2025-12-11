@@ -3,12 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Login | SpaceCord</title>
+    <title>Register | SpaceCord</title>
     <style>
         body {
             background-color: #5865F2;
             background-image: url('https://discord.com/assets/f9e7135061971709.svg');
-            /* Generic pattern or color */
             margin: 0;
             font-family: 'gg sans', 'Inter', sans-serif;
             display: flex;
@@ -32,12 +31,6 @@
         h2 {
             color: white;
             text-align: center;
-            margin-bottom: 8px;
-        }
-
-        .subtext {
-            text-align: center;
-            color: #b5bac1;
             margin-bottom: 20px;
         }
 
@@ -89,8 +82,6 @@
         }
 
         .link {
-            margin-top: 10px;
-            display: block;
             color: #00A8FC;
             text-decoration: none;
             font-size: 14px;
@@ -124,8 +115,7 @@
 <body>
 
     <div class="auth-card">
-        <h2>Welcome Back!</h2>
-        <div class="subtext">We're so excited to see you again!</div>
+        <h2>Create an Account</h2>
 
         <div class="input-group">
             <label>Username</label>
@@ -135,26 +125,26 @@
         <div class="input-group">
             <label>Password</label>
             <input type="password" id="password">
-            <div class="error-msg" id="login-error">Invalid username or password</div>
         </div>
 
-        <button onclick="login()">Log In</button>
+        <div class="error-msg" id="reg-error">Username taken or invalid</div>
+
+        <button onclick="register()">Continue</button>
         <div style="margin-top:10px;">
-            <span style="color:#72767d; font-size:14px;">Need an account?</span>
-            <a href="/register" class="link" style="display:inline;">Register</a>
+            <a href="/login" class="link">Already have an account?</a>
         </div>
     </div>
 
     <script>
-        async function login() {
+        async function register() {
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
-            const err = document.getElementById('login-error');
+            const err = document.getElementById('reg-error');
 
             if (!user || !pass) return;
 
             try {
-                const res = await fetch('/api/auth/login', {
+                const res = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: user, password: pass })
@@ -162,10 +152,11 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    window.location.href = '/';
+                    // Auto login or redirect to login
+                    window.location.href = '/login';
                 } else {
                     err.style.display = 'block';
-                    err.innerText = data.error || 'Invalid credentials';
+                    err.innerText = data.error || 'Registration failed';
                 }
             } catch (e) {
                 console.error(e);
