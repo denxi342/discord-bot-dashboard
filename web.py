@@ -1,57 +1,103 @@
-from flask import Flask, render_template, jsonify, request, session, redirect, url_for
-from flask_socketio import SocketIO, emit
-import utils
-import psutil
+import os
 import time
 import requests
-import json
-from datetime import datetime, timedelta
+import feedparser
 import threading
-import os
-import concurrent.futures
+import json
+import random
+import string
+import sqlite3
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory
+from flask_socketio import SocketIO, emit
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'super-secret-key-change-me-123')
+app.secret_key = os.urandom(24)
 app.permanent_session_lifetime = timedelta(days=30)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# --- DISCORD OAUTH2 CONFIG ---
-CLIENT_ID = os.environ.get('CLIENT_ID', '1211664015646916670')
-CLIENT_SECRET = os.environ.get('CLIENT_SECRET', 'ykwvV-Jg6WaWey-bsejTTEPTsho2NiAd')
-# Автоматически определяем URL в зависимости от окружения
-REDIRECT_URI = os.environ.get('REDIRECT_URI', 'http://localhost:5000/callback')
-FOUNDERS = [
-    os.environ.get('FOUNDER_USERNAME', 'kompd'),
-    'henryesc', 
-    '406028216537579532',
-    '339121870882308106' # Just in case (kompd ID)
-] # Usernames or IDs with God Mode permission
+# Database Setup
+DB_PATH = 'users.db'
 
-API_BASE_URL = "https://discord.com/api"
-AUTHORIZATION_BASE_URL = API_BASE_URL + "/oauth2/authorize"
-TOKEN_URL = API_BASE_URL + "/oauth2/token"
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS users
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                  username TEXT UNIQUE NOT NULL, 
+                  password_hash TEXT NOT NULL, 
+                  avatar TEXT,
+                  created_at REAL)''')
+    conn.commit()
+    conn.close()
 
-# --- USERS STORAGE ---
-USERS_FILE = 'users.json'
-users_db = {}
+init_db()
 
-def load_users():
-    global users_db
+# --- AUTH ROUTES ---
+@app.route('/login')
+def login_page():
+    if 'user' in session: return redirect('/')
+    return render_template('auth.html', mode='login')
+
+@app.route('/register')
+def register_page():
+    if 'user' in session: return redirect('/')
+    return render_template('auth.html', mode='register')
+
+@app.route('/api/auth/register', methods=['POST'])
+def api_register():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'success': False, 'error': 'Missing fields'})
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     try:
-        if os.path.exists(USERS_FILE):
-            with open(USERS_FILE, 'r', encoding='utf-8') as f:
-                users_db = json.load(f)
-    except Exception as e:
-        print(f"Error loading users: {e}")
+        hash_pw = generate_password_hash(password)
+        avatar = f"https://cdn.discordapp.com/embed/avatars/{random.randint(0,5)}.png"
+        c.execute("INSERT INTO users (username, password_hash, avatar, created_at) VALUES (?, ?, ?, ?)", 
+                  (username, hash_pw, avatar, time.time()))
+        conn.commit()
+        return jsonify({'success': True})
+    except sqlite3.IntegrityError:
+        return jsonify({'success': False, 'error': 'Username taken'})
+    finally:
+        conn.close()
 
-def save_users():
-    try:
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(users_db, f, indent=4)
-    except Exception as e:
-        print(f"Error saving users: {e}")
+@app.route('/api/auth/login', methods=['POST'])
+def api_login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, username, password_hash, avatar FROM users WHERE username = ?", (username,))
+    user = c.fetchone()
+    conn.close()
+    
+    if user and check_password_hash(user[2], password):
+        session['user'] = {'id': user[0], 'username': user[1], 'avatar': user[3], 'role': 'user'}
+        session.permanent = True
+        return jsonify({'success': True})
+    
+    return jsonify({'success': False, 'error': 'Invalid credentials'})
 
-load_users()
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect('/login')
+
+@app.before_request
+def check_auth():
+    if request.endpoint and request.endpoint.startswith('static'): return
+    if request.endpoint in ['login_page', 'register_page', 'api_login', 'api_register', 'api_auth_register', 'api_auth_login']: return
+    
+    if 'user' not in session:
+        return redirect('/login')
 
 # --- SERVERS STORAGE ---
 SERVERS_FILE = 'servers.json'
@@ -145,19 +191,10 @@ def add_log(level, message):
 
 @app.route('/')
 def index():
-    # Landing page with auth_url
-    user = session.get('user', None)
-    
-    # Generate OAuth URL for login button
-    params = {
-        'client_id': CLIENT_ID,
-        'redirect_uri': REDIRECT_URI,
-        'response_type': 'code',
-        'scope': 'identify'
-    }
-    auth_url = requests.Request('GET', AUTHORIZATION_BASE_URL, params=params).prepare().url
-    
-    return render_template('landing.html', user=user, auth_url=auth_url)
+    # User requested to see Registration instead of Landing Page
+    if 'user' not in session:
+        return redirect('/register')
+    return render_template('index.html', user=session['user'])
 
 @app.route('/dashboard')
 def dashboard():
