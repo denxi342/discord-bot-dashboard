@@ -1358,12 +1358,43 @@ def api_create_server():
     
     data = request.json
     name = data.get('name')
+    icon_data = data.get('icon_data') # Base64 string
+    
     if not name: return jsonify({'success': False, 'error': 'Name required'})
 
     sid = f"srv_{int(time.time()*1000)}"
+    
+    # Process Icon
+    icon_url = 'server' # Default icon class (font-awesome) or url
+    is_image = False
+    
+    if icon_data and 'base64,' in icon_data:
+        try:
+            import base64
+            # Ensure static dir exists
+            save_dir = os.path.join('static', 'img', 'servers')
+            os.makedirs(save_dir, exist_ok=True)
+            
+            # Simple handling: assume png/jpeg based on header or just save as png
+            header, encoded = icon_data.split(',', 1)
+            file_ext = 'png'
+            if 'jpeg' in header: file_ext = 'jpg'
+            
+            filename = f"{sid}.{file_ext}"
+            file_path = os.path.join(save_dir, filename)
+            
+            with open(file_path, "wb") as fh:
+                fh.write(base64.b64decode(encoded))
+            
+            icon_url = f"/static/img/servers/{filename}"
+            is_image = True
+        except Exception as e:
+            print(f"Icon save error: {e}")
+
     servers_db[sid] = {
         'name': name,
-        'icon': 'server', # default icon
+        'icon': icon_url, # URL or FA Class
+        'is_image': is_image, # Flag for frontend rendering
         'owner': session['user']['id'],
         'channels': [
             { 'id': f'cat_{sid}_1', 'type': 'category', 'name': 'GENERAL' },

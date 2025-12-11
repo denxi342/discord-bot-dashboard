@@ -56,7 +56,11 @@ const DiscordModule = {
             const s = DiscordModule.serverData[sid];
             const active = (sid === DiscordModule.currentServer) ? 'active' : '';
             let iconHtml = `<i class="fa-solid fa-${s.icon || 'server'}"></i>`;
-            if (s.icon === 'discord') iconHtml = `<i class="fa-brands fa-discord"></i>`;
+            if (s.is_image) {
+                iconHtml = `<img src="${s.icon}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+            } else if (s.icon === 'discord') {
+                iconHtml = `<i class="fa-brands fa-discord"></i>`;
+            }
 
             const html = `
             <div class="server-icon ${active}" id="server-${sid}" onclick="DiscordModule.selectServer('${sid}')" data-tooltip="${s.name}">
@@ -162,8 +166,17 @@ const DiscordModule = {
     },
 
     // --- CREATION UTILS (NEW MODAL LOGIC) ---
+    currentUploadData: null,
+
     uiCreateServer: () => {
-        // Open Modal Step 1
+        // Reset state
+        DiscordModule.currentUploadData = null;
+        const preview = document.getElementById('new-server-icon-preview');
+        const text = document.getElementById('new-server-icon-text');
+
+        if (preview) preview.style.backgroundImage = 'none';
+        if (text) text.style.display = 'flex';
+
         const modal = document.getElementById('create-server-modal');
         if (modal) {
             modal.style.display = 'flex';
@@ -199,10 +212,30 @@ const DiscordModule = {
         input.focus();
     },
 
+    triggerIconUpload: () => {
+        document.getElementById('server-icon-input').click();
+    },
+
+    handleIconSelect: (input) => {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                DiscordModule.currentUploadData = e.target.result;
+                const preview = document.getElementById('new-server-icon-preview');
+                const text = document.getElementById('new-server-icon-text');
+
+                preview.style.backgroundImage = `url(${e.target.result})`;
+                text.style.display = 'none';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    },
+
     finishCreateServer: async () => {
         const name = document.getElementById('new-server-name').value;
         if (name) {
-            await DiscordModule.apiCreateServer(name);
+            const payload = { name: name, icon_data: DiscordModule.currentUploadData };
+            await DiscordModule.apiCreateServer(payload);
             DiscordModule.closeModal();
         }
     },
@@ -213,9 +246,10 @@ const DiscordModule = {
         if (name) DiscordModule.apiCreateChannel(sid, name, isVoice ? 'voice' : 'channel');
     },
 
-    apiCreateServer: async (name) => {
+    apiCreateServer: async (payload) => {
         try {
-            const res = await fetch('/api/servers/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+            const body = typeof payload === 'string' ? { name: payload } : payload;
+            const res = await fetch('/api/servers/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
             const d = await res.json();
             if (d.success) {
                 DiscordModule.serverData[d.id] = d.server;

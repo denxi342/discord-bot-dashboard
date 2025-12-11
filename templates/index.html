@@ -221,8 +221,10 @@
 
                 <div class="template-list">
                     <div class="template-item" onclick="DiscordModule.uiServerStep2('Свой шаблон')">
-                        <img src="https://assets-global.website-files.com/6257adef93867e56f84d3092/62594f7b0f0a8d6b6371cb15_Create%20My%20Own.svg"
-                            class="template-icon">
+                        <div class="template-icon"
+                            style="background:#5865F2; display:flex; align-items:center; justify-content:center; border-radius:8px;">
+                            <i class="fa-solid fa-pen-to-square" style="color:white; font-size:20px;"></i>
+                        </div>
                         <span class="template-name">Свой шаблон</span>
                         <i class="fa-solid fa-chevron-right arrow"></i>
                     </div>
@@ -230,22 +232,28 @@
                     <div class="template-header">НАЧНИТЕ С ШАБЛОНА</div>
 
                     <div class="template-item" onclick="DiscordModule.uiServerStep2('Игры')">
-                        <img src="https://assets-global.website-files.com/6257adef93867e56f84d3092/62594f7b9f1d436154564c48_Gaming.svg"
-                            class="template-icon">
+                        <div class="template-icon"
+                            style="background:#23A559; display:flex; align-items:center; justify-content:center; border-radius:8px;">
+                            <i class="fa-solid fa-gamepad" style="color:white; font-size:20px;"></i>
+                        </div>
                         <span class="template-name">Игры</span>
                         <i class="fa-solid fa-chevron-right arrow"></i>
                     </div>
 
                     <div class="template-item" onclick="DiscordModule.uiServerStep2('Друзья')">
-                        <img src="https://assets-global.website-files.com/6257adef93867e56f84d3092/62594f7b2c62c2f6f59d288d_Friends.svg"
-                            class="template-icon">
+                        <div class="template-icon"
+                            style="background:#DA373C; display:flex; align-items:center; justify-content:center; border-radius:8px;">
+                            <i class="fa-solid fa-heart" style="color:white; font-size:20px;"></i>
+                        </div>
                         <span class="template-name">Друзья</span>
                         <i class="fa-solid fa-chevron-right arrow"></i>
                     </div>
 
                     <div class="template-item" onclick="DiscordModule.uiServerStep2('Учебная группа')">
-                        <img src="https://assets-global.website-files.com/6257adef93867e56f84d3092/62594f7b154564344c564c47_Study%20Group.svg"
-                            class="template-icon">
+                        <div class="template-icon"
+                            style="background:#F0B232; display:flex; align-items:center; justify-content:center; border-radius:8px;">
+                            <i class="fa-solid fa-book-open" style="color:white; font-size:20px;"></i>
+                        </div>
                         <span class="template-name">Учебная группа</span>
                         <i class="fa-solid fa-chevron-right arrow"></i>
                     </div>
@@ -266,10 +274,15 @@
                 </p>
 
                 <div class="upload-container">
-                    <div class="upload-circle">
-                        <i class="fa-solid fa-camera"></i>
-                        <span style="font-size:10px; font-weight:bold; margin-top:4px;">UPLOAD</span>
+                    <div class="upload-circle" id="new-server-icon-preview" onclick="DiscordModule.triggerIconUpload()"
+                        style="overflow:hidden; background-position:center; background-size:cover;">
+                        <span id="new-server-icon-text">
+                            <i class="fa-solid fa-camera"></i>
+                            <div style="font-size:10px; font-weight:bold; margin-top:4px;">UPLOAD</div>
+                        </span>
                     </div>
+                    <input type="file" id="server-icon-input" accept="image/*" style="display:none;"
+                        onchange="DiscordModule.handleIconSelect(this)">
                 </div>
 
                 <div class="input-group">
