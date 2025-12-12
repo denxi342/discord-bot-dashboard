@@ -312,7 +312,7 @@ const DiscordModule = {
         container.innerHTML += `
         <div class="dm-header">
             <span>Личные сообщения</span>
-            <i class="fa-solid fa-plus" style="cursor:pointer;" title="Создать DM"></i>
+            <i class="fa-solid fa-plus" style="cursor:pointer;" onclick="DiscordModule.openAddFriend()" title="Создать DM"></i>
         </div>`;
 
         // 4. User List (Empty for now, waiting for real logic)
@@ -736,6 +736,11 @@ const DiscordModule = {
     logout: () => window.location.href = '/logout',
 
     // --- FRIEND SYSTEM ---
+    openAddFriend: () => {
+        DiscordModule.selectChannel('friends', 'channel');
+        setTimeout(() => DiscordModule.filterFriends('add'), 50);
+    },
+
     loadFriends: async () => {
         const container = document.getElementById('channel-view-general'); // Reuse general/friends view
         container.innerHTML = `
