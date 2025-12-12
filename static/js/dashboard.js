@@ -1061,7 +1061,14 @@ const DiscordModule = {
 
     // --- FRIEND LOGIC ---
     sendFriendRequest: async () => {
+        // Debugging
+        console.log("Sending Friend Request...");
+
         const input = document.getElementById('add-friend-input');
+        if (!input) {
+            alert("Error: Input not found!");
+            return;
+        }
         const username = input.value.trim();
         if (!username) return;
 
