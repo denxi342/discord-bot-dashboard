@@ -743,6 +743,8 @@ const DiscordModule = {
 
     // Unified Edit Function
     editField: async (field) => {
+        // Debug
+        // alert('Editing ' + field);
         let currentVal = document.getElementById(`field-${field}`) ? document.getElementById(`field-${field}`).innerText : '';
         if (currentVal === 'Not set') currentVal = '';
 
