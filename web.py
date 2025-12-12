@@ -1730,7 +1730,7 @@ def api_post_channel_message(cid):
 @app.route('/api/friends', methods=['GET'])
 def api_get_friends():
     if 'user' not in session: return jsonify({'success': False, 'error': 'Auth needed'}), 401
-    uid = session['user']['id']
+    uid = int(session['user']['id'])
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -1780,7 +1780,7 @@ def api_friend_request():
     
     data = request.json
     target_username = data.get('username')
-    sender_id = session['user']['id']
+    sender_id = int(session['user']['id'])
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -1791,7 +1791,7 @@ def api_friend_request():
     if not row:
         conn.close()
         return jsonify({'success': False, 'error': 'User not found'})
-    target_id = row[0]
+    target_id = int(row[0])
     
     if target_id == sender_id:
         conn.close()
@@ -1819,8 +1819,11 @@ def api_friend_request():
 def api_friend_accept():
     if 'user' not in session: return jsonify({'success': False}), 401
     data = request.json
-    target_id = data.get('id') # The person who SENT the request
-    my_id = session['user']['id']
+    try:
+        target_id = int(data.get('id')) # The person who SENT the request
+    except:
+        return jsonify({'success': False, 'error': 'Invalid ID'})
+    my_id = int(session['user']['id'])
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -1829,8 +1832,6 @@ def api_friend_accept():
     c.execute('UPDATE friends SET status = ? WHERE user_id_1 = ? AND user_id_2 = ?', ('accepted', target_id, my_id))
     
     if c.rowcount == 0:
-        # Maybe I am u1 and they are u2? (Should not happen for 'accept' logic usually, unless roles reversed)
-        # But 'accept' implies answering a pending request.
         conn.close()
         return jsonify({'success': False, 'error': 'No pending request found'})
         
