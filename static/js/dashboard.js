@@ -1168,3 +1168,8 @@ const WebSocketModule = { init: () => { } };
 
 
 document.addEventListener('DOMContentLoaded', () => { DiscordModule.init(); WebSocketModule.init(); });
+
+// Explicitly export for HTML inline handlers
+window.DiscordModule = DiscordModule;
+window.Utils = Utils;
+
