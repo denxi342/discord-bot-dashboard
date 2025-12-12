@@ -1748,24 +1748,30 @@ def api_get_friends():
     
     # 1. Incoming: I am user_2, status pending
     c.execute('SELECT user_id_1 FROM friends WHERE user_id_2 = ? AND status = ?', (uid, 'pending'))
-    for r in c.fetchall():
+    rows_in = c.fetchall()
+    print(f"DEBUG: Friends Incoming for {uid}: Found {len(rows_in)} rows: {rows_in}")
+    for r in rows_in:
         u = get_user_lite(r[0])
         if u: incoming.append(u)
         
     # 2. Outgoing: I am user_1, status pending
     c.execute('SELECT user_id_2 FROM friends WHERE user_id_1 = ? AND status = ?', (uid, 'pending'))
-    for r in c.fetchall():
+    rows_out = c.fetchall()
+    print(f"DEBUG: Friends Outgoing for {uid}: Found {len(rows_out)} rows: {rows_out}")
+    for r in rows_out:
          u = get_user_lite(r[0])
          if u: outgoing.append(u)
          
     # 3. Friends: Accepted (Logic: u1=me or u2=me)
     c.execute('SELECT user_id_1, user_id_2 FROM friends WHERE (user_id_1 = ? OR user_id_2 = ?) AND status = ?', (uid, uid, 'accepted'))
-    for r in c.fetchall():
+    friends_rows = c.fetchall()
+    for r in friends_rows:
         fid = r[1] if r[0] == uid else r[0]
         u = get_user_lite(fid)
         if u: friends.append(u)
         
     conn.close()
+    print(f"DEBUG: API Returning for {uid}: Incoming={len(incoming)}, Outgoing={len(outgoing)}, Friends={len(friends)}")
     return jsonify({'success': True, 'friends': friends, 'incoming': incoming, 'outgoing': outgoing})
 
 @app.route('/api/friends/request', methods=['POST'])
