@@ -292,7 +292,7 @@ const DiscordModule = {
 
         // 2. Navigation Items
         const navItems = [
-            { id: 'friends', icon: 'user-group', label: 'Друзья', badge: '74' }
+            { id: 'friends', icon: 'user-group', label: 'Друзья', badge: null }
         ];
 
         navItems.forEach(item => {
@@ -301,7 +301,7 @@ const DiscordModule = {
                 badgeHtml = `<div class="dm-badge ${item.badgeClass || ''}">${item.badge}</div>`;
             }
             container.innerHTML += `
-            <div class="nav-item ${item.id === 'friends' ? 'active' : ''}" onclick="DiscordModule.selectChannel('${item.id}', 'channel')">
+            <div class="nav-item ${item.id === 'friends' ? 'active' : ''}" id="btn-ch-${item.id}" onclick="DiscordModule.selectChannel('${item.id}', 'channel')">
                 <i class="fa-solid fa-${item.icon}"></i>
                 <span>${item.label}</span>
                 ${badgeHtml}
