@@ -1231,3 +1231,39 @@ body {
 }
 .btn-edit:hover { background: #6D6F78; }
 
+
+.btn-primary { 
+    background-color: var(--primary); 
+    color: white; 
+    border: none; 
+    padding: 10px 20px; 
+    border-radius: 4px; 
+    font-weight: 500; 
+    cursor: pointer; 
+    transition: 0.2s;
+}
+.btn-primary:hover { background-color: #4752c4; }
+
+.btn-secondary {
+    background-color: #4E5058;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.btn-secondary:hover { background-color: #6D6F78; }
+
+.btn-danger-outline {
+    background: transparent;
+    color: #F23F42;
+    border: 1px solid #F23F42;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+.btn-danger-outline:hover { background: rgba(242, 63, 66, 0.1); }
+
