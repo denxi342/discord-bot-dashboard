@@ -1840,6 +1840,15 @@ def api_friend_accept():
 
 
 
+@app.route('/debug/friends_dump')
+def debug_friends_dump():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT * FROM friends')
+    rows = c.fetchall()
+    conn.close()
+    return jsonify({'rows': rows})
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print(f'Server running on http://0.0.0.0:{port}')
