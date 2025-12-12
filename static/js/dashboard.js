@@ -275,6 +275,12 @@ const DiscordModule = {
             }
         });
 
+        // Always show Create Channel button at bottom
+        container.innerHTML += `
+        <div class="channel-item" onclick="DiscordModule.createChannelPrompt('${serverId}', null)" style="margin-top:10px; color:rgba(255,255,255,0.4); cursor:pointer; justify-content:center; border:1px dashed rgba(255,255,255,0.1);">
+            <i class="fa-solid fa-plus"></i>
+        </div>`;
+
         const first = data.channels.find(c => c.type === 'channel');
         if (first) DiscordModule.selectChannel(first.id, 'channel');
     },
@@ -380,6 +386,7 @@ const DiscordModule = {
             if (viewKey === 'community') DiscordModule.loadLeaderboard();
             if (viewKey === 'admin') DiscordModule.loadUsers();
             if (viewKey === 'profile') DiscordModule.loadProfile();
+            if (viewKey === 'general') DiscordModule.loadChannelMessages(chanId);
         }
     },
 
@@ -571,12 +578,16 @@ const DiscordModule = {
         if (!text) return;
         input.value = '';
 
-        DiscordModule.addMessage(DiscordModule.currentChannel, {
-            author: 'You', avatar: 'https://cdn.discordapp.com/embed/avatars/1.png', text: text
-        });
-
-        if (DiscordModule.currentChannel === 'helper' || DiscordModule.serverData.ai?.channels.find(c => c.id === DiscordModule.currentChannel)?.name === 'chat-gpt') {
-            await DiscordModule.askAI(text);
+        // Check if virtual channel
+        const virtuals = ['helper', 'news', 'community', 'admin', 'profile', 'biography', 'search-rules', 'ad-editor'];
+        if (virtuals.includes(DiscordModule.currentChannel)) {
+            DiscordModule.addMessage(DiscordModule.currentChannel, {
+                author: 'You', avatar: 'https://cdn.discordapp.com/embed/avatars/1.png', text: text
+            });
+            if (DiscordModule.currentChannel === 'helper') await DiscordModule.askAI(text);
+        } else {
+            // Real Persistent Channel
+            DiscordModule.sendMessage(DiscordModule.currentChannel, text);
         }
     },
 
@@ -996,6 +1007,57 @@ const DiscordModule = {
 
     // Override generic selectChannel to handle 'dm' type
     // We'll modify selectChannel logic or handle it via ID 'dm-X'
+
+    // --- REAL CHANNEL MESSAGING ---
+    loadChannelMessages: async (cid) => {
+        const main = document.getElementById('channel-view-general');
+        const stream = main.querySelector('#stream-general');
+        if (!stream) return;
+        stream.innerHTML = '<div class="loading-state">Loading messages...</div>';
+
+        try {
+            const res = await fetch(`/api/channels/${cid}/messages`);
+            const data = await res.json();
+            stream.innerHTML = '';
+
+            if (data.success && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    // Reuse addMessage logic but adapt it
+                    DiscordModule.addMessage(DiscordModule.currentChannel, {
+                        author: msg.author,
+                        avatar: msg.avatar,
+                        text: msg.content,
+                        timestamp: msg.timestamp
+                    });
+                });
+            } else {
+                stream.innerHTML = '<div class="empty-state">No messages here yet. Be the first!</div>';
+            }
+            stream.scrollTop = stream.scrollHeight;
+        } catch (e) { console.error(e); }
+    },
+
+    sendMessage: async (cid, text) => {
+        try {
+            const res = await fetch(`/api/channels/${cid}/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: text })
+            });
+            const d = await res.json();
+            if (d.success) {
+                // Optimistic update done by socket?? Or manual add?
+                // Add message locally
+                DiscordModule.addMessage(cid, {
+                    author: d.message.author,
+                    avatar: d.message.avatar,
+                    text: d.message.content
+                });
+                const stream = document.querySelector('#stream-general');
+                if (stream) stream.scrollTop = stream.scrollHeight;
+            }
+        } catch (e) { console.error(e); }
+    },
 
     loadDM: async (dmId) => {
         // Create view logic for DM... 

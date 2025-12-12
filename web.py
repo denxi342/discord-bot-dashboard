@@ -30,6 +30,29 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Database Setup
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'users.db')
+SERVERS_FILE = os.path.join(BASE_DIR, 'servers.json')
+servers_db = {}
+
+def load_servers():
+    global servers_db
+    if os.path.exists(SERVERS_FILE):
+        try:
+            with open(SERVERS_FILE, 'r', encoding='utf-8') as f:
+                servers_db = json.load(f)
+        except Exception as e:
+            print(f"Load servers error: {e}")
+            servers_db = {}
+    else:
+        servers_db = {}
+
+def save_servers():
+    try:
+        with open(SERVERS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(servers_db, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Save servers error: {e}")
+
+load_servers()
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -1637,4 +1660,71 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print(f"Server running on http://0.0.0.0:{port}")
     socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
+
+
+
+@app.route('/api/channels/<cid>/messages', methods=['GET'])
+def api_get_channel_messages(cid):
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth'}), 401
+    
+    # Find channel in any server
+    target_channel = None
+    for sid, sdata in servers_db.items():
+        for ch in sdata['channels']:
+            if ch['id'] == cid:
+                target_channel = ch
+                break
+        if target_channel: break
+    
+    if not target_channel: return jsonify({'success': False, 'error': 'Channel not found'})
+    
+    # Return messages (default [])
+    msgs = target_channel.get('messages', [])
+    return jsonify({'success': True, 'messages': msgs})
+
+@app.route('/api/channels/<cid>/messages', methods=['POST'])
+def api_post_channel_message(cid):
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth'}), 401
+    
+    data = request.json
+    content = data.get('content')
+    if not content: return jsonify({'success': False})
+    
+    user = session['user']
+    
+    # Find channel
+    target_channel = None
+    target_sid = None
+    for sid, sdata in servers_db.items():
+        for ch in sdata['channels']:
+            if ch['id'] == cid:
+                target_channel = ch
+                target_sid = sid
+                break
+        if target_channel: break
+        
+    if not target_channel: return jsonify({'success': False, 'error': 'Not found'})
+    
+    if 'messages' not in target_channel: target_channel['messages'] = []
+    
+    msg_obj = {
+        'id': f'msg_{int(time.time()*1000)}_{random.randint(100,999)}',
+        'author_id': user['id'],
+        'author': user['username'], # Snapshot
+        'avatar': user['avatar'],
+        'content': content,
+        'timestamp': time.time()
+    }
+    
+    target_channel['messages'].append(msg_obj)
+    # Limit history
+    if len(target_channel['messages']) > 50:
+        target_channel['messages'] = target_channel['messages'][-50:]
+        
+    save_servers()
+    
+    # Socket emit
+    socketio.emit('new_channel_message', {'sid': target_sid, 'cid': cid, 'message': msg_obj})
+    
+    return jsonify({'success': True, 'message': msg_obj})
 
