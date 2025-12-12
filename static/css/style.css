@@ -758,3 +758,218 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* --- NEW UI ELEMENTS (Dropdown, Settings, Roles) --- */
+
+/* SERVER DROPDOWN */
+.server-header {
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.server-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.server-dropdown {
+    position: absolute;
+    top: 50px;
+    left: 10px;
+    width: 220px;
+    background: #2b2d31;
+    /* Lighter dark for visibility */
+    border-radius: 4px;
+    padding: 6px 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+    /* Ensure on top */
+    display: none;
+}
+
+.server-dropdown.active {
+    display: block;
+    animation: fadeIn 0.1s ease-out;
+}
+
+.dropdown-item {
+    padding: 8px;
+    border-radius: 2px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #B9BBBE;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dropdown-item:hover {
+    background: #4752C4;
+    color: white;
+}
+
+.dropdown-sep {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    margin: 4px 0;
+}
+
+/* SERVER SETTINGS MODAL */
+.server-settings-modal {
+    width: 900px !important;
+    height: 700px !important;
+    display: flex;
+    overflow: hidden !important;
+    padding: 0 !important;
+    background: #313338;
+    /* Modal bg */
+}
+
+.settings-category {
+    font-size: 12px;
+    font-weight: 700;
+    color: #8E9297;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    padding: 0 10px;
+}
+
+/* ROLES EDITOR SPLIT VIEW */
+.roles-container {
+    display: flex;
+    height: 100%;
+    margin-top: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.roles-sidebar {
+    width: 200px;
+    background: #2B2D31;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+.roles-header {
+    padding: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.roles-header i {
+    cursor: pointer;
+}
+
+.roles-header i:hover {
+    color: var(--text-normal);
+}
+
+.role-item {
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: var(--text-muted);
+    transition: background 0.1s;
+}
+
+.role-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-normal);
+}
+
+.role-item.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.role-circle {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.role-editor {
+    flex: 1;
+    background: #313338;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.perm-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Toggle Switch */
+.checkbox-wrapper input[type="checkbox"] {
+    width: 40px;
+    height: 24px;
+    appearance: none;
+    background: #80848E;
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked {
+    background: #23A559;
+}
+
+.checkbox-wrapper input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked::after {
+    transform: translateX(16px);
+}
+
+/* FIXES FOR FOOTER UI */
+.user-bar .avatar-wrapper {
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
+    position: relative;
+}
+
+.user-bar .avatar-wrapper img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-bar .avatar-wrapper .status-indicator {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--sidebar-bg);
+}
+
+.is-online .status-indicator {
+    background-color: var(--success);
+}
