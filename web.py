@@ -23,12 +23,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev_secret_key_fixed_12345')
 app.permanent_session_lifetime = timedelta(days=30)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Database Setup
-DB_PATH = 'users.db'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, 'users.db')
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
