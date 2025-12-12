@@ -290,13 +290,9 @@ const DiscordModule = {
         <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 8px 10px;"></div>
         `;
 
-        // 2. Navigation Items (Mocked Badges)
+        // 2. Navigation Items
         const navItems = [
-            { id: 'friends', icon: 'user-group', label: 'Друзья', badge: '74' },
-            { id: 'requests', icon: 'envelope', label: 'Запросы общения', badge: '7' }, // Using envelope for requests
-            { id: 'nitro', icon: 'bolt', label: 'Nitro', badge: null },
-            { id: 'shop', icon: 'shop', label: 'Магазин', badge: 'НОВОЕ', badgeClass: 'new' },
-            { id: 'quests', icon: 'crosshairs', label: 'Задания', badge: null } // Using crosshairs for quests
+            { id: 'friends', icon: 'user-group', label: 'Друзья', badge: '74' }
         ];
 
         navItems.forEach(item => {
@@ -305,7 +301,7 @@ const DiscordModule = {
                 badgeHtml = `<div class="dm-badge ${item.badgeClass || ''}">${item.badge}</div>`;
             }
             container.innerHTML += `
-            <div class="nav-item ${item.id === 'friends' ? 'active' : ''}" onclick="Utils.showToast('${item.label} click')">
+            <div class="nav-item ${item.id === 'friends' ? 'active' : ''}" onclick="DiscordModule.selectChannel('${item.id}', 'channel')">
                 <i class="fa-solid fa-${item.icon}"></i>
                 <span>${item.label}</span>
                 ${badgeHtml}
