@@ -1557,26 +1557,8 @@ def api_create_server():
             print(f"Icon save error: {e}")
 
     # Rich Default Structure per User Request
-    default_channels = [
-        # Информация
-        { 'id': f'cat_{sid}_1', 'type': 'category', 'name': 'ИНФОРМАЦИЯ' },
-        { 'id': f'ch_{sid}_1', 'type': 'channel', 'name': 'правила', 'icon': 'book' },
-        { 'id': f'ch_{sid}_2', 'type': 'channel', 'name': 'объявления', 'icon': 'bullhorn' },
-        
-        # Общение
-        { 'id': f'cat_{sid}_2', 'type': 'category', 'name': 'ОБЩЕНИЕ' },
-        { 'id': f'ch_{sid}_3', 'type': 'channel', 'name': 'общий-чат', 'icon': 'hashtag' },
-        { 'id': f'ch_{sid}_4', 'type': 'channel', 'name': 'мемы', 'icon': 'image' },
-        
-        # Голосовые
-        { 'id': f'cat_{sid}_3', 'type': 'category', 'name': 'ГОЛОСОВЫЕ' },
-        { 'id': f'ch_{sid}_5', 'type': 'voice', 'name': 'Общение', 'icon': 'microphone' },
-        { 'id': f'ch_{sid}_6', 'type': 'voice', 'name': 'Музыка', 'icon': 'music' },
-
-        # Админ-панель
-        { 'id': f'cat_{sid}_4', 'type': 'category', 'name': 'АДМИНИСТРАЦИЯ' },
-        { 'id': f'ch_{sid}_7', 'type': 'channel', 'name': 'тех-поддержка', 'icon': 'wrench' }
-    ]
+    # Empty Default Structure per User Request
+    default_channels = []
 
     # Default Roles
     default_roles = [
