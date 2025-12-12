@@ -733,7 +733,7 @@ const DiscordModule = {
         }
     },
 
-    logout: () => window.location.href = '/logout'
+    logout: () => window.location.href = '/logout',
 
     // --- FRIEND SYSTEM ---
     loadFriends: async () => {
