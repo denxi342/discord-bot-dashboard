@@ -104,11 +104,13 @@ const DiscordModule = {
 
         data.channels.forEach(ch => {
             if (ch.type === 'category') {
+                const catId = ch.id;
                 container.innerHTML += `
-                 <div class="channel-category">
-                    <i class="fa-solid fa-angle-down"></i> ${ch.name} 
-                    <i class="fa-solid fa-plus" style="margin-left:auto; cursor:pointer;" onclick="DiscordModule.uiCreateChannel('${serverId}')" title="Add Channel"></i>
-                 </div>`;
+                 <div class="channel-category" onclick="this.nextElementSibling.classList.toggle('collapsed')">
+                    <i class="fa-solid fa-angle-down"></i> <span>${ch.name}</span>
+                    <i class="fa-solid fa-plus add-channel-btn" onclick="event.stopPropagation(); DiscordModule.createChannelPrompt('${serverId}', '${catId}')" title="Create Channel"></i>
+                 </div>
+                 <div class="category-content">`; // Added for collapsing categories
             } else {
                 const icon = ch.type === 'voice' ? 'volume-high' : (ch.icon || 'hashtag');
                 container.innerHTML += `
@@ -246,6 +248,30 @@ const DiscordModule = {
     uiServerStep1: () => {
         document.getElementById('modal-step-1').style.display = 'block';
         document.getElementById('modal-step-2').style.display = 'none';
+    },
+
+    // --- CHANNEL & ROLE CREATION ---
+    createChannelPrompt: async (sid, catId) => {
+        const name = prompt("Enter Channel Name:");
+        if (!name) return;
+
+        let type = 'channel';
+        if (confirm("Is this a Voice Channel? (OK=Voice, Cancel=Text)")) type = 'voice';
+
+        try {
+            const res = await fetch(`/api/servers/${sid}/channels/create`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, type: type, category_id: catId })
+            });
+            const d = await res.json();
+            if (d.success) {
+                DiscordModule.renderChannels(sid);
+                Utils.showToast('Channel Created');
+            } else {
+                Utils.showToast(d.error || 'Failed');
+            }
+        } catch (e) { console.error(e); }
     },
 
     uiServerStep2: (templateName) => {

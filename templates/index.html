@@ -65,13 +65,13 @@
         </nav>
 
         <!-- 2. CHANNEL SIDEBAR -->
-        <div class="channel-sidebar">
+        <div class="channels-sidebar">
             <div class="server-header">
-                <h3 id="current-server-name">Main Server</h3>
-                <i class="fa-solid fa-chevron-down"></i>
+                <h3 id="current-server-name">Arizona RP (Home)</h3>
+                <i class="fa-solid fa-gear" onclick="DiscordModule.openServerSettings()"
+                    style="cursor:pointer; opacity:0.7;" title="Server Settings"></i>
             </div>
-
-            <div id="channel-list-container" class="channel-list">
+            <div class="channels-list" id="channels-list">
                 <!-- Dynamic Content -->
                 <div style="padding:20px; text-align:center; color:gray;">Loading context...</div>
             </div>

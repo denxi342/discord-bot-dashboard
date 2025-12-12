@@ -1443,36 +1443,61 @@ def api_create_server():
     
     if icon_data and 'base64,' in icon_data:
         try:
-            import base64
-            # Ensure static dir exists
-            save_dir = os.path.join('static', 'img', 'servers')
-            os.makedirs(save_dir, exist_ok=True)
+            # Save base64 image
+            header, encoded = icon_data.split(",", 1)
+            ext = 'png'
+            if 'jpeg' in header: ext = 'jpg'
+            if 'gif' in header: ext = 'gif'
             
-            # Simple handling: assume png/jpeg based on header or just save as png
-            header, encoded = icon_data.split(',', 1)
-            file_ext = 'png'
-            if 'jpeg' in header: file_ext = 'jpg'
+            filename = f"{sid}.{ext}"
+            filepath = os.path.join('static', 'uploads', 'icons', filename)
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
             
-            filename = f"{sid}.{file_ext}"
-            file_path = os.path.join(save_dir, filename)
+            with open(filepath, "wb") as f:
+                import base64
+                f.write(base64.b64decode(encoded))
             
-            with open(file_path, "wb") as fh:
-                fh.write(base64.b64decode(encoded))
-            
-            icon_url = f"/static/img/servers/{filename}"
+            icon_url = f"/static/uploads/icons/{filename}"
             is_image = True
         except Exception as e:
             print(f"Icon save error: {e}")
 
+    # Rich Default Structure per User Request
+    default_channels = [
+        # Информация
+        { 'id': f'cat_{sid}_1', 'type': 'category', 'name': 'ИНФОРМАЦИЯ' },
+        { 'id': f'ch_{sid}_1', 'type': 'channel', 'name': 'правила', 'icon': 'book' },
+        { 'id': f'ch_{sid}_2', 'type': 'channel', 'name': 'объявления', 'icon': 'bullhorn' },
+        
+        # Общение
+        { 'id': f'cat_{sid}_2', 'type': 'category', 'name': 'ОБЩЕНИЕ' },
+        { 'id': f'ch_{sid}_3', 'type': 'channel', 'name': 'общий-чат', 'icon': 'hashtag' },
+        { 'id': f'ch_{sid}_4', 'type': 'channel', 'name': 'мемы', 'icon': 'image' },
+        
+        # Голосовые
+        { 'id': f'cat_{sid}_3', 'type': 'category', 'name': 'ГОЛОСОВЫЕ' },
+        { 'id': f'ch_{sid}_5', 'type': 'voice', 'name': 'Общение', 'icon': 'microphone' },
+        { 'id': f'ch_{sid}_6', 'type': 'voice', 'name': 'Музыка', 'icon': 'music' },
+
+        # Админ-панель
+        { 'id': f'cat_{sid}_4', 'type': 'category', 'name': 'АДМИНИСТРАЦИЯ' },
+        { 'id': f'ch_{sid}_7', 'type': 'channel', 'name': 'тех-поддержка', 'icon': 'wrench' }
+    ]
+
+    # Default Roles
+    default_roles = [
+        { 'id': 'role_everyone', 'name': '@everyone', 'color': '#99aab5', 'permissions': 0 },
+        { 'id': 'role_admin', 'name': 'Administrator', 'color': '#E91E63', 'permissions': 8, 'hoist': True },
+        { 'id': 'role_mod', 'name': 'Moderator', 'color': '#2ECC71', 'permissions': 4, 'hoist': True }
+    ]
+
     servers_db[sid] = {
         'name': name,
-        'icon': icon_url, # URL or FA Class
-        'is_image': is_image, # Flag for frontend rendering
+        'icon': icon_url, 
+        'is_image': is_image,
         'owner': session['user']['id'],
-        'channels': [
-            { 'id': f'cat_{sid}_1', 'type': 'category', 'name': 'GENERAL' },
-            { 'id': f'chan_{sid}_1', 'type': 'channel', 'name': 'general', 'icon': 'hashtag' }
-        ]
+        'roles': default_roles,
+        'channels': default_channels
     }
     save_servers()
     return jsonify({'success': True, 'server': servers_db[sid], 'id': sid})
@@ -1482,13 +1507,10 @@ def api_create_channel(sid):
     if 'user' not in session: return jsonify({'success': False, 'error': 'Auth required'}), 401
     if sid not in servers_db: return jsonify({'success': False, 'error': 'Server not found'})
     
-    # Permission check: Only owner or admin (simplified)
-    # if servers_db[sid]['owner'] != session['user']['id'] and session['user']['role'] not in ['developer']:
-    #     return jsonify({'success': False, 'error': 'No permission'})
-
     data = request.json
     name = data.get('name')
-    ctype = data.get('type', 'channel') # channel, voice, category
+    ctype = data.get('type', 'channel') 
+    cat_id = data.get('category_id') # insert after this
     
     if not name: return jsonify({'success': False, 'error': 'Name required'})
 
@@ -1500,7 +1522,27 @@ def api_create_channel(sid):
         'icon': 'hashtag' if ctype == 'channel' else ('microphone' if ctype == 'voice' else '')
     }
     
-    servers_db[sid]['channels'].append(new_chan)
+    channels = servers_db[sid]['channels']
+    
+    if cat_id:
+        # Find index of category
+        idx = -1
+        for i, c in enumerate(channels):
+            if c['id'] == cat_id:
+                idx = i
+                break
+        
+        if idx != -1:
+            # Insert AFTER category (and any existing children? for now just after category is fine, simple prepend to cat)
+            # Actually, to be at the bottom of the category, we need to find the NEXT category and insert before it.
+            # But "simple appending to category" usually means just after it.
+            # Let's simple insert at idx + 1
+            channels.insert(idx + 1, new_chan)
+        else:
+             channels.append(new_chan)
+    else:
+        channels.append(new_chan)
+        
     save_servers()
     return jsonify({'success': True, 'channel': new_chan})
 
