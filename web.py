@@ -178,6 +178,11 @@ def api_update_user():
     fields = []
     values = []
     
+    if 'username' in data:
+        fields.append("username = ?")
+        values.append(data['username'])
+        session['user']['username'] = data['username']
+
     if 'avatar' in data:
         fields.append("avatar = ?")
         values.append(data['avatar'])
