@@ -296,20 +296,22 @@ def api_get_prefixes():
 @app.route('/api/admin/users')
 def api_get_users():
     if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
-    # Allow ALL logged in users to see the list (Community feature)
-    # Role check removed for GET
     
-    # Convert dict to list for frontend
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, username, avatar FROM users")
+    rows = c.fetchall()
+    conn.close()
+    
     users_list = []
-    for uid, data in users_db.items():
+    for r in rows:
         users_list.append({
-            'id': uid,
-            'username': data['username'],
-            'avatar': data['avatar'],
-            'role': data.get('role', 'user'),
-            'reputation': data.get('reputation', 0),
-            'last_login': data.get('last_login', '')
+            'id': str(r[0]),
+            'username': r[1],
+            'avatar': r[2] if r[2] else 'https://cdn.discordapp.com/embed/avatars/0.png',
+            'status': 'online' # Mock status
         })
+        
     return jsonify({'success': True, 'users': users_list})
 
 @app.route('/api/admin/role', methods=['POST'])
