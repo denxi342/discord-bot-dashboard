@@ -781,11 +781,16 @@ const DiscordModule = {
              <div style="padding: 20px;">
                 <h3 style="color:#F2F3F5; margin-bottom:8px;">ADD FRIEND</h3>
                 <div style="color:#B9BBBE; font-size:14px; margin-bottom:16px;">You can add friends with their username.</div>
-                <div style="display:flex; gap:10px;">
-                    <input type="text" id="add-friend-input" placeholder="Enter username..." 
-                        style="background:#1E1F22; border:1px solid #1E1F22; padding:10px; color:white; border-radius:4px; flex:1;">
+                <div style="display:flex; gap:10px; position:relative;">
+                    <div style="flex:1; position:relative;">
+                        <input type="text" id="add-friend-input" placeholder="Enter username..." autocomplete="off"
+                            onkeyup="DiscordModule.searchUsers(this.value)"
+                            style="width:100%; background:#1E1F22; border:1px solid #1E1F22; padding:10px; color:white; border-radius:4px;">
+                        <div id="user-search-results" style="display:none; position:absolute; top:45px; left:0; right:0; background:#2B2D31; border-radius:4px; box-shadow:0 8px 16px rgba(0,0,0,0.4); z-index:100;">
+                        </div>
+                    </div>
                     <button onclick="DiscordModule.sendFriendRequest()" 
-                        style="background:#5865F2; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;">
+                        style="background:#5865F2; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer; height:38px;">
                         Send Friend Request
                     </button>
                 </div>
@@ -793,37 +798,74 @@ const DiscordModule = {
             return;
         }
 
-        const data = DiscordModule.friendsData;
-        if (!data) return;
+        /* --- ADDED SEARCH FUNCTIONS --- */
+        DiscordModule.searchUsers = async (query) => {
+            const box = document.getElementById('user-search-results');
+            if (query.length < 2) {
+                box.style.display = 'none';
+                return;
+            }
 
-        let list = [];
-        if (tab === 'all') list = data.friends;
-        if (tab === 'pending') list = [...data.incoming, ...data.outgoing]; // Show both
+            try {
+                const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
 
-        if (list.length === 0) {
-            container.innerHTML = `<div class="empty-state">No friends to show here!</div>`;
-            return;
-        }
-
-        list.forEach(u => {
-            const isPending = data.incoming.includes(u) || data.outgoing.includes(u);
-            const isIncoming = data.incoming.includes(u);
-
-            let actions = '';
-            if (isPending) {
-                if (isIncoming) {
-                    actions = `<i class="fa-solid fa-check" title="Accept" style="color:#23A559; cursor:pointer;" onclick="DiscordModule.acceptFriend(${u.id})"></i>`;
+                if (data.users && data.users.length > 0) {
+                    box.innerHTML = '';
+                    data.users.forEach(u => {
+                        box.innerHTML += `
+                        <div onclick="DiscordModule.selectSearchUser('${u.username}')" 
+                             style="padding:10px; display:flex; align-items:center; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05); hover:background:#3F4147;">
+                            <img src="${u.avatar}" style="width:24px; height:24px; border-radius:50%; margin-right:10px;">
+                            <span style="color:white; font-weight:500;">${u.username}</span>
+                            <span style="color:#B9BBBE; font-size:12px; margin-left:auto;">#${u.id}</span>
+                        </div>`;
+                    });
+                    box.style.display = 'block';
                 } else {
-                    actions = `<span style="font-size:12px; color:gray;">Outgoing Request</span>`;
+                    box.style.display = 'none';
                 }
-            } else {
-                actions = `
+            } catch (e) { console.error(e); }
+        };
+
+        DiscordModule.selectSearchUser = (username) => {
+            document.getElementById('add-friend-input').value = username;
+            document.getElementById('user-search-results').style.display = 'none';
+        };
+        return;
+    }
+
+        const data = DiscordModule.friendsData;
+    if(!data) return;
+
+    let list =[];
+    if(tab === 'all') list = data.friends;
+if (tab === 'pending') list = [...data.incoming, ...data.outgoing]; // Show both
+
+if (list.length === 0) {
+    container.innerHTML = `<div class="empty-state">No friends to show here!</div>`;
+    return;
+}
+
+list.forEach(u => {
+    const isPending = data.incoming.includes(u) || data.outgoing.includes(u);
+    const isIncoming = data.incoming.includes(u);
+
+    let actions = '';
+    if (isPending) {
+        if (isIncoming) {
+            actions = `<i class="fa-solid fa-check" title="Accept" style="color:#23A559; cursor:pointer;" onclick="DiscordModule.acceptFriend(${u.id})"></i>`;
+        } else {
+            actions = `<span style="font-size:12px; color:gray;">Outgoing Request</span>`;
+        }
+    } else {
+        actions = `
                 <div class="action-icon" onclick="DiscordModule.startDM(${u.id})"><i class="fa-solid fa-message"></i></div>
                 <div class="action-icon" style="color:#F23F42"><i class="fa-solid fa-trash"></i></div>
                 `;
-            }
+    }
 
-            container.innerHTML += `
+    container.innerHTML += `
             <div class="friend-row" style="display:flex; align-items:center; padding:10px 20px; border-top:1px solid rgba(255,255,255,0.06); hover:background:rgba(255,255,255,0.05);">
                 <img src="${u.avatar}" style="width:32px; height:32px; border-radius:50%; margin-right:12px;">
                 <div style="flex:1;">
@@ -832,28 +874,28 @@ const DiscordModule = {
                 </div>
                 <div style="display:flex; gap:10px;">${actions}</div>
             </div>`;
-        });
+});
     },
 
-    sendFriendRequest: async () => {
-        const username = document.getElementById('add-friend-input').value;
-        if (!username) return;
-        try {
-            const res = await fetch('/api/friends/request', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username })
-            });
-            const d = await res.json();
-            if (d.success) {
-                Utils.showToast("Request sent!");
-                document.getElementById('add-friend-input').value = '';
-                DiscordModule.loadFriends(); // Refresh
-            } else {
-                Utils.showToast(d.error || "Failed");
-            }
-        } catch (e) { console.error(e); }
-    },
+sendFriendRequest: async () => {
+    const username = document.getElementById('add-friend-input').value;
+    if (!username) return;
+    try {
+        const res = await fetch('/api/friends/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: username })
+        });
+        const d = await res.json();
+        if (d.success) {
+            Utils.showToast("Request sent!");
+            document.getElementById('add-friend-input').value = '';
+            DiscordModule.loadFriends(); // Refresh
+        } else {
+            Utils.showToast(d.error || "Failed");
+        }
+    } catch (e) { console.error(e); }
+},
 
     acceptFriend: async (uid) => {
         try {
@@ -867,53 +909,53 @@ const DiscordModule = {
         } catch (e) { console.error(e); }
     },
 
-    refreshDMs: async () => {
-        // Fetch real DMs and update sidebar
-        try {
-            const res = await fetch('/api/dms');
-            const data = await res.json();
-            if (data.success) {
-                const container = document.getElementById('channels-list');
-                // We need to only update the DM section part, but currently renderHomeSidebar redraws everything.
-                // Simpler: re-render sidebar but with fetched DM data inject.
-                // NOTE: simpler hack -> Just find the .dm-user-item elements and replace them.
-                // Or better: Store DM data in DiscordModule and re-call renderHomeSidebar.
-                DiscordModule.dmList = data.dms;
-                DiscordModule.renderHomeSidebar(container);
-            }
-        } catch (e) { console.error(e); }
-    },
+        refreshDMs: async () => {
+            // Fetch real DMs and update sidebar
+            try {
+                const res = await fetch('/api/dms');
+                const data = await res.json();
+                if (data.success) {
+                    const container = document.getElementById('channels-list');
+                    // We need to only update the DM section part, but currently renderHomeSidebar redraws everything.
+                    // Simpler: re-render sidebar but with fetched DM data inject.
+                    // NOTE: simpler hack -> Just find the .dm-user-item elements and replace them.
+                    // Or better: Store DM data in DiscordModule and re-call renderHomeSidebar.
+                    DiscordModule.dmList = data.dms;
+                    DiscordModule.renderHomeSidebar(container);
+                }
+            } catch (e) { console.error(e); }
+        },
 
-    startDM: async (uid) => {
-        try {
-            const res = await fetch('/api/dms/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target_id: uid })
-            });
-            const d = await res.json();
-            if (d.success) {
-                // Open DM view
-                DiscordModule.activeDM = d.dm_id;
-                DiscordModule.selectChannel('dm-' + d.dm_id, 'dm');
-                DiscordModule.refreshDMs();
-            }
-        } catch (e) { console.error(e); }
-    },
+            startDM: async (uid) => {
+                try {
+                    const res = await fetch('/api/dms/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ target_id: uid })
+                    });
+                    const d = await res.json();
+                    if (d.success) {
+                        // Open DM view
+                        DiscordModule.activeDM = d.dm_id;
+                        DiscordModule.selectChannel('dm-' + d.dm_id, 'dm');
+                        DiscordModule.refreshDMs();
+                    }
+                } catch (e) { console.error(e); }
+            },
 
-    // Override generic selectChannel to handle 'dm' type
-    // We'll modify selectChannel logic or handle it via ID 'dm-X'
+                // Override generic selectChannel to handle 'dm' type
+                // We'll modify selectChannel logic or handle it via ID 'dm-X'
 
-    loadDM: async (dmId) => {
-        // Create view logic for DM... 
-        // For now, let's reuse Chat Logic but point it to DM endpoint?
-        // This requires refactoring loadChannel to support DMs or creating loadDMChat.
-        // Let's create a stub for now that shows "Chat with X".
-        const container = document.getElementById('channel-view-general');
-        const activeDM = DiscordModule.dmList.find(d => d.id == dmId);
-        const name = activeDM ? activeDM.user.username : 'Unknown';
+                loadDM: async (dmId) => {
+                    // Create view logic for DM... 
+                    // For now, let's reuse Chat Logic but point it to DM endpoint?
+                    // This requires refactoring loadChannel to support DMs or creating loadDMChat.
+                    // Let's create a stub for now that shows "Chat with X".
+                    const container = document.getElementById('channel-view-general');
+                    const activeDM = DiscordModule.dmList.find(d => d.id == dmId);
+                    const name = activeDM ? activeDM.user.username : 'Unknown';
 
-        container.innerHTML = `
+                    container.innerHTML = `
             <div class="chat-header">
                 <i class="fa-solid fa-at"></i> <span style="font-weight:700; margin-left:8px;">${name}</span>
             </div>
@@ -925,16 +967,16 @@ const DiscordModule = {
             </div>
          `;
 
-        DiscordModule.fetchDMMessages(dmId);
-    },
+                    DiscordModule.fetchDMMessages(dmId);
+                },
 
-    fetchDMMessages: async (dmId) => {
-        const res = await fetch(`/api/dms/${dmId}/messages`);
-        const data = await res.json();
-        const box = document.getElementById(`dm-messages-${dmId}`);
-        box.innerHTML = '';
-        data.messages.forEach(m => {
-            box.innerHTML += `
+                    fetchDMMessages: async (dmId) => {
+                        const res = await fetch(`/api/dms/${dmId}/messages`);
+                        const data = await res.json();
+                        const box = document.getElementById(`dm-messages-${dmId}`);
+                        box.innerHTML = '';
+                        data.messages.forEach(m => {
+                            box.innerHTML += `
             <div class="message">
                 <img src="${m.avatar}" class="message-avatar">
                 <div class="message-content">
@@ -945,22 +987,22 @@ const DiscordModule = {
                     <div class="message-text">${Utils.escapeHtml(m.content)}</div>
                 </div>
             </div>`;
-        });
-        box.scrollTop = box.scrollHeight;
-    },
+                        });
+                        box.scrollTop = box.scrollHeight;
+                    },
 
-    sendDMMessage: async (dmId, input) => {
-        const text = input.value.trim();
-        if (!text) return;
+                        sendDMMessage: async (dmId, input) => {
+                            const text = input.value.trim();
+                            if (!text) return;
 
-        await fetch(`/api/dms/${dmId}/send`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: text })
-        });
-        input.value = '';
-        DiscordModule.fetchDMMessages(dmId); // Simple refresh
-    }
+                            await fetch(`/api/dms/${dmId}/send`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ content: text })
+                            });
+                            input.value = '';
+                            DiscordModule.fetchDMMessages(dmId); // Simple refresh
+                        }
 
 };
 
