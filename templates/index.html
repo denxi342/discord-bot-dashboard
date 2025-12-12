@@ -349,45 +349,115 @@
 
     <!-- User Settings Modal -->
     <div id="settings-modal" class="modal-backdrop" style="display:none;">
-        <div class="discord-modal settings-modal">
-            <div class="settings-sidebar">
-                <div class="settings-header">User Settings</div>
-                <div class="settings-item active" onclick="DiscordModule.switchSettingsTab('account')">My Account</div>
-                <div class="settings-item" onclick="DiscordModule.switchSettingsTab('profile')">Profile</div>
-                <div class="settings-sep"></div>
-                <div class="settings-item" onclick="DiscordModule.logout()" style="color:var(--danger)">Log Out</div>
+        <div class="settings-full-screen">
+            <div class="settings-sidebar-col">
+                <div class="settings-sidebar-nav">
+                    <div class="nav-header">USER SETTINGS</div>
+                    <div class="nav-item active" onclick="DiscordModule.switchSettingsTab('account')">My Account</div>
+                    <div class="nav-item">Profiles</div>
+                    <div class="nav-item">Privacy & Safety</div>
+                    <div class="nav-item">Authorized Apps</div>
+                    <div class="nav-item">Connections</div>
+                    <div class="nav-sep"></div>
+                    <div class="nav-header">BILLING SETTINGS</div>
+                    <div class="nav-item">Nitro</div>
+                    <div class="nav-item">Server Boost</div>
+                    <div class="nav-item">Subscriptions</div>
+                    <div class="nav-item">Gift Inventory</div>
+                    <div class="nav-sep"></div>
+                    <div class="nav-header">APP SETTINGS</div>
+                    <div class="nav-item">Appearance</div>
+                    <div class="nav-item">Accessibility</div>
+                    <div class="nav-item">Voice & Video</div>
+                    <div class="nav-sep"></div>
+                    <div class="nav-item logout" onclick="DiscordModule.logout()">Log Out</div>
+                </div>
             </div>
-            <div class="settings-content">
-                <button class="close-modal-settings" onclick="DiscordModule.closeSettings()"><i
-                        class="fa-solid fa-circle-xmark"></i></button>
 
-                <!-- Tab: My Account -->
-                <div id="settings-tab-account" class="settings-tab-view active">
-                    <h2>My Account</h2>
-                    <div class="user-card-settings">
-                        <div class="banner" style="background-color: var(--primary);"></div>
-                        <div class="user-card-inner">
-                            <div class="avatar-wrapper">
-                                <img src="{{ user.avatar }}" id="settings-avatar-img">
-                                <div class="status-indicator"></div>
-                            </div>
-                            <div class="name-tag">
-                                <span class="username">{{ user.username }}</span>
-                                <span class="discriminator">#{{ user.id[-4:] }}</span>
-                            </div>
-                        </div>
-                        <div class="user-card-actions">
-                            <button class="btn-primary" onclick="DiscordModule.updateAvatar()">Change Avatar</button>
-                        </div>
+            <div class="settings-content-col">
+                <div class="settings-close-btn-wrapper">
+                    <div class="close-btn-circle" onclick="DiscordModule.closeSettings()">
+                        <i class="fa-solid fa-xmark"></i>
                     </div>
+                    <div class="esc-label">ESC</div>
                 </div>
 
-                <!-- Tab: Profile -->
-                <div id="settings-tab-profile" class="settings-tab-view" style="display:none;">
-                    <h2>Profiles</h2>
-                    <p>Customize how you look to others.</p>
-                </div>
+                <div class="settings-scroll-content">
+                    <!-- Tab: My Account -->
+                    <div id="settings-tab-account" class="settings-tab-view active">
+                        <h2>My Account</h2>
 
+                        <!-- Account Card -->
+                        <div class="account-profile-card" id="account-profile-card">
+                            <div class="profile-banner" id="settings-banner" style="background-color: var(--primary);">
+                            </div>
+                            <div class="profile-header-s">
+                                <div class="profile-avatar-wrapper">
+                                    <img src="{{ user.avatar }}" id="settings-avatar-img">
+                                    <div class="avatar-status-indicator"></div>
+                                </div>
+                                <div class="profile-name-tag">
+                                    <span class="d-name" id="setting-display-name">...</span>
+                                    <span class="u-name" id="setting-username">...</span>
+                                </div>
+                                <button class="btn-primary" style="margin-left:auto;"
+                                    onclick="DiscordModule.uiEditProfile()">Edit User Profile</button>
+                            </div>
+
+                            <div class="account-info-box">
+                                <div class="field-row">
+                                    <div class="field-info">
+                                        <div class="field-label">DISPLAY NAME</div>
+                                        <div class="field-value" id="field-display-name">Not set</div>
+                                    </div>
+                                    <button class="btn-edit"
+                                        onclick="DiscordModule.editField('display_name')">Edit</button>
+                                </div>
+                                <div class="field-row">
+                                    <div class="field-info">
+                                        <div class="field-label">USERNAME</div>
+                                        <div class="field-value" id="field-username">...</div>
+                                    </div>
+                                    <button class="btn-edit" onclick="DiscordModule.editField('username')">Edit</button>
+                                </div>
+                                <div class="field-row">
+                                    <div class="field-info">
+                                        <div class="field-label">EMAIL</div>
+                                        <div class="field-value" id="field-email">********@gmail.com</div>
+                                    </div>
+                                    <button class="btn-edit" onclick="DiscordModule.editField('email')">Edit</button>
+                                </div>
+                                <div class="field-row">
+                                    <div class="field-info">
+                                        <div class="field-label">PHONE NUMBER</div>
+                                        <div class="field-value" id="field-phone">Not set</div>
+                                    </div>
+                                    <button class="btn-edit" onclick="DiscordModule.editField('phone')">Edit</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section-divider"></div>
+
+                        <h3>Password and Authentication</h3>
+                        <button class="btn-secondary" style="margin-top:10px;">Change Password</button>
+
+                        <div class="settings-section-divider"></div>
+
+                        <h3>Account Removal</h3>
+                        <div class="delete-account-row">
+                            <span style="color:#B9BBBE; font-size:12px;">Disabling your account means you can recover it
+                                at any time after taking this action.</span>
+                        </div>
+                        <div style="margin-top:10px; display:flex; gap:10px;">
+                            <button class="btn-danger-outline">Disable Account</button>
+                            <button class="btn-danger-outline">Delete Account</button>
+                        </div>
+
+                    </div>
+
+                    <!-- Other tabs placeholders -->
+                </div>
             </div>
         </div>
     </div>

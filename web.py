@@ -41,6 +41,23 @@ def init_db():
                   avatar TEXT,
                   created_at REAL)''')
                   
+    # Schema Migration for new columns
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
+    except sqlite3.OperationalError: pass # Already exists
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN banner TEXT")
+    except sqlite3.OperationalError: pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN bio TEXT")
+    except sqlite3.OperationalError: pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN email TEXT")
+    except sqlite3.OperationalError: pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN phone TEXT")
+    except sqlite3.OperationalError: pass
+
     c.execute('''CREATE TABLE IF NOT EXISTS friends
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, 
                   user_id_1 INTEGER NOT NULL, 
@@ -125,30 +142,79 @@ def logout():
     session.pop('user', None)
     return redirect('/login')
 
+@app.route('/api/user/me', methods=['GET'])
+def api_get_me():
+    if 'user' not in session: return jsonify({'success': False}), 401
+    uid = session['user']['id']
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, username, avatar, display_name, banner, bio, email, phone FROM users WHERE id = ?", (uid,))
+    row = c.fetchone()
+    conn.close()
+    
+    if row:
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': row[0],
+                'username': row[1],
+                'avatar': row[2],
+                'display_name': row[3],
+                'banner': row[4],
+                'bio': row[5],
+                'email': row[6],
+                'phone': row[7]
+            }
+        })
+    return jsonify({'success': False, 'error': 'User not found'})
+
 @app.route('/api/user/update', methods=['POST'])
 def api_update_user():
     if 'user' not in session: return jsonify({'success': False, 'error': 'Auth needed'}), 401
     
     data = request.json
-    new_avatar = data.get('avatar')
-    # password updates can be added here later
+    uid = session['user']['id']
     
-    if not new_avatar:
-         return jsonify({'success': False, 'error': 'No data'})
-
-    user_id = session['user']['id']
-    username = session['user']['username']
+    fields = []
+    values = []
+    
+    if 'avatar' in data:
+        fields.append("avatar = ?")
+        values.append(data['avatar'])
+        session['user']['avatar'] = data['avatar'] # Update session
+        
+    if 'display_name' in data:
+        fields.append("display_name = ?")
+        values.append(data['display_name'])
+        
+    if 'banner' in data:
+        fields.append("banner = ?")
+        values.append(data['banner'])
+        
+    if 'bio' in data:
+        fields.append("bio = ?")
+        values.append(data['bio'])
+        
+    if 'email' in data:
+        fields.append("email = ?")
+        values.append(data['email'])
+        
+    if 'phone' in data:
+        fields.append("phone = ?")
+        values.append(data['phone'])
+        
+    if not fields:
+        return jsonify({'success': False, 'error': 'No valid fields'})
+        
+    values.append(uid)
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("UPDATE users SET avatar = ? WHERE id = ?", (new_avatar, user_id))
+    c.execute(f"UPDATE users SET {', '.join(fields)} WHERE id = ?", values)
     conn.commit()
     conn.close()
     
-    # Update session
-    session['user']['avatar'] = new_avatar
     session.modified = True
-    
     return jsonify({'success': True})
 
 @app.before_request

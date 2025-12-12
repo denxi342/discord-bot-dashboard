@@ -693,9 +693,36 @@ const DiscordModule = {
     },
 
     // Settings (Real)
-    openSettings: () => {
-        document.getElementById('settings-modal').style.display = 'flex';
-        document.getElementById('settings-modal').style.opacity = '1';
+    // Settings (Real)
+    openSettings: async () => {
+        const m = document.getElementById('settings-modal');
+        m.style.display = 'flex';
+        // Anim
+        setTimeout(() => m.style.opacity = '1', 10);
+
+        // Fetch fresh data
+        try {
+            const res = await fetch('/api/user/me');
+            const data = await res.json();
+            if (data.success) {
+                const u = data.user;
+                document.getElementById('setting-display-name').innerText = u.display_name || u.username;
+                document.getElementById('setting-username').innerText = u.username;
+                document.getElementById('settings-avatar-img').src = u.avatar;
+
+                if (u.banner && u.banner.startsWith('http')) {
+                    document.getElementById('settings-banner').style.backgroundImage = `url(${u.banner})`;
+                    document.getElementById('settings-banner').style.backgroundSize = 'cover';
+                } else if (u.banner) {
+                    document.getElementById('settings-banner').style.backgroundColor = u.banner;
+                }
+
+                document.getElementById('field-display-name').innerText = u.display_name || "Not set";
+                document.getElementById('field-username').innerText = u.username;
+                document.getElementById('field-email').innerText = u.email || "********@gmail.com"; // privacy
+                document.getElementById('field-phone').innerText = u.phone || "Not set";
+            }
+        } catch (e) { console.error(e); }
     },
 
     closeSettings: () => {
@@ -705,32 +732,57 @@ const DiscordModule = {
     },
 
     switchSettingsTab: (tab) => {
-        document.querySelectorAll('.settings-item').forEach(el => el.classList.remove('active'));
+        // Simple tab switching for now
         document.querySelectorAll('.settings-tab-view').forEach(el => el.style.display = 'none');
         document.getElementById(`settings-tab-${tab}`).style.display = 'block';
 
-        const items = document.querySelectorAll('.settings-item');
-        if (tab === 'account') items[0].classList.add('active');
-        if (tab === 'profile') items[1].classList.add('active');
+        document.querySelectorAll('.settings-sidebar-nav .nav-item').forEach(el => el.classList.remove('active'));
+        // Re-active logic is tricky without IDs on nav items, skipping visual highlight update for speed or adding IDs later.
+        // But for "My Account" we can assume default is active.
+    },
+
+    // Unified Edit Function
+    editField: async (field) => {
+        let currentVal = document.getElementById(`field-${field}`) ? document.getElementById(`field-${field}`).innerText : '';
+        if (currentVal === 'Not set') currentVal = '';
+
+        const val = prompt(`Enter new ${field.replace('_', ' ')}:`, currentVal);
+        if (val !== null) {
+            DiscordModule.updateUser({ [field]: val });
+        }
+    },
+
+    uiEditProfile: () => {
+        // Shortcut to edit banner or avatar
+        const choice = prompt("Type 'avatar' or 'banner' to edit:");
+        if (choice === 'avatar') DiscordModule.updateAvatar();
+        if (choice === 'banner') {
+            const url = prompt("Enter Banner Image URL or Color Hex:");
+            if (url) DiscordModule.updateUser({ banner: url });
+        }
     },
 
     updateAvatar: async () => {
         const url = prompt("Enter new Avatar URL:");
-        if (url) {
-            try {
-                const res = await fetch('/api/user/update', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ avatar: url })
-                });
-                const d = await res.json();
-                if (d.success) {
-                    document.getElementById('settings-avatar-img').src = url;
-                    Utils.showToast('Avatar updated!');
-                    location.reload(); // To update everywherre
-                } else Utils.showToast('Failed to update');
-            } catch (e) { console.error(e); }
-        }
+        if (url) DiscordModule.updateUser({ avatar: url });
+    },
+
+    updateUser: async (payload) => {
+        try {
+            const res = await fetch('/api/user/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const d = await res.json();
+            if (d.success) {
+                Utils.showToast('Saved changes!');
+                // Refresh settings UI
+                DiscordModule.openSettings();
+            } else {
+                Utils.showToast('Failed: ' + d.error);
+            }
+        } catch (e) { console.error(e); }
     },
 
     logout: () => window.location.href = '/logout',
