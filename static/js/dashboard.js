@@ -280,47 +280,51 @@ const DiscordModule = {
     },
 
     renderHomeSidebar: (container) => {
-        // Search Button
+        // 1. Search Bar
         container.innerHTML += `
-        <div style="padding:0 8px; margin-bottom:8px;">
-            <button style="width:100%; background:#1E1F22; color:#949BA4; border:none; border-radius:4px; padding:6px; text-align:left; font-size:13px; cursor:pointer;">
+        <div style="padding: 10px 10px 0 10px;">
+            <button class="search-bar-styled">
                 Найти или начать беседу
             </button>
-        </div>`;
-
-        // Static Items (Friends, Nitro)
-        container.innerHTML += `
-        <div class="channel-item active" onclick="DiscordModule.selectChannel('friends', 'channel')"><i class="fa-solid fa-user-group"></i> Друзья</div>
-        <div class="channel-item" onclick="Utils.showToast('Nitro Store is closed')"><i class="fa-solid fa-bolt"></i> Nitro</div>
-        <div class="channel-item" onclick="Utils.showToast('Shop is closed')"><i class="fa-solid fa-shop"></i> Магазин</div>
+        </div>
+        <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 8px 10px;"></div>
         `;
 
-        // Direct Messages Header (Removed per user request)
-        // container.innerHTML += `
-        // <div class="channel-category" style="margin-top:16px;">
-        //    ЛИЧНЫЕ СООБЩЕНИЯ <i class="fa-solid fa-plus" style="margin-left:auto;"></i>
-        // </div>`;
-
-        // DM Items (Tools mapped as Users)
-        const dms = [
-            { id: 'helper', name: 'Arizona AI', icon: 'https://cdn-icons-png.flaticon.com/512/4712/4712027.png', status: 'online' },
-            { id: 'news', name: 'News Feed', icon: 'https://cdn-icons-png.flaticon.com/512/2540/2540832.png', status: 'dnd' },
-            { id: 'users', name: 'Admin Console', icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png', status: 'idle' },
-            { id: 'smi', name: 'SMI Editor', icon: 'https://cdn-icons-png.flaticon.com/512/2919/2919601.png', status: 'online' },
-            { id: 'community', name: 'Leaderboard', icon: 'https://cdn-icons-png.flaticon.com/512/3112/3112946.png', status: 'online' }
+        // 2. Navigation Items (Mocked Badges)
+        const navItems = [
+            { id: 'friends', icon: 'user-group', label: 'Друзья', badge: '74' },
+            { id: 'requests', icon: 'envelope', label: 'Запросы общения', badge: '7' }, // Using envelope for requests
+            { id: 'nitro', icon: 'bolt', label: 'Nitro', badge: null },
+            { id: 'shop', icon: 'shop', label: 'Магазин', badge: 'НОВОЕ', badgeClass: 'new' },
+            { id: 'quests', icon: 'crosshairs', label: 'Задания', badge: null } // Using crosshairs for quests
         ];
 
-        dms.forEach(dm => {
-            const statusColor = dm.status === 'online' ? '#23A559' : (dm.status === 'dnd' ? '#F23F42' : '#F0B232');
+        navItems.forEach(item => {
+            let badgeHtml = '';
+            if (item.badge) {
+                badgeHtml = `<div class="dm-badge ${item.badgeClass || ''}">${item.badge}</div>`;
+            }
             container.innerHTML += `
-            <div class="dm-item" id="btn-ch-${dm.id}" onclick="DiscordModule.selectChannel('${dm.id}')">
-                <div class="dm-avatar-wrapper">
-                    <img src="${dm.icon}" class="dm-avatar">
-                    <div class="dm-status" style="background-color:${statusColor};"></div>
-                </div>
-                <div class="dm-name">${dm.name}</div>
+            <div class="nav-item ${item.id === 'friends' ? 'active' : ''}" onclick="Utils.showToast('${item.label} click')">
+                <i class="fa-solid fa-${item.icon}"></i>
+                <span>${item.label}</span>
+                ${badgeHtml}
             </div>`;
         });
+
+        // 3. Direct Messages Header
+        container.innerHTML += `
+        <div class="dm-header">
+            <span>Личные сообщения</span>
+            <i class="fa-solid fa-plus" style="cursor:pointer;" title="Создать DM"></i>
+        </div>`;
+
+        // 4. User List (Empty for now, waiting for real logic)
+        // Future: Fetch real DMs
+        container.innerHTML += `
+        <div style="padding: 20px; text-align: center; color: #949BA4; font-size: 13px;">
+            Пока нет личных сообщений
+        </div>`;
     },
 
     selectChannel: (chanId, type = 'channel') => {
