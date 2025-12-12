@@ -245,7 +245,8 @@ const DiscordModule = {
     },
 
     renderChannels: (serverId) => {
-        const container = document.getElementById('channel-list-container');
+        const container = document.getElementById('channels-list');
+        if (!container) return; // safety
         container.innerHTML = '';
 
         if (serverId === 'home') {
