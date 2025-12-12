@@ -1728,3 +1728,111 @@ def api_post_channel_message(cid):
     
     return jsonify({'success': True, 'message': msg_obj})
 
+
+
+# --- FRIEND SYSTEM APIs ---
+@app.route('/api/friends', methods=['GET'])
+def api_get_friends():
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth needed'}), 401
+    uid = session['user']['id']
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    # helper
+    def get_user_lite(user_id):
+        c.execute('SELECT id, username, avatar, display_name FROM users WHERE id = ?', (user_id,))
+        r = c.fetchone()
+        if r: return {'id': r[0], 'username': r[1], 'avatar': r[2], 'display_name': r[3]}
+        return None
+
+    friends = []
+    incoming = []
+    outgoing = []
+    
+    # 1. Incoming: I am user_2, status pending
+    c.execute('SELECT user_id_1 FROM friends WHERE user_id_2 = ? AND status = ?', (uid, 'pending'))
+    for r in c.fetchall():
+        u = get_user_lite(r[0])
+        if u: incoming.append(u)
+        
+    # 2. Outgoing: I am user_1, status pending
+    c.execute('SELECT user_id_2 FROM friends WHERE user_id_1 = ? AND status = ?', (uid, 'pending'))
+    for r in c.fetchall():
+         u = get_user_lite(r[0])
+         if u: outgoing.append(u)
+         
+    # 3. Friends: Accepted (Logic: u1=me or u2=me)
+    c.execute('SELECT user_id_1, user_id_2 FROM friends WHERE (user_id_1 = ? OR user_id_2 = ?) AND status = ?', (uid, uid, 'accepted'))
+    for r in c.fetchall():
+        fid = r[1] if r[0] == uid else r[0]
+        u = get_user_lite(fid)
+        if u: friends.append(u)
+        
+    conn.close()
+    return jsonify({'success': True, 'friends': friends, 'incoming': incoming, 'outgoing': outgoing})
+
+@app.route('/api/friends/request', methods=['POST'])
+def api_friend_request():
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth needed'}), 401
+    
+    data = request.json
+    target_username = data.get('username')
+    sender_id = session['user']['id']
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    # Find target
+    c.execute('SELECT id FROM users WHERE username = ?', (target_username,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'success': False, 'error': 'User not found'})
+    target_id = row[0]
+    
+    if target_id == sender_id:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Cannot add yourself'})
+        
+    # Check existing
+    c.execute('SELECT status FROM friends WHERE (user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?)', 
+              (sender_id, target_id, target_id, sender_id))
+    existing = c.fetchone()
+    if existing:
+        conn.close()
+        st = existing[0]
+        if st == 'accepted': return jsonify({'success': False, 'error': 'Already friends'})
+        return jsonify({'success': False, 'error': 'Request already pending'})
+    
+    # Insert (Sender is 1)
+    c.execute('INSERT INTO friends (user_id_1, user_id_2, status, created_at) VALUES (?, ?, ?, ?)',
+              (sender_id, target_id, 'pending', time.time()))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/friends/accept', methods=['POST'])
+def api_friend_accept():
+    if 'user' not in session: return jsonify({'success': False}), 401
+    data = request.json
+    target_id = data.get('id') # The person who SENT the request
+    my_id = session['user']['id']
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    # Update status where I am u2 and they are u1
+    c.execute('UPDATE friends SET status = ? WHERE user_id_1 = ? AND user_id_2 = ?', ('accepted', target_id, my_id))
+    
+    if c.rowcount == 0:
+        # Maybe I am u1 and they are u2? (Should not happen for 'accept' logic usually, unless roles reversed)
+        # But 'accept' implies answering a pending request.
+        conn.close()
+        return jsonify({'success': False, 'error': 'No pending request found'})
+        
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+

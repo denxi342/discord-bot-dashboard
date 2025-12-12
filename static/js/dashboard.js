@@ -843,21 +843,21 @@ const DiscordModule = {
 
         if (tab === 'add') {
             container.innerHTML = `
-             <div style="padding: 20px;">
-                <h3 style="color:#F2F3F5; margin-bottom:8px;">ADD FRIEND</h3>
-                <div style="color:#B9BBBE; font-size:14px; margin-bottom:16px;">You can add friends with their username.</div>
-                <div style="display:flex; gap:10px; position:relative;">
-                    <div style="flex:1; position:relative;">
-                        <input type="text" id="add-friend-input" placeholder="Enter username..." autocomplete="off"
-                            onkeyup="DiscordModule.searchUsers(this.value)"
-                            style="width:100%; background:#1E1F22; border:1px solid #1E1F22; padding:10px; color:white; border-radius:4px;">
-                        <div id="user-search-results" style="display:none; position:absolute; top:45px; left:0; right:0; background:#2B2D31; border-radius:4px; box-shadow:0 8px 16px rgba(0,0,0,0.4); z-index:100;">
-                        </div>
+             <div class="add-friend-hero">
+                <h3 class="hero-title">ADD FRIEND</h3>
+                <div class="hero-subtitle">You can add friends with their Discord username. It's case sensitive!</div>
+                
+                <div class="add-friend-input-wrapper" style="position:relative;">
+                    <div style="flex:1;">
+                        <input type="text" id="add-friend-input" class="modern-input" placeholder="Enter a Username" autocomplete="off" onkeyup="if(event.key === 'Enter') DiscordModule.sendFriendRequest()">
+                        <!-- Autocomplete result box could go here -->
                     </div>
-                    <button onclick="DiscordModule.sendFriendRequest()" 
-                        style="background:#5865F2; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer; height:38px;">
-                        Send Friend Request
-                    </button>
+                    <button class="btn-primary" onclick="DiscordModule.sendFriendRequest()">Send Friend Request</button>
+                </div>
+
+                <div class="hero-empty-state">
+                    <img src="https://assets-global.website-files.com/6257adef93867e56f84d3092/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" width="120" style="opacity:0.2; filter:grayscale(1);">
+                    <p>Wumpus is waiting on friends. You don't have to though!</p>
                 </div>
              </div>`;
             return;
@@ -1055,6 +1055,44 @@ const DiscordModule = {
                 });
                 const stream = document.querySelector('#stream-general');
                 if (stream) stream.scrollTop = stream.scrollHeight;
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    // --- FRIEND LOGIC ---
+    sendFriendRequest: async () => {
+        const input = document.getElementById('add-friend-input');
+        const username = input.value.trim();
+        if (!username) return;
+
+        try {
+            const res = await fetch('/api/friends/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username })
+            });
+            const d = await res.json();
+            if (d.success) {
+                Utils.showToast(`Friend request sent to ${username}`);
+                input.value = '';
+                DiscordModule.filterFriends('pending'); // Switch view
+            } else {
+                Utils.showToast(d.error || 'Failed to send request');
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    acceptFriend: async (id) => {
+        try {
+            const res = await fetch('/api/friends/accept', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            });
+            const d = await res.json();
+            if (d.success) {
+                Utils.showToast("Friend Request Accepted");
+                DiscordModule.loadFriends(); // Refresh all
             }
         } catch (e) { console.error(e); }
     },
