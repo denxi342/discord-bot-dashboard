@@ -329,13 +329,29 @@ const DiscordModule = {
             return;
         }
 
+        if (String(chanId).startsWith('dm-')) {
+            const realId = chanId.split('-')[1];
+            DiscordModule.loadDM(realId);
+            return;
+        }
+
         DiscordModule.currentChannel = chanId;
 
         document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); // For friend btn
+
         const btn = document.getElementById(`btn-ch-${chanId}`);
         if (btn) {
             btn.classList.add('active');
             document.getElementById('current-channel-name').innerText = btn.innerText.trim();
+        }
+
+        if (chanId === 'friends') {
+            DiscordModule.loadFriends();
+            // Highlight sidebar item
+            const fBtn = document.querySelector('.nav-item'); // Assuming first one is friends
+            if (fBtn) fBtn.classList.add('active');
+            return;
         }
 
         const mappedViews = {
@@ -718,6 +734,229 @@ const DiscordModule = {
     },
 
     logout: () => window.location.href = '/logout'
+
+    // --- FRIEND SYSTEM ---
+    loadFriends: async () => {
+        const container = document.getElementById('channel-view-general'); // Reuse general/friends view
+        container.innerHTML = `
+        <div class="friends-header">
+            <div class="fh-title"><i class="fa-solid fa-user-group"></i> Friends</div>
+            <div class="fh-tabs">
+                <div class="fh-tab active" onclick="DiscordModule.filterFriends('all')">All</div>
+                <div class="fh-tab" onclick="DiscordModule.filterFriends('pending')">Pending</div>
+                <div class="fh-tab add-friend" onclick="DiscordModule.filterFriends('add')">Add Friend</div>
+            </div>
+        </div>
+        <div class="friends-list-container" id="friends-list-content">
+            <div style="padding:20px; color:gray;">Loading friends...</div>
+        </div>
+        `;
+
+        try {
+            const res = await fetch('/api/friends');
+            const data = await res.json();
+            DiscordModule.friendsData = data; // Cache
+            DiscordModule.filterFriends('all');
+        } catch (e) {
+            console.error(e);
+        }
+    },
+
+    filterFriends: (tab) => {
+        const container = document.getElementById('friends-list-content');
+        container.innerHTML = '';
+
+        // Update tabs visual
+        document.querySelectorAll('.fh-tab').forEach(e => e.classList.remove('active'));
+        // Simple hack to find the clicked tab based on text, or just re-render logic. 
+        // For speed, just rendering content:
+
+        if (tab === 'add') {
+            container.innerHTML = `
+             <div style="padding: 20px;">
+                <h3 style="color:#F2F3F5; margin-bottom:8px;">ADD FRIEND</h3>
+                <div style="color:#B9BBBE; font-size:14px; margin-bottom:16px;">You can add friends with their username.</div>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="add-friend-input" placeholder="Enter username..." 
+                        style="background:#1E1F22; border:1px solid #1E1F22; padding:10px; color:white; border-radius:4px; flex:1;">
+                    <button onclick="DiscordModule.sendFriendRequest()" 
+                        style="background:#5865F2; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;">
+                        Send Friend Request
+                    </button>
+                </div>
+             </div>`;
+            return;
+        }
+
+        const data = DiscordModule.friendsData;
+        if (!data) return;
+
+        let list = [];
+        if (tab === 'all') list = data.friends;
+        if (tab === 'pending') list = [...data.incoming, ...data.outgoing]; // Show both
+
+        if (list.length === 0) {
+            container.innerHTML = `<div class="empty-state">No friends to show here!</div>`;
+            return;
+        }
+
+        list.forEach(u => {
+            const isPending = data.incoming.includes(u) || data.outgoing.includes(u);
+            const isIncoming = data.incoming.includes(u);
+
+            let actions = '';
+            if (isPending) {
+                if (isIncoming) {
+                    actions = `<i class="fa-solid fa-check" title="Accept" style="color:#23A559; cursor:pointer;" onclick="DiscordModule.acceptFriend(${u.id})"></i>`;
+                } else {
+                    actions = `<span style="font-size:12px; color:gray;">Outgoing Request</span>`;
+                }
+            } else {
+                actions = `
+                <div class="action-icon" onclick="DiscordModule.startDM(${u.id})"><i class="fa-solid fa-message"></i></div>
+                <div class="action-icon" style="color:#F23F42"><i class="fa-solid fa-trash"></i></div>
+                `;
+            }
+
+            container.innerHTML += `
+            <div class="friend-row" style="display:flex; align-items:center; padding:10px 20px; border-top:1px solid rgba(255,255,255,0.06); hover:background:rgba(255,255,255,0.05);">
+                <img src="${u.avatar}" style="width:32px; height:32px; border-radius:50%; margin-right:12px;">
+                <div style="flex:1;">
+                    <div style="color:white; font-weight:600;">${u.username}</div>
+                    <div style="color:gray; font-size:12px;">${isPending ? 'Friend Request' : 'Online'}</div>
+                </div>
+                <div style="display:flex; gap:10px;">${actions}</div>
+            </div>`;
+        });
+    },
+
+    sendFriendRequest: async () => {
+        const username = document.getElementById('add-friend-input').value;
+        if (!username) return;
+        try {
+            const res = await fetch('/api/friends/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username })
+            });
+            const d = await res.json();
+            if (d.success) {
+                Utils.showToast("Request sent!");
+                document.getElementById('add-friend-input').value = '';
+                DiscordModule.loadFriends(); // Refresh
+            } else {
+                Utils.showToast(d.error || "Failed");
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    acceptFriend: async (uid) => {
+        try {
+            await fetch('/api/friends/accept', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: uid })
+            });
+            DiscordModule.loadFriends();
+            DiscordModule.refreshDMs(); // Refresh sidebar to maybe show new friend?
+        } catch (e) { console.error(e); }
+    },
+
+    refreshDMs: async () => {
+        // Fetch real DMs and update sidebar
+        try {
+            const res = await fetch('/api/dms');
+            const data = await res.json();
+            if (data.success) {
+                const container = document.getElementById('channels-list');
+                // We need to only update the DM section part, but currently renderHomeSidebar redraws everything.
+                // Simpler: re-render sidebar but with fetched DM data inject.
+                // NOTE: simpler hack -> Just find the .dm-user-item elements and replace them.
+                // Or better: Store DM data in DiscordModule and re-call renderHomeSidebar.
+                DiscordModule.dmList = data.dms;
+                DiscordModule.renderHomeSidebar(container);
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    startDM: async (uid) => {
+        try {
+            const res = await fetch('/api/dms/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_id: uid })
+            });
+            const d = await res.json();
+            if (d.success) {
+                // Open DM view
+                DiscordModule.activeDM = d.dm_id;
+                DiscordModule.selectChannel('dm-' + d.dm_id, 'dm');
+                DiscordModule.refreshDMs();
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    // Override generic selectChannel to handle 'dm' type
+    // We'll modify selectChannel logic or handle it via ID 'dm-X'
+
+    loadDM: async (dmId) => {
+        // Create view logic for DM... 
+        // For now, let's reuse Chat Logic but point it to DM endpoint?
+        // This requires refactoring loadChannel to support DMs or creating loadDMChat.
+        // Let's create a stub for now that shows "Chat with X".
+        const container = document.getElementById('channel-view-general');
+        const activeDM = DiscordModule.dmList.find(d => d.id == dmId);
+        const name = activeDM ? activeDM.user.username : 'Unknown';
+
+        container.innerHTML = `
+            <div class="chat-header">
+                <i class="fa-solid fa-at"></i> <span style="font-weight:700; margin-left:8px;">${name}</span>
+            </div>
+            <div class="chat-messages" id="dm-messages-${dmId}">
+                Fetching history...
+            </div>
+            <div class="chat-input-area">
+                <input type="text" placeholder="Message @${name}" onkeydown="if(event.key==='Enter') DiscordModule.sendDMMessage(${dmId}, this)">
+            </div>
+         `;
+
+        DiscordModule.fetchDMMessages(dmId);
+    },
+
+    fetchDMMessages: async (dmId) => {
+        const res = await fetch(`/api/dms/${dmId}/messages`);
+        const data = await res.json();
+        const box = document.getElementById(`dm-messages-${dmId}`);
+        box.innerHTML = '';
+        data.messages.forEach(m => {
+            box.innerHTML += `
+            <div class="message">
+                <img src="${m.avatar}" class="message-avatar">
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-username">${m.username}</span>
+                        <span class="message-time">${new Date(m.timestamp * 1000).toLocaleTimeString()}</span>
+                    </div>
+                    <div class="message-text">${Utils.escapeHtml(m.content)}</div>
+                </div>
+            </div>`;
+        });
+        box.scrollTop = box.scrollHeight;
+    },
+
+    sendDMMessage: async (dmId, input) => {
+        const text = input.value.trim();
+        if (!text) return;
+
+        await fetch(`/api/dms/${dmId}/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: text })
+        });
+        input.value = '';
+        DiscordModule.fetchDMMessages(dmId); // Simple refresh
+    }
+
 };
 
 const WebSocketModule = { init: () => { } };

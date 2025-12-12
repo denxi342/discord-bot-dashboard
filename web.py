@@ -39,6 +39,28 @@ def init_db():
                   password_hash TEXT NOT NULL, 
                   avatar TEXT,
                   created_at REAL)''')
+                  
+    c.execute('''CREATE TABLE IF NOT EXISTS friends
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                  user_id_1 INTEGER NOT NULL, 
+                  user_id_2 INTEGER NOT NULL, 
+                  status TEXT DEFAULT 'pending', 
+                  created_at REAL,
+                  UNIQUE(user_id_1, user_id_2))''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS direct_messages
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  user_id_1 INTEGER NOT NULL,
+                  user_id_2 INTEGER NOT NULL,
+                  last_message_at REAL,
+                  UNIQUE(user_id_1, user_id_2))''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS dm_messages
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  dm_id INTEGER NOT NULL,
+                  author_id INTEGER NOT NULL,
+                  content TEXT,
+                  timestamp REAL)''')
     conn.commit()
     conn.close()
 
