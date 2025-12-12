@@ -960,3 +960,6 @@ const DiscordModule = {
 };
 
 const WebSocketModule = { init: () => { } };
+
+
+document.addEventListener('DOMContentLoaded', () => { DiscordModule.init(); WebSocketModule.init(); });
