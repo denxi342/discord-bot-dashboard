@@ -102,6 +102,32 @@ def logout():
     session.pop('user', None)
     return redirect('/login')
 
+@app.route('/api/user/update', methods=['POST'])
+def api_update_user():
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth needed'}), 401
+    
+    data = request.json
+    new_avatar = data.get('avatar')
+    # password updates can be added here later
+    
+    if not new_avatar:
+         return jsonify({'success': False, 'error': 'No data'})
+
+    user_id = session['user']['id']
+    username = session['user']['username']
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("UPDATE users SET avatar = ? WHERE id = ?", (new_avatar, user_id))
+    conn.commit()
+    conn.close()
+    
+    # Update session
+    session['user']['avatar'] = new_avatar
+    session.modified = True
+    
+    return jsonify({'success': True})
+
 @app.before_request
 def check_auth():
     if request.endpoint and request.endpoint.startswith('static'): return

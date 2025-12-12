@@ -83,9 +83,11 @@
                     <div class="discriminator">#{{ user.id[-4:] }}</div>
                 </div>
                 <div class="user-controls">
-                    <i class="fa-solid fa-microphone"></i>
-                    <i class="fa-solid fa-headphones"></i>
-                    <i class="fa-solid fa-gear" onclick="DiscordModule.selectServer('profile')"></i>
+                    <i class="fa-solid fa-microphone"
+                        onclick="this.classList.toggle('off'); Utils.showToast('Microphone toggled')"></i>
+                    <i class="fa-solid fa-headphones"
+                        onclick="this.classList.toggle('off'); Utils.showToast('Audio toggled')"></i>
+                    <i class="fa-solid fa-gear" onclick="DiscordModule.openSettings()"></i>
                 </div>
             </div>
         </div>
@@ -98,9 +100,12 @@
                 <h3 id="current-channel-name">general</h3>
                 <div class="topic-divider"></div>
                 <div class="header-toolbar">
-                    <i class="fa-solid fa-phone"></i>
-                    <i class="fa-solid fa-video"></i>
-                    <i class="fa-solid fa-thumbtack"></i>
+                    <i class="fa-solid fa-phone" onclick="DiscordModule.fakeCall()" data-tooltip="Start Voice Call"></i>
+                    <i class="fa-solid fa-video" onclick="DiscordModule.fakeCall()" data-tooltip="Start Video Call"></i>
+                    <i class="fa-solid fa-thumbtack" onclick="DiscordModule.showPinned()"
+                        data-tooltip="Pinned Messages"></i>
+                    <i class="fa-solid fa-user-group" onclick="DiscordModule.toggleMemberList()"
+                        data-tooltip="Toggle Member List" style="margin-left:8px; color:white;"></i>
                     <div class="search-bar">
                         <input placeholder="Поиск">
                         <i class="fa-solid fa-magnifying-glass"></i>
@@ -203,6 +208,18 @@
                 </div>
             </div>
         </main>
+        </main>
+
+        <!-- 4. MEMBER LIST (Right Sidebar) -->
+        <div class="member-sidebar" id="member-sidebar">
+            <div class="member-header">MEMBERS</div>
+            <div class="member-list-content" id="member-list-content">
+                <!-- Dynamic Content -->
+                <div class="member-group">
+                    <div class="group-name">ONLINE — 0</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Create Server Modal -->
@@ -295,6 +312,51 @@
                     <button class="footer-btn text" onclick="DiscordModule.uiServerStep1()">Назад</button>
                     <button class="footer-btn primary" onclick="DiscordModule.finishCreateServer()">Создать</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Settings Modal -->
+    <div id="settings-modal" class="modal-backdrop" style="display:none;">
+        <div class="discord-modal settings-modal">
+            <div class="settings-sidebar">
+                <div class="settings-header">User Settings</div>
+                <div class="settings-item active" onclick="DiscordModule.switchSettingsTab('account')">My Account</div>
+                <div class="settings-item" onclick="DiscordModule.switchSettingsTab('profile')">Profile</div>
+                <div class="settings-sep"></div>
+                <div class="settings-item" onclick="DiscordModule.logout()" style="color:var(--danger)">Log Out</div>
+            </div>
+            <div class="settings-content">
+                <button class="close-modal-settings" onclick="DiscordModule.closeSettings()"><i
+                        class="fa-solid fa-circle-xmark"></i></button>
+
+                <!-- Tab: My Account -->
+                <div id="settings-tab-account" class="settings-tab-view active">
+                    <h2>My Account</h2>
+                    <div class="user-card-settings">
+                        <div class="banner" style="background-color: var(--primary);"></div>
+                        <div class="user-card-inner">
+                            <div class="avatar-wrapper">
+                                <img src="{{ user.avatar }}" id="settings-avatar-img">
+                                <div class="status-indicator"></div>
+                            </div>
+                            <div class="name-tag">
+                                <span class="username">{{ user.username }}</span>
+                                <span class="discriminator">#{{ user.id[-4:] }}</span>
+                            </div>
+                        </div>
+                        <div class="user-card-actions">
+                            <button class="btn-primary" onclick="DiscordModule.updateAvatar()">Change Avatar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Profile -->
+                <div id="settings-tab-profile" class="settings-tab-view" style="display:none;">
+                    <h2>Profiles</h2>
+                    <p>Customize how you look to others.</p>
+                </div>
+
             </div>
         </div>
     </div>

@@ -436,7 +436,107 @@ const DiscordModule = {
             const data = await res.json();
             DiscordModule.addMessage('helper', { author: 'Arizona AI', bot: true, text: data.response });
         } catch (e) { }
-    }
+    },
+
+    // --- UI ENHANCEMENTS (REAL) ---
+    fakeCall: () => Utils.showToast('Voice/Video call unavailable (WebRTC not implemented)'),
+    showPinned: () => Utils.showToast('No pinned messages.'),
+
+    // Member List (Real Data)
+    toggleMemberList: () => {
+        const sb = document.getElementById('member-sidebar');
+        if (sb) {
+            sb.classList.toggle('hidden');
+            if (!sb.classList.contains('hidden')) DiscordModule.renderMembers();
+        }
+    },
+
+    renderMembers: async () => {
+        const container = document.getElementById('member-list-content');
+        if (!container) return;
+
+        container.innerHTML = '<div style="padding:20px;color:gray;text-align:center">Loading...</div>';
+
+        try {
+            // Using existing admin API which returns all users
+            const res = await fetch('/api/admin/users');
+            const data = await res.json();
+
+            if (data.success && data.users) {
+                container.innerHTML = '';
+
+                // Group by online/offline (mock status for now as backend doesn't track properly realtime yet)
+                const online = data.users; // Assume all "registered" are visible
+
+                container.innerHTML += `
+                    <div class="member-group">
+                        <div class="group-name">MEMBERS — ${online.length}</div>
+                    </div>`;
+
+                online.forEach(u => {
+                    // Randomize status for visual flair since we don't have real presence
+                    // In a real app, this would come from the websocket heartbeat
+                    const statuses = ['online', 'idle', 'dnd'];
+                    const status = u.status || statuses[Math.floor(Math.random() * statuses.length)];
+                    const color = status === 'online' ? '#23A559' : (status === 'dnd' ? '#F23F42' : '#F0B232');
+
+                    container.innerHTML += `
+                     <div class="member-item">
+                        <div class="member-avatar">
+                           <img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;">
+                           <div class="member-status" style="background:${color}"></div>
+                        </div>
+                        <div class="member-name">${u.username}</div>
+                     </div>`;
+                });
+            }
+        } catch (e) {
+            container.innerHTML = '<div style="padding:20px;color:red;">Failed to load members</div>';
+        }
+    },
+
+    // Settings (Real)
+    openSettings: () => {
+        document.getElementById('settings-modal').style.display = 'flex';
+        document.getElementById('settings-modal').style.opacity = '1';
+    },
+
+    closeSettings: () => {
+        const m = document.getElementById('settings-modal');
+        m.style.opacity = '0';
+        setTimeout(() => m.style.display = 'none', 200);
+    },
+
+    switchSettingsTab: (tab) => {
+        document.querySelectorAll('.settings-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.settings-tab-view').forEach(el => el.style.display = 'none');
+        document.getElementById(`settings-tab-${tab}`).style.display = 'block';
+
+        const items = document.querySelectorAll('.settings-item');
+        if (tab === 'account') items[0].classList.add('active');
+        if (tab === 'profile') items[1].classList.add('active');
+    },
+
+    updateAvatar: async () => {
+        const url = prompt("Enter new Avatar URL:");
+        if (url) {
+            try {
+                const res = await fetch('/api/user/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ avatar: url })
+                });
+                const d = await res.json();
+                if (d.success) {
+                    document.getElementById('settings-avatar-img').src = url;
+                    Utils.showToast('Avatar updated!');
+                    location.reload(); // To update everywherre
+                } else Utils.showToast('Failed to update');
+            } catch (e) { console.error(e); }
+        }
+    },
+
+    logout: () => window.location.href = '/logout'
 };
 
 const WebSocketModule = { init: () => { } };
