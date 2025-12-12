@@ -803,10 +803,10 @@ const DiscordModule = {
     // --- FRIEND SYSTEM ---
     openAddFriend: () => {
         DiscordModule.selectChannel('friends', 'channel');
-        setTimeout(() => DiscordModule.filterFriends('add'), 50);
+        DiscordModule.loadFriends('add'); // Direct load with 'add' tab
     },
 
-    loadFriends: async () => {
+    loadFriends: async (activeTab = 'all') => {
         const container = document.getElementById('channel-view-general'); // Reuse general/friends view
         container.innerHTML = `
         <div class="friends-header">
@@ -826,7 +826,7 @@ const DiscordModule = {
             const res = await fetch('/api/friends');
             const data = await res.json();
             DiscordModule.friendsData = data; // Cache
-            DiscordModule.filterFriends('all');
+            DiscordModule.filterFriends(activeTab);
         } catch (e) {
             console.error(e);
         }
