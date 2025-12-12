@@ -66,28 +66,59 @@
 
         <!-- 2. CHANNEL SIDEBAR -->
         <div class="channels-sidebar">
-            <div class="server-header">
+            <div class="server-header" onclick="DiscordModule.toggleServerDropdown()" id="server-header-click">
                 <h3 id="current-server-name">Arizona RP (Home)</h3>
-                <i class="fa-solid fa-gear" onclick="DiscordModule.openServerSettings()"
-                    style="cursor:pointer; opacity:0.7;" title="Server Settings"></i>
+                <i class="fa-solid fa-xmark" id="server-header-icon-close" style="display:none;"></i>
+                <i class="fa-solid fa-chevron-down" id="server-header-icon-open"></i>
             </div>
+
+            <!-- Server Dropdown Menu -->
+            <div id="server-dropdown-menu" class="server-dropdown">
+                <div class="dropdown-item" onclick="Utils.showToast('Server Boost coming soon!')">
+                    <span>Буст сервера</span>
+                    <i class="fa-solid fa-gem" style="color:#ff73fa"></i>
+                </div>
+                <div class="dropdown-sep"></div>
+                <div class="dropdown-item" onclick="DiscordModule.openInviteModal()">
+                    <span>Пригласить людей</span>
+                    <i class="fa-solid fa-user-plus" style="color:#677bc4"></i>
+                </div>
+                <div class="dropdown-item" onclick="DiscordModule.openServerSettings('overview')">
+                    <span>Настройки сервера</span>
+                    <i class="fa-solid fa-gear"></i>
+                </div>
+                <div class="dropdown-sep"></div>
+                <div class="dropdown-item"
+                    onclick="DiscordModule.createChannelPrompt(DiscordModule.currentServer, null)">
+                    <span>Создать канал</span>
+                    <i class="fa-solid fa-circle-plus"></i>
+                </div>
+                <div class="dropdown-item" onclick="DiscordModule.createCategoryPrompt()">
+                    <span>Создать категорию</span>
+                    <i class="fa-solid fa-folder-plus"></i>
+                </div>
+            </div>
+
             <div class="channels-list" id="channels-list">
                 <!-- Dynamic Content -->
                 <div style="padding:20px; text-align:center; color:gray;">Loading context...</div>
             </div>
 
+            <!-- User Bar -->
             <div class="user-bar">
-                <img src="{{ user.avatar }}" class="user-avatar">
+                <div class="avatar-wrapper is-online">
+                    <img src="{{ user.avatar }}" alt="User">
+                    <div class="status-indicator"></div>
+                </div>
                 <div class="user-info">
-                    <div class="username">{{ user.username }}</div>
-                    <div class="discriminator">#{{ user.id[-4:] }}</div>
+                    <span class="username">{{ user.username }}</span>
+                    <span class="discriminator">#{{ user.id[-4:] }}</span>
                 </div>
                 <div class="user-controls">
-                    <i class="fa-solid fa-microphone"
-                        onclick="this.classList.toggle('off'); Utils.showToast('Microphone toggled')"></i>
-                    <i class="fa-solid fa-headphones"
-                        onclick="this.classList.toggle('off'); Utils.showToast('Audio toggled')"></i>
-                    <i class="fa-solid fa-gear" onclick="DiscordModule.openSettings()"></i>
+                    <i class="fa-solid fa-microphone" onclick="DiscordModule.toggleMic(this)" data-tooltip="Mute"></i>
+                    <i class="fa-solid fa-headphones" onclick="DiscordModule.toggleDeafen(this)"
+                        data-tooltip="Deafen"></i>
+                    <i class="fa-solid fa-gear" onclick="DiscordModule.openSettings()" data-tooltip="User Settings"></i>
                 </div>
             </div>
         </div>
@@ -361,8 +392,94 @@
         </div>
     </div>
 
+    <!-- Server Settings Modal -->
+    <div id="server-settings-modal" class="modal-backdrop" style="display:none;">
+        <div class="discord-modal server-settings-modal">
+            <div class="settings-sidebar">
+                <div class="settings-header">Server Name</div>
+
+                <div class="settings-category">ЛЮДИ</div>
+                <div class="settings-item" id="ss-tab-members" onclick="DiscordModule.switchServerTab('members')">
+                    Участники</div>
+                <div class="settings-item" id="ss-tab-roles" onclick="DiscordModule.switchServerTab('roles')">Роли <span
+                        style="background:var(--danger); border-radius:50%; width:6px; height:6px; display:inline-block; margin-left:4px;"></span>
+                </div>
+                <div class="settings-item" id="ss-tab-invites" onclick="DiscordModule.switchServerTab('invites')">
+                    Приглашения</div>
+
+                <div class="settings-sep"></div>
+                <div class="settings-item" onclick="DiscordModule.deleteServer()" style="color:var(--danger)">Удалить
+                    сервер</div>
+            </div>
+            <div class="settings-content">
+                <button class="close-modal-settings" onclick="DiscordModule.closeServerSettings()"><i
+                        class="fa-solid fa-circle-xmark"></i></button>
+
+                <!-- Tab: Roles -->
+                <div id="ss-view-roles" class="server-tab-view" style="display:none">
+                    <h2>Roles</h2>
+                    <p class="desc">Use roles to group your server members and assign permissions.</p>
+
+                    <div class="roles-container">
+                        <div class="roles-sidebar">
+                            <div class="roles-header">
+                                <span>ROLES</span>
+                                <i class="fa-solid fa-plus" onclick="DiscordModule.createRolePrompt()"></i>
+                            </div>
+                            <div id="roles-list-ui">
+                                <!-- Roles inserted here -->
+                            </div>
+                        </div>
+                        <div class="role-editor" id="role-editor-ui" style="display:none;">
+                            <div class="input-group">
+                                <label>ROLE NAME</label>
+                                <input id="edit-role-name" type="text" oninput="DiscordModule.previewRoleEdit()">
+                            </div>
+                            <div class="input-group">
+                                <label>ROLE COLOR</label>
+                                <input id="edit-role-color" type="color" onchange="DiscordModule.previewRoleEdit()">
+                            </div>
+                            <div class="role-permissions-list">
+                                <label>PERMISSIONS</label>
+                                <div class="perm-item">
+                                    <span>Administrator</span>
+                                    <div class="checkbox-wrapper">
+                                        <input type="checkbox" id="perm-admin">
+                                    </div>
+                                </div>
+                                <div class="perm-item">
+                                    <span>Manage Channels</span>
+                                    <div class="checkbox-wrapper">
+                                        <input type="checkbox" id="perm-channels">
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn-primary" onclick="DiscordModule.saveRoleChanges()">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Members -->
+                <div id="ss-view-members" class="server-tab-view" style="display:none">
+                    <h2>Server Members</h2>
+                    <div id="ss-members-list"></div>
+                </div>
+
+                <!-- Tab: Invites -->
+                <div id="ss-view-invites" class="server-tab-view" style="display:none">
+                    <h2>Invites</h2>
+                    <div class="invite-card">
+                        <div class="invite-code">discord.gg/arizona-rp</div>
+                        <div class="invite-uses">Uses: ∞</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=18"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=19"></script>
 </body>
 
 </html>

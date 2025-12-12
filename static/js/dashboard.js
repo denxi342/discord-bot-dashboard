@@ -18,6 +18,160 @@ const DiscordModule = {
     currentServer: 'home',
     currentChannel: null,
     serverData: {}, // Now loaded from API
+    // --- SERVER & DROPDOWN HEADER ---
+    toggleServerDropdown: () => {
+        const dd = document.getElementById('server-dropdown-menu');
+        const iconOpen = document.getElementById('server-header-icon-open');
+        const iconClose = document.getElementById('server-header-icon-close');
+
+        if (dd.classList.contains('active')) {
+            dd.classList.remove('active');
+            iconOpen.style.display = 'block';
+            iconClose.style.display = 'none';
+        } else {
+            dd.classList.add('active');
+            iconOpen.style.display = 'none';
+            iconClose.style.display = 'block';
+        }
+    },
+
+    // Close dropdown on click outside
+    initGlobalListeners: () => {
+        document.addEventListener('click', (e) => {
+            const dd = document.getElementById('server-dropdown-menu');
+            const header = document.getElementById('server-header-click');
+            if (dd && dd.classList.contains('active') && !dd.contains(e.target) && !header.contains(e.target)) {
+                DiscordModule.toggleServerDropdown();
+            }
+        });
+    },
+
+    // --- SERVER SETTINGS UI ---
+    currentServerSettingsTab: 'overview',
+
+    openServerSettings: (tab = 'overview') => {
+        // Hide dropdown
+        document.getElementById('server-dropdown-menu').classList.remove('active');
+
+        const modal = document.getElementById('server-settings-modal');
+        modal.style.display = 'flex';
+        DiscordModule.switchServerTab(tab);
+
+        // Load roles if roles tab
+        if (tab === 'roles') DiscordModule.loadRolesUI();
+    },
+
+    closeServerSettings: () => {
+        document.getElementById('server-settings-modal').style.display = 'none';
+    },
+
+    switchServerTab: (tab) => {
+        DiscordModule.currentServerSettingsTab = tab;
+
+        // Tabs Styles
+        document.querySelectorAll('.settings-sidebar .settings-item').forEach(el => el.classList.remove('active'));
+        const activeTab = document.getElementById(`ss-tab-${tab}`);
+        if (activeTab) activeTab.classList.add('active');
+
+        // Views
+        document.querySelectorAll('.server-tab-view').forEach(el => el.style.display = 'none');
+        const view = document.getElementById(`ss-view-${tab}`);
+        if (view) view.style.display = 'block';
+
+        if (tab === 'roles') DiscordModule.loadRolesUI();
+    },
+
+    // --- ROLE MANAGER ---
+    rolesCache: [],
+    activeRole: null,
+
+    loadRolesUI: () => {
+        // Fetch roles from current server data (which is in DiscordModule.serverData)
+        const s = DiscordModule.serverData[DiscordModule.currentServer];
+        if (!s || !s.roles) return;
+
+        DiscordModule.rolesCache = s.roles; // Sync
+        const list = document.getElementById('roles-list-ui');
+        list.innerHTML = '';
+
+        s.roles.forEach((r, idx) => {
+            const div = document.createElement('div');
+            div.className = 'role-item';
+            if (DiscordModule.activeRole && r.id === DiscordModule.activeRole.id) div.classList.add('active');
+            div.innerHTML = `<div class="role-circle" style="background:${r.color}"></div> ${r.name}`;
+            div.onclick = () => DiscordModule.selectRole(r);
+            list.appendChild(div);
+        });
+    },
+
+    selectRole: (role) => {
+        DiscordModule.activeRole = role;
+        DiscordModule.loadRolesUI(); // Refresh highlight
+
+        document.getElementById('role-editor-ui').style.display = 'block';
+        document.getElementById('edit-role-name').value = role.name;
+        document.getElementById('edit-role-color').value = role.color;
+
+        // Permissions checkboxes
+        document.getElementById('perm-admin').checked = (role.permissions & 8) === 8;
+        // ... other perms logic
+    },
+
+    previewRoleEdit: () => {
+        // Live preview if we had a preview box
+    },
+
+    createRolePrompt: async () => {
+        const sid = DiscordModule.currentServer;
+        try {
+            const res = await fetch(`/api/servers/${sid}/roles/create`, { method: 'POST' });
+            const d = await res.json();
+            if (d.success) {
+                // Update local data
+                DiscordModule.serverData[sid].roles.push(d.role);
+                DiscordModule.loadRolesUI();
+                DiscordModule.selectRole(d.role); // Auto-select new role
+                Utils.showToast("Role created");
+            } else {
+                Utils.showToast(d.error || "Failed to create role");
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    saveRoleChanges: async () => {
+        if (!DiscordModule.activeRole) return;
+
+        const sid = DiscordModule.currentServer;
+        const rid = DiscordModule.activeRole.id;
+
+        const name = document.getElementById('edit-role-name').value;
+        const color = document.getElementById('edit-role-color').value;
+
+        // Calc permissions bitmask
+        let perms = 0;
+        if (document.getElementById('perm-admin').checked) perms |= 8;
+        // if(document.getElementById('perm-channels').checked) perms |= 16; # example bit
+
+        try {
+            const res = await fetch(`/api/servers/${sid}/roles/${rid}/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, color: color, permissions: perms })
+            });
+            const d = await res.json();
+            if (d.success) {
+                // Update local cache
+                DiscordModule.activeRole.name = name;
+                DiscordModule.activeRole.color = color;
+                DiscordModule.activeRole.permissions = perms;
+
+                DiscordModule.loadRolesUI(); // Refresh sidebar list
+                Utils.showToast("Changes saved");
+            } else {
+                Utils.showToast(d.error || "Failed to save");
+            }
+        } catch (e) { console.error(e); }
+    },
 
     init: async () => {
         await DiscordModule.loadServers();
