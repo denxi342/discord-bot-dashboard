@@ -1322,3 +1322,43 @@ body {
     color: var(--text-muted);
 }
 
+
+
+/* Friend Tabs Aesthetic */
+.fh-tabs {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.fh-tab {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    color: var(--text-muted); /* Grayish */
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+.fh-tab:hover {
+    background-color: rgba(255,255,255,0.04);
+    color: var(--text-normal);
+}
+.fh-tab.active {
+    background-color: rgba(255,255,255,0.1); /* Active background */
+    color: var(--header-primary); /* White */
+}
+.fh-tab.add-friend {
+    color: #2ECC71 !important; /* Green text */
+    background: none !important;
+}
+.fh-tab.add-friend.active {
+    background: none !important;
+    color: #2ECC71 !important;
+}
+/* Specific override for the 'add friend' button to look distinct if needed, 
+   but Discord keeps it simple text usually, just green. 
+   Let's make it a pill if active? Actually standard discord is just green text until clicked. 
+   When clicked it has a background. */
+.fh-tab.add-friend[onclick*='add'] {
+    /* Special styling if desired */
+}
+

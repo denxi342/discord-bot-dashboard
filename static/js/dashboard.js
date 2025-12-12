@@ -1089,6 +1089,39 @@ const DiscordModule = {
         } catch (e) { console.error(e); }
     },
 
+    startDM: async (uid) => {
+        // For now, simulate opening a DM by just loading the view
+        console.log("Starting DM with", uid);
+        // Deselect friend view
+        DiscordModule.selectChannel(null, 'dm');
+
+        // Find friend info to make a dummy DM object
+        let user = null;
+        if (DiscordModule.friendsData) {
+            user = DiscordModule.friendsData.friends.find(u => u.id === uid);
+        }
+
+        // Render DM view
+        const container = document.getElementById('channel-view-general');
+        container.innerHTML = `
+            <div class="chat-header">
+                <i class="fa-solid fa-at"></i> 
+                <span style="font-weight:700; margin-left:8px; color:white;">${user ? user.username : 'User'}</span>
+            </div>
+            <div class="chat-messages" id="dm-messages-${uid}">
+                <div style="padding:20px; color:gray;">Start of your history with ${user ? user.username : 'this user'}.</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" placeholder="Message @${user ? user.username : 'User'}" 
+                    style="width:100%; background:transparent; border:none; color:white; outline:none;"
+                    onkeydown="if(event.key==='Enter') DiscordModule.sendDMMessage(${uid}, this)">
+            </div>
+        `;
+
+        // Load messages
+        DiscordModule.fetchDMMessages(uid);
+    },
+
     acceptFriend: async (id) => {
         try {
             const res = await fetch('/api/friends/accept', {
