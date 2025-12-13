@@ -1237,45 +1237,16 @@ const WebSocketModule = {
             }
 
             // 2. If we are currently viewing this DM, append message
-            // activeDM is set in dashboard.js when clicking a DM
             if (DiscordModule.activeDM && String(DiscordModule.activeDM) === String(data.dm_id)) {
-                // Don't duplicate if we are the author (optimistic update already added it)
-                // But optimistic update uses local logic.
-                // Let's check if the last message is identical to avoid dupes or just append.
-                // Simpler: Just append. Optimistic update implementation in sendMessage might need check.
-                // Actually sendMessage in dashboard.js does optimistic update.
-                // We should check author.
+                // Check if we are sender to avoid partial collision with optimistic UI
+                // If we don't know who we are yet (me is null), we show the message just in case (better dupe than missing).
+                let isMe = false;
+                if (DiscordModule.me && data.author === DiscordModule.me.username) isMe = true;
 
-                // We don't easily know "my username" to compare strict equality without fetching 'me'
-                // But we can check if the element exists? NO.
-                // Let's just append. If double, we'll fix later. 
-                // Better: Check if we are sender.
-                // dashboard.js doesn't store "me" globally yet.
-                // Let's fetch /api/user/me once on init or just rely on list refresh?
-                // For "chat appearing instantly", we need to append.
-
-                // Quick hack: The backend sends 'author' username.
-                // If it matches the optimistic one...
-
-                // Let's just append for now, user wants it to work.
-
-                // Wait, if I sent it, I already added it via optimistic UI in sendDMMessage.
-                // If I receive it, I need to add it.
-
-                // Ideally we shouldn't optimistically add if we have sockets.
-                // But for responsiveness, optimistic is good.
-                // Let's ignore if author is ME.
-                // We need my ID/Name.
-                if (DiscordModule.activeDM && String(DiscordModule.activeDM) === String(data.dm_id)) {
-                    // Check if we are sender to avoid partial collision with optimistic UI
-                    // If we don't know who we are yet (me is null), we show the message just in case (better dupe than missing).
-                    let isMe = false;
-                    if (DiscordModule.me && data.author === DiscordModule.me.username) isMe = true;
-
-                    if (!isMe) {
-                        const box = document.getElementById(`dm-messages-${data.dm_id}`);
-                        if (box) {
-                            box.innerHTML += `
+                if (!isMe) {
+                    const box = document.getElementById(`dm-messages-${data.dm_id}`);
+                    if (box) {
+                        box.innerHTML += `
                             <div class="message">
                                 <img src="${data.avatar}" class="message-avatar">
                                 <div class="message-content">
@@ -1286,11 +1257,11 @@ const WebSocketModule = {
                                     <div class="message-text">${Utils.escapeHtml(data.content)}</div>
                                 </div>
                             </div>`;
-                            box.scrollTop = box.scrollHeight;
-                        }
+                        box.scrollTop = box.scrollHeight;
                     }
                 }
-            });
+            }
+        });
     }
 }
 };
