@@ -1681,6 +1681,66 @@ def api_delete_channel(sid, cid):
      save_servers()
      return jsonify({'success': True})
 
+@app.route('/api/servers/<sid>/update', methods=['POST'])
+def api_update_server(sid):
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth required'}), 401
+    if sid not in servers_db: return jsonify({'success': False, 'error': 'Server not found'}), 404
+    
+    data = request.json
+    name = data.get('name', '').strip()
+    description = data.get('description', '').strip()
+    
+    if not name:
+        return jsonify({'success': False, 'error': 'Server name is required'}), 400
+    
+    # Update server data
+    servers_db[sid]['name'] = name
+    if description:
+        servers_db[sid]['description'] = description
+    
+    save_servers()
+    return jsonify({'success': True, 'server': servers_db[sid]})
+
+@app.route('/api/servers/<sid>/members', methods=['GET'])
+def api_get_server_members(sid):
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth required'}), 401
+    if sid not in servers_db: return jsonify({'success': False, 'error': 'Server not found'}), 404
+    
+    # Get all users from the database as potential members
+    # In a real system, you'd track server membership properly
+    rows = execute_query('SELECT id, username, avatar, display_name FROM users LIMIT 50', fetch_all=True)
+    
+    members = []
+    for r in rows:
+        members.append({
+            'id': str(r[0]),
+            'username': r[1],
+            'avatar': r[2] if r[2] else 'https://cdn.discordapp.com/embed/avatars/0.png',
+            'display_name': r[3]
+        })
+    
+    return jsonify({'success': True, 'members': members})
+
+@app.route('/api/servers/<sid>/roles', methods=['GET'])
+def api_get_server_roles(sid):
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth required'}), 401
+    if sid not in servers_db: return jsonify({'success': False, 'error': 'Server not found'}), 404
+    
+    # Get roles from server data
+    roles = servers_db[sid].get('roles', [])
+    
+    # If no roles exist, create default ones
+    if not roles:
+        roles = [
+            {'id': 'everyone', 'name': '@everyone', 'color': '#99aab5', 'permissions': []},
+            {'id': 'admin', 'name': 'Admin', 'color': '#e74c3c', 'permissions': ['administrator']},
+            {'id': 'moderator', 'name': 'Moderator', 'color': '#3498db', 'permissions': ['manage_channels']}
+        ]
+        servers_db[sid]['roles'] = roles
+        save_servers()
+    
+    return jsonify({'success': True, 'roles': roles})
+
 threading.Thread(target=simulate, daemon=True).start()
 
 
