@@ -2766,3 +2766,73 @@ body::before {
 .add-friend-btn:hover {
     background: #4752c4;
 }
+
+/* ========================================
+   CHAT INPUT AREA - Full Width Styling
+   ======================================== */
+
+.chat-input-area {
+    position: relative;
+    padding: 0 16px 24px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.chat-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: rgba(30, 20, 50, 0.6);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    padding: 0 16px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.chat-input-wrapper .input-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 12px 8px 12px 0;
+    transition: color 0.15s;
+}
+
+.chat-input-wrapper .input-btn:hover {
+    color: white;
+}
+
+.chat-input-wrapper input,
+.chat-input-wrapper #global-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 15px;
+    padding: 12px 0;
+    outline: none;
+    min-width: 0;
+}
+
+.chat-input-wrapper input::placeholder,
+.chat-input-wrapper #global-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.chat-input-wrapper .right-icons {
+    display: flex;
+    gap: 16px;
+    padding-left: 8px;
+}
+
+.chat-input-wrapper .right-icons i {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 18px;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.chat-input-wrapper .right-icons i:hover {
+    color: white;
+}
