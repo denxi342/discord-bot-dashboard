@@ -613,6 +613,120 @@ const DiscordModule = {
         if (settingsModal) settingsModal.style.display = 'none';
     },
 
+    loadServerOverview: async () => {
+        if (!DiscordModule.currentServer) return;
+        const sid = DiscordModule.currentServer;
+        const serverData = DiscordModule.serverData[sid];
+
+        if (serverData) {
+            document.getElementById('server-name-input').value = serverData.name || '';
+            document.getElementById('server-desc-input').value = serverData.description || '';
+            const iconPreview = document.getElementById('server-icon-preview');
+            if (iconPreview && serverData.icon) {
+                iconPreview.src = serverData.icon;
+            }
+        }
+    },
+
+    saveServerOverview: async () => {
+        if (!DiscordModule.currentServer) return;
+        const sid = DiscordModule.currentServer;
+
+        const name = document.getElementById('server-name-input').value.trim();
+        const description = document.getElementById('server-desc-input').value.trim();
+
+        if (!name) {
+            alert('Введите название сервера');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/servers/${sid}/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                DiscordModule.serverData[sid].name = name;
+                DiscordModule.serverData[sid].description = description;
+                DiscordModule.renderServerList();
+                alert('Настройки сохранены!');
+            } else {
+                alert(data.error || 'Ошибка сохранения');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Ошибка сохранения настроек');
+        }
+    },
+
+    loadServerMembers: async () => {
+        if (!DiscordModule.currentServer) return;
+        const sid = DiscordModule.currentServer;
+
+        try {
+            const res = await fetch(`/api/servers/${sid}/members`);
+            const data = await res.json();
+
+            const container = document.getElementById('ss-members-list');
+            if (!container) return;
+
+            if (data.success && data.members) {
+                container.innerHTML = data.members.map(member => `
+                    <div class="member-item" style="display:flex; align-items:center; padding:10px; gap:12px; border-bottom:1px solid #2f3136;">
+                        <img src="${member.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" style="width:40px; height:40px; border-radius:50%;">
+                        <div style="flex:1;">
+                            <div style="color:white; font-weight:500;">${member.username}</div>
+                            <div style="color:#72767d; font-size:12px;">ID: ${member.id}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div style="padding:20px; color:#72767d; text-align:center;">Участники не найдены</div>';
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    },
+
+    loadServerRoles: async () => {
+        if (!DiscordModule.currentServer) return;
+        const sid = DiscordModule.currentServer;
+
+        try {
+            const res = await fetch(`/api/servers/${sid}/roles`);
+            const data = await res.json();
+
+            const container = document.getElementById('roles-list-ui');
+            if (!container) return;
+
+            if (data.success && data.roles) {
+                container.innerHTML = data.roles.map(role => `
+                    <div class="role-item" onclick="DiscordModule.selectRole('${role.id}')" style="padding:8px 12px; cursor:pointer; color:${role.color || '#fff'};">
+                        <i class="fa-solid fa-circle" style="font-size:10px; margin-right:8px;"></i>
+                        ${role.name}
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div style="padding:20px; color:#72767d; text-align:center;">Роли не настроены</div>';
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    },
+
+    loadServerInvites: async () => {
+        if (!DiscordModule.currentServer) return;
+        // TODO: Implement invites loading from backend
+        console.log('Loading invites for server:', DiscordModule.currentServer);
+    },
+
+    uploadServerIcon: () => {
+        alert('Загрузка иконки сервера будет реализована в следующем обновлении');
+    },
+
     apiCreateServer: async (payload) => {
         try {
             const body = typeof payload === 'string' ? { name: payload } : payload;
