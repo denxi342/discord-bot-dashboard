@@ -1761,7 +1761,8 @@ def api_get_friends():
     
     # Helper to format user
     def fmt_user(row):
-        return {'id': str(row[0]), 'username': row[1], 'avatar': row[2], 'display_name': row[3]}
+        avatar = row[2] if row[2] else 'https://cdn.discordapp.com/embed/avatars/0.png'
+        return {'id': str(row[0]), 'username': row[1], 'avatar': avatar, 'display_name': row[3]}
 
     friends = []
     incoming = []
@@ -1843,11 +1844,6 @@ def api_friend_accept():
         return jsonify({'success': False, 'error': 'Invalid ID'})
     my_id = int(session['user']['id'])
     
-    # Update status where I am u2 and they are u1
-    # Using execute_query with commit returns None usually, but we need rowcount check?
-    # execute_query abstraction doesn't return rowcount easily unless we verify.
-    # Let's check existence first.
-    
     chk = execute_query('SELECT id FROM friends WHERE user_id_1 = %s AND user_id_2 = %s AND status = %s', 
                         (target_id, my_id, 'pending'), fetch_one=True)
     if not chk:
@@ -1856,6 +1852,74 @@ def api_friend_accept():
     execute_query('UPDATE friends SET status = %s WHERE id = %s', ('accepted', chk[0]), commit=True)
     
     return jsonify({'success': True})
+
+# --- DM ROUTES ---
+
+def get_or_create_dm(user1_id, user2_id):
+    # Ensure consistent ordering for lookup
+    if user1_id > user2_id: user1_id, user2_id = user2_id, user1_id
+    
+    row = execute_query('SELECT id FROM direct_messages WHERE user_id_1 = %s AND user_id_2 = %s', (user1_id, user2_id), fetch_one=True)
+    if row: return row[0]
+    
+    # Create
+    execute_query('INSERT INTO direct_messages (user_id_1, user_id_2, last_message_at) VALUES (%s, %s, %s)',
+                  (user1_id, user2_id, time.time()), commit=True)
+    
+    # Fetch back
+    row = execute_query('SELECT id FROM direct_messages WHERE user_id_1 = %s AND user_id_2 = %s', (user1_id, user2_id), fetch_one=True)
+    return row[0]
+
+@app.route('/api/dms/<int:target_id>/messages', methods=['GET'])
+def api_dm_messages(target_id):
+    if 'user' not in session: return jsonify({'success': False}), 401
+    my_id = int(session['user']['id'])
+    
+    dm_id = get_or_create_dm(my_id, target_id)
+    
+    # Fetch messages
+    rows = execute_query("""
+        SELECT dm.content, dm.timestamp, u.username, u.avatar 
+        FROM dm_messages dm
+        JOIN users u ON u.id = dm.author_id
+        WHERE dm.dm_id = %s
+        ORDER BY dm.timestamp ASC LIMIT 50
+    """, (dm_id,), fetch_all=True)
+    
+    messages = []
+    for r in rows:
+        messages.append({
+            'content': r[0],
+            'timestamp': r[1],
+            'username': r[2],
+            'avatar': r[3] if r[3] else 'https://cdn.discordapp.com/embed/avatars/0.png'
+        })
+        
+    return jsonify({'success': True, 'messages': messages})
+
+@app.route('/api/dms/<int:target_id>/send', methods=['POST'])
+def api_dm_send(target_id):
+    if 'user' not in session: return jsonify({'success': False}), 401
+    my_id = int(session['user']['id'])
+    data = request.json
+    content = data.get('content')
+    if not content: return jsonify({'success': False})
+    
+    dm_id = get_or_create_dm(my_id, target_id)
+    
+    execute_query("INSERT INTO dm_messages (dm_id, author_id, content, timestamp) VALUES (%s, %s, %s, %s)",
+                  (dm_id, my_id, content, time.time()), commit=True)
+    
+    # Return message data for frontend optimistic update
+    return jsonify({
+        'success': True, 
+        'message': {
+            'content': content,
+            'author': session['user']['username'],
+            'avatar': session['user']['avatar'],
+            'timestamp': time.time()
+        }
+    })
 
 @app.route('/debug/friends_dump')
 def debug_friends_dump():
