@@ -529,10 +529,18 @@ const DiscordModule = {
         }
     },
 
+    createChannelPrompt: (sid, categoryId) => {
+        const name = prompt("Enter Channel Name:");
+        if (!name) return;
+
+        const isVoice = confirm("Voice Channel?");
+        const type = isVoice ? 'voice' : 'channel';
+
+        DiscordModule.apiCreateChannel(sid, name, type, categoryId);
+    },
+
     uiCreateChannel: (sid) => {
-        const name = prompt("Название канала:");
-        const isVoice = confirm("Это голосовой канал?");
-        if (name) DiscordModule.apiCreateChannel(sid, name, isVoice ? 'voice' : 'channel');
+        DiscordModule.createChannelPrompt(sid, null);
     },
 
     apiCreateServer: async (payload) => {
@@ -548,15 +556,27 @@ const DiscordModule = {
         } catch (e) { console.error(e); }
     },
 
-    apiCreateChannel: async (sid, name, type) => {
+    apiCreateChannel: async (sid, name, type, categoryId) => {
         try {
-            const res = await fetch(`/api/servers/${sid}/channels/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, type }) });
+            const payload = { name, type };
+            if (categoryId) payload.category_id = categoryId;
+
+            const res = await fetch(`/api/servers/${sid}/channels/create`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
             const d = await res.json();
             if (d.success) {
                 DiscordModule.serverData[sid].channels.push(d.channel);
                 DiscordModule.renderChannels(sid);
+            } else {
+                alert(d.error || 'Failed to create channel');
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            alert('Error creating channel');
+        }
     },
 
     addMessage: (channelId, msgData) => {
