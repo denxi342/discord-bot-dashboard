@@ -1417,9 +1417,8 @@ const DiscordModule = {
         box.innerHTML = '';
         box.classList.add('dm-bubbles-container');
 
-        // Get current user ID from page context
-        const myUsername = document.getElementById('setting-username')?.innerText ||
-            document.querySelector('.user-name')?.innerText || '';
+        // Use global currentUsername set by Jinja template
+        const myUsername = window.currentUsername || '';
 
         data.messages.forEach(m => {
             const isOwn = m.username === myUsername;
