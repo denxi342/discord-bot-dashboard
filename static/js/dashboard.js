@@ -58,6 +58,7 @@ const DiscordModule = {
     },
 
     switchServerTab: (tab) => {
+        console.log('=== switchServerTab called ===', tab);
         DiscordModule.currentServerSettingsTab = tab;
 
         // Tabs Styles
@@ -70,7 +71,11 @@ const DiscordModule = {
         const view = document.getElementById(`ss-view-${tab}`);
         if (view) view.style.display = 'block';
 
+        // Load data for the tab
         if (tab === 'roles') DiscordModule.loadRolesUI();
+        if (tab === 'members') DiscordModule.loadServerMembers();
+        if (tab === 'overview') DiscordModule.loadServerOverview();
+        if (tab === 'invites') DiscordModule.loadServerInvites();
     },
 
     // --- ROLE MANAGER ---
@@ -569,6 +574,8 @@ const DiscordModule = {
     },
 
     openServerSettings: (tab = 'overview') => {
+        console.log('=== openServerSettings called ===', { tab, currentServer: DiscordModule.currentServer });
+
         // Close the dropdown menu first
         const dropdown = document.getElementById('server-dropdown-menu');
         if (dropdown) dropdown.classList.remove('active');
@@ -609,32 +616,7 @@ const DiscordModule = {
         DiscordModule.switchServerTab(tab);
     },
 
-    switchServerTab: (tabName) => {
-        // Hide all tabs
-        document.querySelectorAll('.server-tab-view').forEach(view => view.style.display = 'none');
-
-        // Remove active class from all sidebar items
-        document.querySelectorAll('.settings-item').forEach(item => item.classList.remove('active'));
-
-        // Show selected tab
-        const tabView = document.getElementById(`ss-view-${tabName}`);
-        if (tabView) tabView.style.display = 'block';
-
-        // Activate sidebar item
-        const tabBtn = document.getElementById(`ss-tab-${tabName}`);
-        if (tabBtn) tabBtn.classList.add('active');
-
-        // Load data for the tab
-        if (tabName === 'members') {
-            DiscordModule.loadServerMembers();
-        } else if (tabName === 'roles') {
-            DiscordModule.loadServerRoles();
-        } else if (tabName === 'invites') {
-            DiscordModule.loadServerInvites();
-        } else if (tabName === 'overview') {
-            DiscordModule.loadServerOverview();
-        }
-    },
+    // switchServerTab is defined earlier in the file (line ~60) - removed duplicate
 
     closeServerSettings: () => {
         const settingsModal = document.getElementById('server-settings-modal');
