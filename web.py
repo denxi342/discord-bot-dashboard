@@ -304,56 +304,6 @@ def save_servers():
             json.dump(servers_db, f, indent=4, ensure_ascii=False)
     except Exception as e:
         print(f"Error saving servers: {e}")
-                    'name': 'Р“Р»Р°РІРЅР°СЏ',
-                    'icon': 'discord', # fa-brand
-                    'owner': 'system',
-                    'channels': [
-                        { 'id': 'cat-info', 'type': 'category', 'name': 'РРќР¤РћР РњРђР¦РРЇ' },
-                        { 'id': 'general', 'type': 'channel', 'name': 'general', 'icon': 'hashtag' },
-                        { 'id': 'news', 'type': 'channel', 'name': 'news-feed', 'icon': 'newspaper' },
-                        { 'id': 'community', 'type': 'channel', 'name': 'leaderboard', 'icon': 'trophy' }
-                    ]
-                },
-                'ai': {
-                    'name': 'Arizona AI',
-                    'icon': 'robot',
-                    'owner': 'system',
-                    'channels': [
-                        { 'id': 'cat-ai', 'type': 'category', 'name': 'ASSISTANT' },
-                        { 'id': 'helper', 'type': 'channel', 'name': 'chat-gpt', 'icon': 'robot' },
-                        { 'id': 'biography', 'type': 'channel', 'name': 'search-rules', 'icon': 'magnifying-glass' }
-                    ]
-                },
-                'smi': {
-                    'name': 'РЎРњР WORK',
-                    'icon': 'newspaper',
-                    'owner': 'system',
-                    'channels': [
-                        { 'id': 'cat-work', 'type': 'category', 'name': 'TOOLS' },
-                        { 'id': 'smi', 'type': 'channel', 'name': 'ad-editor', 'icon': 'pen-to-square' }
-                    ]
-                },
-                'admin': {
-                    'name': 'Admin Control',
-                    'icon': 'shield-halved',
-                    'owner': 'system',
-                    'channels': [
-                        { 'id': 'cat-admin', 'type': 'category', 'name': 'ADMINISTRATION' },
-                        { 'id': 'admin', 'type': 'channel', 'name': 'users', 'icon': 'users-gear' }
-                    ]
-                }
-            }
-            save_servers()
-    except Exception as e:
-        print(f"Error loading servers: {e}")
-
-def save_servers():
-    try:
-        with open(SERVERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(servers_db, f, indent=4)
-    except Exception as e:
-        print(f"Error saving servers: {e}")
-
 
 # Bot status tracking
 bot_status = {
