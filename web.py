@@ -27,83 +27,114 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev_secret_key_fixed_12345')
 app.permanent_session_lifetime = timedelta(days=30)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+import psycopg2
+from urllib.parse import urlparse
+
+# ... imports ...
+
 # Database Setup
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, 'users.db')
 SERVERS_FILE = os.path.join(BASE_DIR, 'servers.json')
 servers_db = {}
 
-def load_servers():
-    global servers_db
-    if os.path.exists(SERVERS_FILE):
-        try:
-            with open(SERVERS_FILE, 'r', encoding='utf-8') as f:
-                servers_db = json.load(f)
-        except Exception as e:
-            print(f"Load servers error: {e}")
-            servers_db = {}
-    else:
-        servers_db = {}
+def get_db_connection():
+    db_url = os.environ.get('DATABASE_URL')
+    if not db_url:
+        # Fallback to local SQLite for development if no URL provided
+        # But we strongly encourage Postgres. 
+        # For seamless migration, let's use SQLite if no params, but warn.
+        # However, switching placeholder syntax is tricky. 
+        # Let's enforce Postgres for now or use a wrapper.
+        # Simpler: Assume Postgres if env var is set, else SQLite? 
+        # No, the placeholder difference (%) vs (?) is a pain.
+        # We will wrap standard queries or just fail if no DB configured?
+        # Let's try to support both via a helper.
+        return sqlite3.connect(os.path.join(BASE_DIR, 'users.db'))
+    
+    return psycopg2.connect(db_url)
 
-def save_servers():
+def execute_query(query, params=(), fetch_one=False, fetch_all=False, commit=False):
+    conn = get_db_connection()
+    is_sqlite = isinstance(conn, sqlite3.Connection)
+    
+    # Adapting placeholders: %s for PG, ? for SQLite
+    if is_sqlite:
+        query = query.replace('%s', '?')
+    
+    cursor = conn.cursor()
     try:
-        with open(SERVERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(servers_db, f, indent=4, ensure_ascii=False)
+        cursor.execute(query, params)
+        if commit:
+            conn.commit()
+            return cursor.lastrowid # Might differ in PG
+        if fetch_one:
+            return cursor.fetchone()
+        if fetch_all:
+            return cursor.fetchall()
     except Exception as e:
-        print(f"Save servers error: {e}")
-
-load_servers()
+        print(f"DB Error: {e} | Query: {query}")
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
+    is_sqlite = isinstance(conn, sqlite3.Connection)
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+    
+    # SQLite / Postgres differences
+    # Postgres: SERIAL PRIMARY KEY, TEXT is fine.
+    # SQLite: INTEGER PRIMARY KEY AUTOINCREMENT
+    
+    pk_type = "INTEGER PRIMARY KEY AUTOINCREMENT" if is_sqlite else "SERIAL PRIMARY KEY"
+    
+    # Users Table
+    c.execute(f'''CREATE TABLE IF NOT EXISTS users
+                 (id {pk_type}, 
                   username TEXT UNIQUE NOT NULL, 
                   password_hash TEXT NOT NULL, 
                   avatar TEXT,
-                  created_at REAL)''')
-                  
-    # Schema Migration for new columns
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
-    except sqlite3.OperationalError: pass # Already exists
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN banner TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN bio TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN email TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN phone TEXT")
-    except sqlite3.OperationalError: pass
+                  created_at REAL,
+                  display_name TEXT,
+                  banner TEXT,
+                  bio TEXT,
+                  email TEXT,
+                  phone TEXT,
+                  role TEXT DEFAULT 'user',
+                  reputation INTEGER DEFAULT 0)''')
 
-    c.execute('''CREATE TABLE IF NOT EXISTS friends
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+    # Friends Table
+    c.execute(f'''CREATE TABLE IF NOT EXISTS friends
+                 (id {pk_type}, 
                   user_id_1 INTEGER NOT NULL, 
                   user_id_2 INTEGER NOT NULL, 
                   status TEXT DEFAULT 'pending', 
                   created_at REAL,
                   UNIQUE(user_id_1, user_id_2))''')
 
-    c.execute('''CREATE TABLE IF NOT EXISTS direct_messages
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+    # DM Tables
+    c.execute(f'''CREATE TABLE IF NOT EXISTS direct_messages
+                 (id {pk_type},
                   user_id_1 INTEGER NOT NULL,
                   user_id_2 INTEGER NOT NULL,
                   last_message_at REAL,
                   UNIQUE(user_id_1, user_id_2))''')
 
-    c.execute('''CREATE TABLE IF NOT EXISTS dm_messages
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+    c.execute(f'''CREATE TABLE IF NOT EXISTS dm_messages
+                 (id {pk_type},
                   dm_id INTEGER NOT NULL,
                   author_id INTEGER NOT NULL,
                   content TEXT,
                   timestamp REAL)''')
+                  
     conn.commit()
     conn.close()
+    print("Database initialized.")
+
+load_servers()
+
+# Removed file-based users_db logic since we now have columns for role/reputation in DB.
 
 init_db()
 
@@ -127,19 +158,17 @@ def api_register():
     if not username or not password:
         return jsonify({'success': False, 'error': 'Missing fields'})
     
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
     try:
         hash_pw = generate_password_hash(password)
         avatar = f"https://cdn.discordapp.com/embed/avatars/{random.randint(0,5)}.png"
-        c.execute("INSERT INTO users (username, password_hash, avatar, created_at) VALUES (?, ?, ?, ?)", 
-                  (username, hash_pw, avatar, time.time()))
-        conn.commit()
+        
+        # Postgres uses %s, SQLite uses ? (handled by wrapper)
+        execute_query("INSERT INTO users (username, password_hash, avatar, created_at, role, reputation) VALUES (%s, %s, %s, %s, 'user', 0)", 
+                      (username, hash_pw, avatar, time.time()), commit=True)
         return jsonify({'success': True})
-    except sqlite3.IntegrityError:
-        return jsonify({'success': False, 'error': 'Username taken'})
-    finally:
-        conn.close()
+    except Exception as e:
+        print(f"Register Error: {e}")
+        return jsonify({'success': False, 'error': 'Username taken or DB error'})
 
 @app.route('/api/auth/login', methods=['POST'])
 def api_login():
@@ -147,14 +176,11 @@ def api_login():
     username = data.get('username')
     password = data.get('password')
     
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT id, username, password_hash, avatar FROM users WHERE username = ?", (username,))
-    user = c.fetchone()
-    conn.close()
+    row = execute_query("SELECT id, username, password_hash, avatar, role FROM users WHERE username = %s", (username,), fetch_one=True)
     
-    if user and check_password_hash(user[2], password):
-        session['user'] = {'id': str(user[0]), 'username': user[1], 'avatar': user[3], 'role': 'user'}
+    if row and check_password_hash(row[2], password):
+        # row: 0=id, 1=username, 2=pw, 3=av, 4=role
+        session['user'] = {'id': str(row[0]), 'username': row[1], 'avatar': row[3], 'role': row[4]}
         session.permanent = True
         return jsonify({'success': True})
     
@@ -169,11 +195,8 @@ def logout():
 def api_get_me():
     if 'user' not in session: return jsonify({'success': False}), 401
     uid = session['user']['id']
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT id, username, avatar, display_name, banner, bio, email, phone FROM users WHERE id = ?", (uid,))
-    row = c.fetchone()
-    conn.close()
+    
+    row = execute_query("SELECT id, username, avatar, display_name, banner, bio, email, phone, role, reputation FROM users WHERE id = %s", (uid,), fetch_one=True)
     
     if row:
         return jsonify({
@@ -186,7 +209,9 @@ def api_get_me():
                 'banner': row[4],
                 'bio': row[5],
                 'email': row[6],
-                'phone': row[7]
+                'phone': row[7],
+                'role': row[8],
+                'reputation': row[9]
             }
         })
     return jsonify({'success': False, 'error': 'User not found'})
@@ -201,49 +226,29 @@ def api_update_user():
     fields = []
     values = []
     
-    if 'username' in data:
-        fields.append("username = ?")
-        values.append(data['username'])
-        session['user']['username'] = data['username']
-
-    if 'avatar' in data:
-        fields.append("avatar = ?")
-        values.append(data['avatar'])
-        session['user']['avatar'] = data['avatar'] # Update session
-        
-    if 'display_name' in data:
-        fields.append("display_name = ?")
-        values.append(data['display_name'])
-        
-    if 'banner' in data:
-        fields.append("banner = ?")
-        values.append(data['banner'])
-        
-    if 'bio' in data:
-        fields.append("bio = ?")
-        values.append(data['bio'])
-        
-    if 'email' in data:
-        fields.append("email = ?")
-        values.append(data['email'])
-        
-    if 'phone' in data:
-        fields.append("phone = ?")
-        values.append(data['phone'])
+    # Mapping keys to DB columns
+    allowed = ['username', 'avatar', 'display_name', 'banner', 'bio', 'email', 'phone']
+    
+    for k in allowed:
+        if k in data:
+            fields.append(f"{k} = %s")
+            values.append(data[k])
+            
+            # Update session if needed
+            if k in ['username', 'avatar']:
+                session['user'][k] = data[k]
         
     if not fields:
         return jsonify({'success': False, 'error': 'No valid fields'})
         
     values.append(uid)
     
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute(f"UPDATE users SET {', '.join(fields)} WHERE id = ?", values)
-    conn.commit()
-    conn.close()
-    
-    session.modified = True
-    return jsonify({'success': True})
+    try:
+        execute_query(f"UPDATE users SET {', '.join(fields)} WHERE id = %s", tuple(values), commit=True)
+        session.modified = True
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.before_request
 def check_auth():
@@ -414,20 +419,22 @@ def api_get_prefixes():
 def api_get_users():
     if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
     
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT id, username, avatar FROM users")
-    rows = c.fetchall()
-    conn.close()
+    # Check permissions (simplified)
+    # Using execute_query to limit results (Pagination TODO)
+    params = ()
+    # Limit logic handled inside execute_query or via raw SQL
+    rows = execute_query("SELECT id, username, avatar, role FROM users LIMIT 100", fetch_all=True)
     
     users_list = []
-    for r in rows:
-        users_list.append({
-            'id': str(r[0]),
-            'username': r[1],
-            'avatar': r[2] if r[2] else 'https://cdn.discordapp.com/embed/avatars/0.png',
-            'status': 'online' # Mock status
-        })
+    if rows:
+        for r in rows:
+            users_list.append({
+                'id': str(r[0]),
+                'username': r[1],
+                'avatar': r[2] if r[2] else 'https://cdn.discordapp.com/embed/avatars/0.png',
+                'role': r[3] if len(r) > 3 else 'user',
+                'status': 'online' # Mock status
+            })
         
     return jsonify({'success': True, 'users': users_list})
 
@@ -436,29 +443,32 @@ def api_set_role():
     if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
     
     # Check requester role
-    requester_id = str(session['user']['id'])
-    requester_role = users_db.get(requester_id, {}).get('role', 'user')
+    requester_id = session['user']['id']
+    row = execute_query("SELECT role FROM users WHERE id = %s", (requester_id,), fetch_one=True)
+    requester_role = row[0] if row else 'user'
     
     if requester_role != 'developer': 
         return jsonify({'error': 'Forbidden'}), 403
         
     data = request.json
-    target_id = str(data.get('user_id'))
+    target_id = data.get('user_id')
     new_role = data.get('role')
     
-    if target_id not in users_db:
-        return jsonify({'success': False, 'error': 'User not found'})
-        
+    if not target_id: return jsonify({'success': False, 'error': 'User ID needed'})
+    
     if new_role not in ['developer', 'tester', 'user']:
         return jsonify({'success': False, 'error': 'Invalid role'})
         
     # Prevent demoting founders
-    target_username = users_db[target_id]['username']
-    if target_username in FOUNDERS or target_id in FOUNDERS:
+    target_row = execute_query("SELECT username FROM users WHERE id = %s", (target_id,), fetch_one=True)
+    if not target_row: return jsonify({'success': False, 'error': 'User not found'})
+    
+    target_username = target_row[0]
+    if target_username in FOUNDERS or str(target_id) in FOUNDERS:
         return jsonify({'success': False, 'error': 'Cannot change role of Founder'})
         
-    users_db[target_id]['role'] = new_role
-    save_users()
+    # Update Role
+    execute_query("UPDATE users SET role = %s WHERE id = %s", (new_role, target_id), commit=True)
     
     add_log('warning', f"Role changed for {target_username} to {new_role} by {session['user']['username']}")
     
@@ -495,37 +505,43 @@ def callback():
         
         # Determine if founder
         is_founder = user_data['username'] in FOUNDERS or str(user_data['id']) in FOUNDERS
+        role = 'developer' if is_founder else 'user'
         
+        # Check if user exists
+        existing = execute_query("SELECT id, role, avatar FROM users WHERE username = %s", (user_data['username'],), fetch_one=True)
+        
+        if existing:
+            # Update existing
+            db_id = existing[0]
+            current_role = existing[1]
+            if not is_founder: role = current_role # Keep role if not founder enforcing
+            
+            new_avatar = f"https://cdn.discordapp.com/avatars/{user_data['id']}/{user_data['avatar']}.png" if user_data.get('avatar') else existing[2]
+            
+            execute_query("UPDATE users SET avatar = %s, role = %s WHERE id = %s",
+                          (new_avatar, role, db_id), commit=True)
+            final_id = db_id
+            final_avatar = new_avatar
+        else:
+            # Insert New
+            new_avatar = f"https://cdn.discordapp.com/avatars/{user_data['id']}/{user_data['avatar']}.png" if user_data.get('avatar') else "https://cdn.discordapp.com/embed/avatars/0.png"
+            
+            execute_query("INSERT INTO users (username, password_hash, avatar, created_at, role, display_name, reputation) VALUES (%s, %s, %s, %s, %s, %s, 0)",
+                          (user_data['username'], 'oauth_user', new_avatar, time.time(), role, user_data.get('global_name', user_data['username'])), commit=True)
+            
+            # Fetch ID
+            row = execute_query("SELECT id FROM users WHERE username = %s", (user_data['username'],), fetch_one=True)
+            final_id = row[0]
+            final_avatar = new_avatar
+
         session.permanent = True
         session['user'] = {
-            'id': user_data['id'],
+            'id': str(final_id),
             'username': user_data['username'],
-            'avatar': f"https://cdn.discordapp.com/avatars/{user_data['id']}/{user_data['avatar']}.png" if user_data.get('avatar') else "https://cdn.discordapp.com/embed/avatars/0.png",
+            'avatar': final_avatar,
+            'role': role,
             'is_founder': is_founder
         }
-
-        # Update Users DB
-        uid = str(user_data['id'])
-        role = 'user'
-        
-        # Check if already exists to keep role
-        if uid in users_db:
-            role = users_db[uid].get('role', 'user')
-        
-        # Founders always force developer role
-        if is_founder:
-            role = 'developer'
-
-        users_db[uid] = {
-            'username': user_data['username'],
-            'avatar': session['user']['avatar'],
-            'role': role,
-            'last_login': datetime.now().isoformat()
-        }
-        save_users()
-        
-        # Add role to session for easy access
-        session['user']['role'] = role
 
         return redirect(url_for('index'))
     except Exception as e:
@@ -561,11 +577,18 @@ def api_bot_status():
         mem_used = 0
         mem_pct = 0
         
+    # Get user count from DB
+    row = execute_query("SELECT COUNT(*) FROM users", fetch_one=True)
+    user_count = row[0] if row else 0
+    
+    # Update global status just in case
+    bot_status['users'] = user_count
+        
     return jsonify({
         'running': bot_status['running'],
         'uptime': uptime,
         'servers': bot_status['servers'],
-        'users': bot_status['users'],
+        'users': user_count, 
         'commands_today': bot_status['commands_today'],
         'cpu_percent': cpu,
         'memory_used': mem_used,
@@ -1485,49 +1508,38 @@ def api_reputation_give():
     if 'user' not in session: return jsonify({'success': False, 'error': 'Auth needed'}), 401
     
     data = request.json
-    target_id = str(data.get('target_id'))
-    sender_id = str(session['user']['id'])
+    target_id = data.get('target_id')
+    sender_id = session['user']['id']
     
-    if not target_id or target_id not in users_db:
-        return jsonify({'success': False, 'error': 'User not found'})
-        
-    if target_id == sender_id:
+    if not target_id: return jsonify({'success': False, 'error': 'Target required'})
+    if str(target_id) == str(sender_id):
         return jsonify({'success': False, 'error': 'РќРµР»СЊР·СЏ РїРѕРІС‹С€Р°С‚СЊ СЂРµРїСѓС‚Р°С†РёСЋ СЃР°РјРѕРјСѓ СЃРµР±Рµ'})
         
-    # Initialize rep data if missing
-    if 'reputation' not in users_db[target_id]: users_db[target_id]['reputation'] = 0
-    if 'given_rep_to' not in users_db[sender_id]: users_db[sender_id]['given_rep_to'] = []
+    # Check if target exists
+    t_row = execute_query("SELECT username, reputation FROM users WHERE id = %s", (target_id,), fetch_one=True)
+    if not t_row: return jsonify({'success': False, 'error': 'User not found'})
     
-    # Check if already given
-    if target_id in users_db[sender_id]['given_rep_to']:
-         return jsonify({'success': False, 'error': 'Р’С‹ СѓР¶Рµ РїРѕРІС‹С€Р°Р»Рё СЂРµРїСѓС‚Р°С†РёСЋ СЌС‚РѕРјСѓ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ'})
-         
-    # Update logic
-    users_db[target_id]['reputation'] += 1
-    users_db[sender_id]['given_rep_to'].append(target_id)
-    save_users()
+    # Update Reputation
+    new_rep = t_row[1] + 1
+    execute_query("UPDATE users SET reputation = %s WHERE id = %s", (new_rep, target_id), commit=True)
     
-    add_log('info', f"Reputation given: {session['user']['username']} -> {users_db[target_id]['username']}")
+    add_log('info', f"Reputation given: {session['user']['username']} -> {t_row[0]}")
     
-    return jsonify({'success': True, 'new_rep': users_db[target_id]['reputation']})
+    return jsonify({'success': True, 'new_rep': new_rep})
 
 @app.route('/api/reputation/top')
 def api_reputation_top():
     # Return top 10 users by reputation
-    sorted_users = sorted(
-        users_db.items(),
-        key=lambda item: item[1].get('reputation', 0),
-        reverse=True
-    )
+    rows = execute_query("SELECT id, username, avatar, reputation, role FROM users ORDER BY reputation DESC LIMIT 10", fetch_all=True)
     
     top_list = []
-    for uid, data in sorted_users[:10]:
+    for r in rows:
         top_list.append({
-            'id': uid,
-            'username': data['username'],
-            'avatar': data['avatar'],
-            'reputation': data.get('reputation', 0),
-            'role': data.get('role', 'user')
+            'id': str(r[0]),
+            'username': r[1],
+            'avatar': r[2],
+            'reputation': r[3],
+            'role': r[4]
         })
         
     return jsonify({'success': True, 'top': top_list})
@@ -1732,46 +1744,46 @@ def api_get_friends():
     if 'user' not in session: return jsonify({'success': False, 'error': 'Auth needed'}), 401
     uid = int(session['user']['id'])
     
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    
-    # helper
-    def get_user_lite(user_id):
-        c.execute('SELECT id, username, avatar, display_name FROM users WHERE id = ?', (user_id,))
-        r = c.fetchone()
-        if r: return {'id': r[0], 'username': r[1], 'avatar': r[2], 'display_name': r[3]}
-        return None
+    # Helper to format user
+    def fmt_user(row):
+        return {'id': str(row[0]), 'username': row[1], 'avatar': row[2], 'display_name': row[3]}
 
     friends = []
     incoming = []
     outgoing = []
     
     # 1. Incoming: I am user_2, status pending
-    c.execute('SELECT user_id_1 FROM friends WHERE user_id_2 = ? AND status = ?', (uid, 'pending'))
-    rows_in = c.fetchall()
-    print(f"DEBUG: Friends Incoming for {uid}: Found {len(rows_in)} rows: {rows_in}")
-    for r in rows_in:
-        u = get_user_lite(r[0])
-        if u: incoming.append(u)
+    rows_in = execute_query("""
+        SELECT u.id, u.username, u.avatar, u.display_name 
+        FROM friends f 
+        JOIN users u ON u.id = f.user_id_1 
+        WHERE f.user_id_2 = %s AND f.status = 'pending'
+    """, (uid,), fetch_all=True)
+    
+    for r in rows_in: incoming.append(fmt_user(r))
         
     # 2. Outgoing: I am user_1, status pending
-    c.execute('SELECT user_id_2 FROM friends WHERE user_id_1 = ? AND status = ?', (uid, 'pending'))
-    rows_out = c.fetchall()
-    print(f"DEBUG: Friends Outgoing for {uid}: Found {len(rows_out)} rows: {rows_out}")
-    for r in rows_out:
-         u = get_user_lite(r[0])
-         if u: outgoing.append(u)
+    rows_out = execute_query("""
+        SELECT u.id, u.username, u.avatar, u.display_name 
+        FROM friends f 
+        JOIN users u ON u.id = f.user_id_2 
+        WHERE f.user_id_1 = %s AND f.status = 'pending'
+    """, (uid,), fetch_all=True)
+    
+    for r in rows_out: outgoing.append(fmt_user(r))
          
-    # 3. Friends: Accepted (Logic: u1=me or u2=me)
-    c.execute('SELECT user_id_1, user_id_2 FROM friends WHERE (user_id_1 = ? OR user_id_2 = ?) AND status = ?', (uid, uid, 'accepted'))
-    friends_rows = c.fetchall()
-    for r in friends_rows:
-        fid = r[1] if r[0] == uid else r[0]
-        u = get_user_lite(fid)
-        if u: friends.append(u)
+    # 3. Friends: Accepted
+    rows_friends = execute_query("""
+        SELECT u.id, u.username, u.avatar, u.display_name
+        FROM friends f
+        JOIN users u ON (u.id = f.user_id_1 OR u.id = f.user_id_2)
+        WHERE (f.user_id_1 = %s OR f.user_id_2 = %s) 
+        AND f.status = 'accepted'
+        AND u.id != %s
+    """, (uid, uid, uid), fetch_all=True)
+
+    for r in rows_friends: friends.append(fmt_user(r))
         
-    conn.close()
-    print(f"DEBUG: API Returning for {uid}: Incoming={len(incoming)}, Outgoing={len(outgoing)}, Friends={len(friends)}")
     return jsonify({'success': True, 'friends': friends, 'incoming': incoming, 'outgoing': outgoing})
 
 @app.route('/api/friends/request', methods=['POST'])
@@ -1782,36 +1794,27 @@ def api_friend_request():
     target_username = data.get('username')
     sender_id = int(session['user']['id'])
     
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    if not target_username: return jsonify({'success': False, 'error': 'Username required'})
     
     # Find target
-    c.execute('SELECT id FROM users WHERE username = ?', (target_username,))
-    row = c.fetchone()
-    if not row:
-        conn.close()
-        return jsonify({'success': False, 'error': 'User not found'})
+    row = execute_query('SELECT id FROM users WHERE username = %s', (target_username,), fetch_one=True)
+    if not row: return jsonify({'success': False, 'error': 'User not found'})
     target_id = int(row[0])
     
     if target_id == sender_id:
-        conn.close()
         return jsonify({'success': False, 'error': 'Cannot add yourself'})
         
     # Check existing
-    c.execute('SELECT status FROM friends WHERE (user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?)', 
-              (sender_id, target_id, target_id, sender_id))
-    existing = c.fetchone()
+    existing = execute_query('SELECT status FROM friends WHERE (user_id_1 = %s AND user_id_2 = %s) OR (user_id_1 = %s AND user_id_2 = %s)', 
+                             (sender_id, target_id, target_id, sender_id), fetch_one=True)
     if existing:
-        conn.close()
         st = existing[0]
         if st == 'accepted': return jsonify({'success': False, 'error': 'Already friends'})
         return jsonify({'success': False, 'error': 'Request already pending'})
     
     # Insert (Sender is 1)
-    c.execute('INSERT INTO friends (user_id_1, user_id_2, status, created_at) VALUES (?, ?, ?, ?)',
-              (sender_id, target_id, 'pending', time.time()))
-    conn.commit()
-    conn.close()
+    execute_query('INSERT INTO friends (user_id_1, user_id_2, status, created_at) VALUES (%s, %s, %s, %s)',
+                  (sender_id, target_id, 'pending', time.time()), commit=True)
     
     return jsonify({'success': True})
 
@@ -1825,29 +1828,23 @@ def api_friend_accept():
         return jsonify({'success': False, 'error': 'Invalid ID'})
     my_id = int(session['user']['id'])
     
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    
     # Update status where I am u2 and they are u1
-    c.execute('UPDATE friends SET status = ? WHERE user_id_1 = ? AND user_id_2 = ?', ('accepted', target_id, my_id))
+    # Using execute_query with commit returns None usually, but we need rowcount check?
+    # execute_query abstraction doesn't return rowcount easily unless we verify.
+    # Let's check existence first.
     
-    if c.rowcount == 0:
-        conn.close()
+    chk = execute_query('SELECT id FROM friends WHERE user_id_1 = %s AND user_id_2 = %s AND status = %s', 
+                        (target_id, my_id, 'pending'), fetch_one=True)
+    if not chk:
         return jsonify({'success': False, 'error': 'No pending request found'})
         
-    conn.commit()
-    conn.close()
+    execute_query('UPDATE friends SET status = %s WHERE id = %s', ('accepted', chk[0]), commit=True)
+    
     return jsonify({'success': True})
-
-
 
 @app.route('/debug/friends_dump')
 def debug_friends_dump():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('SELECT * FROM friends')
-    rows = c.fetchall()
-    conn.close()
+    rows = execute_query('SELECT * FROM friends', fetch_all=True)
     return jsonify({'rows': rows})
 
 if __name__ == '__main__':
