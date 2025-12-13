@@ -18,7 +18,7 @@ import psutil
 import concurrent.futures
 import utils
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 
@@ -26,6 +26,13 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev_secret_key_fixed_12345')
 app.permanent_session_lifetime = timedelta(days=30)
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+@socketio.on('connect')
+def handle_connect():
+    if 'user' in session:
+        user_id = str(session['user']['id'])
+        join_room(user_id)
+        print(f"User {session['user']['username']} (ID: {user_id}) joined room {user_id}")
 
 import psycopg2
 from urllib.parse import urlparse
@@ -2162,14 +2169,18 @@ def api_dm_send_by_id(dm_id):
     username = u[0] if u else 'Unknown'
     avatar = u[1] if (u and u[1]) else DEFAULT_AVATAR
     
-    # Emit via Socket.IO
-    socketio.emit('new_dm_message', {
+    # Emit via Socket.IO using Rooms
+    payload = {
         'dm_id': dm_id,
         'author': username,
         'avatar': avatar,
         'content': content,
         'timestamp': time.time()
-    })
+    }
+    
+    # Send to sender and recipient
+    socketio.emit('new_dm_message', payload, room=str(dm_row[0])) # User 1
+    socketio.emit('new_dm_message', payload, room=str(dm_row[1])) # User 2
     
     return jsonify({'success': True})
 
@@ -2200,8 +2211,9 @@ def api_dm_send(target_id):
         'users': [my_id, target_id] # IDs to filter on frontend
     }
     
-    # Emit real-time event
-    socketio.emit('new_dm_message', msg_obj)
+    # Emit real-time event SECURELY
+    socketio.emit('new_dm_message', msg_obj, room=str(my_id))
+    socketio.emit('new_dm_message', msg_obj, room=str(target_id))
     
     # Return message data for frontend optimistic update
     return jsonify({
