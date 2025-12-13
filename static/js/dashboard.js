@@ -14,6 +14,8 @@ const Utils = {
     copyToClipboard: (text) => navigator.clipboard.writeText(text)
 };
 
+const DEFAULT_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzU4NjVmMiIvPjwvc3ZnPg==";
+
 const DiscordModule = {
     currentServer: 'home',
     currentChannel: null,
@@ -711,7 +713,7 @@ const DiscordModule = {
             if (data.success && data.members) {
                 container.innerHTML = data.members.map(member => `
                     <div class="member-item" style="display:flex; align-items:center; padding:10px; gap:12px; border-bottom:1px solid #2f3136;">
-                        <img src="${member.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" style="width:40px; height:40px; border-radius:50%;">
+                        <img src="${member.avatar || DEFAULT_AVATAR}" style="width:40px; height:40px; border-radius:50%;">
                         <div style="flex:1;">
                             <div style="color:white; font-weight:500;">${member.username}</div>
                             <div style="color:#72767d; font-size:12px;">ID: ${member.id}</div>
@@ -831,7 +833,7 @@ const DiscordModule = {
 
         const html = `
         <div class="message-group">
-            <img src="${msgData.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="message-avatar">
+            <img src="${msgData.avatar || DEFAULT_AVATAR}" class="message-avatar">
             <div class="message-content">
                 <div class="message-header">
                     <span class="msg-author" style="color:${msgData.color || 'white'}">${msgData.author}</span>
@@ -863,7 +865,7 @@ const DiscordModule = {
         const virtuals = ['helper', 'news', 'community', 'admin', 'profile', 'biography', 'search-rules', 'ad-editor'];
         if (virtuals.includes(DiscordModule.currentChannel)) {
             DiscordModule.addMessage(DiscordModule.currentChannel, {
-                author: 'You', avatar: 'https://cdn.discordapp.com/embed/avatars/1.png', text: text
+                author: 'You', avatar: DEFAULT_AVATAR, text: text
             });
             if (DiscordModule.currentChannel === 'helper') await DiscordModule.askAI(text);
         } else if (DiscordModule.activeDM) {

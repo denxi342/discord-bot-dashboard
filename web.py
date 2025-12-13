@@ -37,6 +37,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SERVERS_FILE = os.path.join(BASE_DIR, 'servers.json')
 servers_db = {}
 
+# Default Avatar (Data URI to avoid external CDN blocks)
+DEFAULT_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzU4NjVmMiIvPjwvc3ZnPg=="
+
 # Servers will be loaded after the full load_servers() function is defined below
 
 def get_db_connection():
@@ -160,7 +163,7 @@ def api_register():
     
     try:
         hash_pw = generate_password_hash(password)
-        avatar = f"https://cdn.discordapp.com/embed/avatars/{random.randint(0,5)}.png"
+        avatar = DEFAULT_AVATAR
         
         # Postgres uses %s, SQLite uses ? (handled by wrapper)
         execute_query("INSERT INTO users (username, password_hash, avatar, created_at, role, reputation) VALUES (%s, %s, %s, %s, 'user', 0)", 
@@ -411,7 +414,7 @@ def api_get_users():
             users_list.append({
                 'id': str(r[0]),
                 'username': r[1],
-                'avatar': r[2] if r[2] else 'https://cdn.discordapp.com/embed/avatars/0.png',
+                'avatar': r[2] if r[2] else DEFAULT_AVATAR,
                 'role': r[3] if len(r) > 3 else 'user',
                 'status': 'online' # Mock status
             })
@@ -504,7 +507,7 @@ def callback():
             final_avatar = new_avatar
         else:
             # Insert New
-            new_avatar = f"https://cdn.discordapp.com/avatars/{user_data['id']}/{user_data['avatar']}.png" if user_data.get('avatar') else "https://cdn.discordapp.com/embed/avatars/0.png"
+            new_avatar = f"https://cdn.discordapp.com/avatars/{user_data['id']}/{user_data['avatar']}.png" if user_data.get('avatar') else DEFAULT_AVATAR
             
             execute_query("INSERT INTO users (username, password_hash, avatar, created_at, role, display_name, reputation) VALUES (%s, %s, %s, %s, %s, %s, 0)",
                           (user_data['username'], 'oauth_user', new_avatar, time.time(), role, user_data.get('global_name', user_data['username'])), commit=True)
@@ -1683,7 +1686,7 @@ def api_get_server_members(sid):
         members.append({
             'id': str(r[0]),
             'username': r[1],
-            'avatar': r[2] if r[2] else 'https://cdn.discordapp.com/embed/avatars/0.png',
+            'avatar': r[2] if r[2] else DEFAULT_AVATAR,
             'display_name': r[3]
         })
     
@@ -1789,7 +1792,7 @@ def api_get_friends():
     
     # Helper to format user
     def fmt_user(row):
-        avatar = row[2] if row[2] else 'https://cdn.discordapp.com/embed/avatars/0.png'
+        avatar = row[2] if row[2] else DEFAULT_AVATAR
         return {'id': str(row[0]), 'username': row[1], 'avatar': avatar, 'display_name': row[3]}
 
     friends = []
@@ -1938,7 +1941,7 @@ def api_get_dms():
             'other_user': {
                 'id': str(other_id),
                 'username': u_row[0],
-                'avatar': u_row[1] if u_row[1] else 'https://cdn.discordapp.com/embed/avatars/0.png',
+                'avatar': u_row[1] if u_row[1] else DEFAULT_AVATAR,
                 'display_name': u_row[2]
             },
             'last_message_at': ts
@@ -1974,8 +1977,9 @@ def api_dm_messages_by_id(dm_id):
         messages.append({
             'content': r[0],
             'timestamp': r[1],
+            'timestamp': r[1],
             'username': r[2],
-            'avatar': r[3] if r[3] else 'https://cdn.discordapp.com/embed/avatars/0.png'
+            'avatar': r[3] if r[3] else DEFAULT_AVATAR
         })
         
     return jsonify({'success': True, 'messages': messages})
@@ -2001,8 +2005,9 @@ def api_dm_messages(target_id):
         messages.append({
             'content': r[0],
             'timestamp': r[1],
+            'timestamp': r[1],
             'username': r[2],
-            'avatar': r[3] if r[3] else 'https://cdn.discordapp.com/embed/avatars/0.png'
+            'avatar': r[3] if r[3] else DEFAULT_AVATAR
         })
         
     return jsonify({'success': True, 'messages': messages})
@@ -2039,7 +2044,7 @@ def api_dm_send_by_id(dm_id):
     # Get user info for socket broadcast
     u = execute_query('SELECT username, avatar FROM users WHERE id = %s', (my_id,), fetch_one=True)
     username = u[0] if u else 'Unknown'
-    avatar = u[1] if (u and u[1]) else 'https://cdn.discordapp.com/embed/avatars/0.png'
+    avatar = u[1] if (u and u[1]) else DEFAULT_AVATAR
     
     # Emit via Socket.IO
     socketio.emit('new_dm_message', {
