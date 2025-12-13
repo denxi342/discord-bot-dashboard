@@ -307,8 +307,10 @@ const DiscordModule = {
             `;
         }
 
-        const first = data.channels.find(c => c.type === 'channel');
-        if (first) DiscordModule.selectChannel(first.id, 'channel');
+        const first = data.channels.find(c => c.type !== 'voice' && c.type !== 'category');
+        if (first) {
+            DiscordModule.selectChannel(first.id, first.type || 'channel');
+        }
     },
 
     renderHomeSidebar: (container) => {
