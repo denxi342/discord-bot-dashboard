@@ -195,6 +195,18 @@ const DiscordModule = {
             if (data.success && data.servers) {
                 DiscordModule.serverData = data.servers;
                 DiscordModule.renderServerList();
+
+                // Auto-select first server if none selected
+                if (!DiscordModule.currentServer) {
+                    const serverIds = Object.keys(data.servers);
+                    if (serverIds.length > 0) {
+                        // Select first non-home server
+                        const firstServer = serverIds.find(id => id !== 'home');
+                        if (firstServer) {
+                            DiscordModule.selectServer(firstServer);
+                        }
+                    }
+                }
             }
         } catch (e) { console.error("Failed to load servers", e); }
     },
