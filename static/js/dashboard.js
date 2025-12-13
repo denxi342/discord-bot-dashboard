@@ -469,18 +469,6 @@ const DiscordModule = {
         DiscordModule.currentChannel = chanId;
         DiscordModule.activeDM = null; // Clear DM context when switching to normal channel
 
-        // Restore server member list and hide DM profile (if any)
-        const serverListContainer = document.getElementById('server-member-list-container');
-        const dmProfileContainer = document.getElementById('dm-profile-container');
-        const memberSidebar = document.getElementById('member-sidebar');
-
-        if (serverListContainer) serverListContainer.style.display = 'block';
-        if (dmProfileContainer) {
-            dmProfileContainer.style.display = 'none';
-            dmProfileContainer.innerHTML = '';
-        }
-        if (memberSidebar) memberSidebar.style.display = 'flex'; // Ensure sidebar parent is visible
-
         // Show chat input when selecting a channel (hide only on friends)
         const chatInput = document.querySelector('.chat-input-area');
         if (chatInput && chanId !== 'friends') {
@@ -526,11 +514,32 @@ const DiscordModule = {
 
         if (targetView) {
             targetView.classList.add('active');
+
+            // --- Sidebar Visibility Logic ---
+            const memberSidebar = document.getElementById('member-sidebar');
+            const serverListContainer = document.getElementById('server-member-list-container');
+            const dmProfileContainer = document.getElementById('dm-profile-container');
+
+            // Always clear DM profile when switching to server channel
+            if (dmProfileContainer) {
+                dmProfileContainer.style.display = 'none';
+                dmProfileContainer.innerHTML = '';
+            }
+
+            if (viewKey === 'general') {
+                // Show Server Member List for chat channels
+                if (memberSidebar) memberSidebar.style.display = 'flex';
+                if (serverListContainer) serverListContainer.style.display = 'block';
+                DiscordModule.loadChannelMessages(chanId);
+            } else {
+                // Hide Sidebar for non-chat views (AI, News, etc.)
+                if (memberSidebar) memberSidebar.style.display = 'none';
+            }
+
             if (viewKey === 'news') DiscordModule.loadNews();
             if (viewKey === 'community') DiscordModule.loadLeaderboard();
             if (viewKey === 'admin') DiscordModule.loadUsers();
             if (viewKey === 'profile') DiscordModule.loadProfile();
-            if (viewKey === 'general') DiscordModule.loadChannelMessages(chanId);
         }
     },
 
