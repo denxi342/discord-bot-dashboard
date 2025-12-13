@@ -324,9 +324,6 @@ def save_servers():
     except Exception as e:
         print(f"Error saving servers: {e}")
 
-# Initialize servers on startup
-load_servers()
-print(f"✓ Loaded {len(servers_db)} servers from storage")
 
 # Bot status tracking
 bot_status = {
@@ -2116,6 +2113,10 @@ def api_dm_send(target_id):
 def debug_friends_dump():
     rows = execute_query('SELECT * FROM friends', fetch_all=True)
     return jsonify({'rows': rows})
+
+# Initialize servers after all functions are defined
+load_servers()
+print(f"✓ Loaded {len(servers_db)} servers")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
