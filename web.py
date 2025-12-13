@@ -271,9 +271,39 @@ def load_servers():
             with open(SERVERS_FILE, 'r', encoding='utf-8') as f:
                 servers_db = json.load(f)
         else:
-            # Seed Defaults
+            # Seed Defaults if file doesn't exist
             servers_db = {
                 'home': {
+                    'name': 'Главная',
+                    'icon': 'discord',
+                    'owner': 'system',
+                    'channels': [
+                        { 'id': 'cat-info', 'type': 'category', 'name': 'ИНФОРМАЦИЯ' },
+                        { 'id': 'general', 'type': 'channel', 'name': 'general', 'icon': 'hashtag' },
+                        { 'id': 'news', 'type': 'channel', 'name': 'news-feed', 'icon': 'newspaper' }
+                    ]
+                },
+                'ai': {
+                    'name': 'Arizona AI',
+                    'icon': 'robot',
+                    'owner': 'system',
+                    'channels': [
+                        { 'id': 'cat-ai', 'type': 'category', 'name': 'ASSISTANT' },
+                        { 'id': 'helper', 'type': 'channel', 'name': 'chat-gpt', 'icon': 'robot' }
+                    ]
+                }
+            }
+            save_servers()
+    except Exception as e:
+        print(f"Error loading servers: {e}")
+        servers_db = {}
+
+def save_servers():
+    try:
+        with open(SERVERS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(servers_db, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error saving servers: {e}")
                     'name': 'Р“Р»Р°РІРЅР°СЏ',
                     'icon': 'discord', # fa-brand
                     'owner': 'system',
