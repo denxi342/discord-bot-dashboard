@@ -134,8 +134,6 @@ def init_db():
     conn.close()
     print("Database initialized.")
 
-load_servers()
-
 # Removed file-based users_db logic since we now have columns for role/reputation in DB.
 
 init_db()
