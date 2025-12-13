@@ -1292,8 +1292,8 @@ const DiscordModule = {
                 </div>
 
                 <div class="hero-empty-state">
-                    <img src="https://assets-global.website-files.com/6257adef93867e56f84d3092/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" width="120" style="opacity:0.2; filter:grayscale(1);">
-                    <p>Wumpus is waiting on friends. You don't have to though!</p>
+                    <div style="font-size: 64px; margin-bottom: 16px;">😢</div>
+                    <p>Здесь пока пусто... Добавьте друзей!</p>
                 </div>
              </div>`;
             return;
