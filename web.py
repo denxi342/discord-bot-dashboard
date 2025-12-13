@@ -50,7 +50,11 @@ def load_servers():
 
 def save_servers():
     with open(SERVERS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(servers_db, f, indent=4)
+        json.dump(servers_db, f, ensure_ascii=False, indent=2)
+
+# Initialize servers on startup
+load_servers()
+print(f"Loaded {len(servers_db)} servers from storage")
 
 def get_db_connection():
     db_url = os.environ.get('DATABASE_URL')
