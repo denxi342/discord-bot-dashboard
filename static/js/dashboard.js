@@ -565,9 +565,20 @@ const DiscordModule = {
     },
 
     openServerSettings: (tab = 'overview') => {
+        // Check if server settings view exists
+        const settingsView = document.getElementById('server-settings-view');
+        const channelView = document.getElementById('channel-view');
+
+        if (!settingsView) {
+            // If the settings view doesn't exist, show a simple alert for now
+            alert('Server settings UI is being implemented. Coming soon!');
+            console.warn('server-settings-view element not found in DOM');
+            return;
+        }
+
         // Switch to server settings view
-        document.getElementById('channel-view').style.display = 'none';
-        document.getElementById('server-settings-view').style.display = 'block';
+        if (channelView) channelView.style.display = 'none';
+        settingsView.style.display = 'block';
 
         // Load the selected tab
         document.querySelectorAll('.ss-tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -581,8 +592,11 @@ const DiscordModule = {
     },
 
     closeServerSettings: () => {
-        document.getElementById('server-settings-view').style.display = 'none';
-        document.getElementById('channel-view').style.display = 'block';
+        const settingsView = document.getElementById('server-settings-view');
+        const channelView = document.getElementById('channel-view');
+
+        if (settingsView) settingsView.style.display = 'none';
+        if (channelView) channelView.style.display = 'block';
     },
 
     apiCreateServer: async (payload) => {
