@@ -1562,11 +1562,19 @@ def api_reputation_top():
     return jsonify({'success': True, 'top': top_list})
 
 # --- SERVER MANAGEMENT API ---
+threading.Thread(target=simulate, daemon=True).start()
+
+simulate_messages()
+
+# ===== SERVER & CHANNEL APIs =====
+
 @app.route('/api/servers', methods=['GET'])
 def api_get_servers():
-    if 'user' not in session: return jsonify({'success': False, 'error': 'Auth required'}), 401
-    # Check permissions? For now everyone sees all, or we could filter by visibility
-    # For now, return ALL servers (Global List)
+    """Return all servers for the current user"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Auth required'}), 401
+    
+    # For now, return all servers (in production, filter by user membership)
     return jsonify({'success': True, 'servers': servers_db})
 
 @app.route('/api/servers/create', methods=['POST'])
