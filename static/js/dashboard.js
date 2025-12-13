@@ -341,6 +341,7 @@ const DiscordModule = {
             const data = await res.json();
 
             if (data.success && data.dms.length > 0) {
+                DiscordModule.dmList = data.dms; // Store for later access
                 container.innerHTML = '';
                 data.dms.forEach(dm => {
                     const u = dm.other_user;
@@ -1149,8 +1150,8 @@ const DiscordModule = {
         // This requires refactoring loadChannel to support DMs or creating loadDMChat.
         // Let's create a stub for now that shows "Chat with X".
         const container = document.getElementById('channel-view-general');
-        const activeDM = DiscordModule.dmList.find(d => d.id == dmId);
-        const name = activeDM ? activeDM.user.username : 'Unknown';
+        const activeDM = DiscordModule.dmList ? DiscordModule.dmList.find(d => d.id == dmId) : null;
+        const name = activeDM ? activeDM.other_user.username : 'Chat';
 
         container.innerHTML = `
             <div class="chat-header">
