@@ -2486,3 +2486,22 @@ body::before {
     margin: 0;
     font-size: 16px;
 }
+
+/* ========================================
+   SETTINGS SIDEBAR FIX
+   ======================================== */
+
+.settings-sidebar-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+}
+
+.settings-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    padding-top: 20px;
+}
