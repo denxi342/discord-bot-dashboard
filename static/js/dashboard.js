@@ -530,13 +530,34 @@ const DiscordModule = {
     },
 
     createChannelPrompt: (sid, categoryId) => {
-        const name = prompt("Enter Channel Name:");
-        if (!name) return;
+        DiscordModule.currentServerForChannel = sid;
+        DiscordModule.currentCategoryForChannel = categoryId;
 
-        const isVoice = confirm("Voice Channel?");
-        const type = isVoice ? 'voice' : 'channel';
+        // Reset form
+        document.getElementById('new-channel-name').value = '';
+        document.querySelector('input[name="channel-type"][value="channel"]').checked = true;
+
+        // Show modal
+        document.getElementById('create-channel-modal').style.display = 'flex';
+    },
+
+    closeChannelModal: () => {
+        document.getElementById('create-channel-modal').style.display = 'none';
+    },
+
+    finishCreateChannel: () => {
+        const name = document.getElementById('new-channel-name').value.trim();
+        if (!name) {
+            alert('Введите название канала');
+            return;
+        }
+
+        const type = document.querySelector('input[name="channel-type"]:checked').value;
+        const sid = DiscordModule.currentServerForChannel;
+        const categoryId = DiscordModule.currentCategoryForChannel;
 
         DiscordModule.apiCreateChannel(sid, name, type, categoryId);
+        DiscordModule.closeChannelModal();
     },
 
     uiCreateChannel: (sid) => {
