@@ -565,38 +565,52 @@ const DiscordModule = {
     },
 
     openServerSettings: (tab = 'overview') => {
-        // Check if server settings view exists
-        const settingsView = document.getElementById('server-settings-view');
-        const channelView = document.getElementById('channel-view');
+        // Use the correct modal ID
+        const settingsModal = document.getElementById('server-settings-modal');
 
-        if (!settingsView) {
-            // If the settings view doesn't exist, show a simple alert for now
+        if (!settingsModal) {
             alert('Server settings UI is being implemented. Coming soon!');
-            console.warn('server-settings-view element not found in DOM');
+            console.warn('server-settings-modal element not found in DOM');
             return;
         }
 
-        // Switch to server settings view
-        if (channelView) channelView.style.display = 'none';
-        settingsView.style.display = 'block';
+        // Show the modal
+        settingsModal.style.display = 'flex';
 
-        // Load the selected tab
-        document.querySelectorAll('.ss-tab-btn').forEach(btn => btn.classList.remove('active'));
+        // Switch to the selected tab
+        DiscordModule.switchServerTab(tab);
+    },
+
+    switchServerTab: (tabName) => {
+        // Hide all tabs
         document.querySelectorAll('.server-tab-view').forEach(view => view.style.display = 'none');
 
-        const tabBtn = document.querySelector(`.ss-tab-btn[onclick*="'${tab}'"]`);
+        // Remove active class from all sidebar items
+        document.querySelectorAll('.settings-item').forEach(item => item.classList.remove('active'));
+
+        // Show selected tab
+        const tabView = document.getElementById(`ss-view-${tabName}`);
+        if (tabView) tabView.style.display = 'block';
+
+        // Activate sidebar item
+        const tabBtn = document.getElementById(`ss-tab-${tabName}`);
         if (tabBtn) tabBtn.classList.add('active');
 
-        const tabView = document.getElementById(`ss-view-${tab}`);
-        if (tabView) tabView.style.display = 'block';
+        // Load data for the tab
+        if (tabName === 'members') {
+            DiscordModule.loadServerMembers();
+        } else if (tabName === 'roles') {
+            DiscordModule.loadServerRoles();
+        } else if (tabName === 'invites') {
+            DiscordModule.loadServerInvites();
+        } else if (tabName === 'overview') {
+            DiscordModule.loadServerOverview();
+        }
     },
 
     closeServerSettings: () => {
-        const settingsView = document.getElementById('server-settings-view');
-        const channelView = document.getElementById('channel-view');
-
-        if (settingsView) settingsView.style.display = 'none';
-        if (channelView) channelView.style.display = 'block';
+        const settingsModal = document.getElementById('server-settings-modal');
+        if (settingsModal) settingsModal.style.display = 'none';
     },
 
     apiCreateServer: async (payload) => {

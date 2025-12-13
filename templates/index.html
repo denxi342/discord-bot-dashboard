@@ -468,6 +468,10 @@
             <div class="settings-sidebar">
                 <div class="settings-header">Server Name</div>
 
+                <div class="settings-item" id="ss-tab-overview" onclick="DiscordModule.switchServerTab('overview')">
+                    Обзор
+                </div>
+
                 <div class="settings-category">ЛЮДИ</div>
                 <div class="settings-item" id="ss-tab-members" onclick="DiscordModule.switchServerTab('members')">
                     Участники</div>
@@ -484,6 +488,36 @@
             <div class="settings-content">
                 <button class="close-modal-settings" onclick="DiscordModule.closeServerSettings()"><i
                         class="fa-solid fa-circle-xmark"></i></button>
+
+                <!-- Tab: Overview -->
+                <div id="ss-view-overview" class="server-tab-view" style="display:none">
+                    <h2>Обзор сервера</h2>
+                    <p class="desc">Управляйте основными настройками сервера</p>
+
+                    <div class="input-group">
+                        <label>НАЗВАНИЕ СЕРВЕРА</label>
+                        <input type="text" id="server-name-input" placeholder="Введите название">
+                    </div>
+
+                    <div class="input-group">
+                        <label>ОПИСАНИЕ СЕРВЕРА</label>
+                        <textarea id="server-desc-input" placeholder="Расскажите о вашем сервере" rows="4"
+                            style="width:100%; background:#202225; border:none; color:white; padding:10px; border-radius:4px; resize:vertical;"></textarea>
+                    </div>
+
+                    <div class="input-group">
+                        <label>ИКОНКА СЕРВЕРА</label>
+                        <div style="display:flex; align-items:center; gap:16px;">
+                            <img id="server-icon-preview" src="https://cdn.discordapp.com/embed/avatars/0.png"
+                                style="width:80px; height:80px; border-radius:50%;">
+                            <button class="btn-secondary" onclick="DiscordModule.uploadServerIcon()">Загрузить
+                                изображение</button>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" onclick="DiscordModule.saveServerOverview()">Сохранить
+                        изменения</button>
+                </div>
 
                 <!-- Tab: Roles -->
                 <div id="ss-view-roles" class="server-tab-view" style="display:none">
