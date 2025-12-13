@@ -1,46 +1,66 @@
-/* --- ARIZONA AI PREMIUM THEME --- */
+/* --- GLASSMORPHISM THEME --- */
 :root {
-    /* Core Palette from Anthropic/User Request */
-    --primary: #667eea;
-    --secondary: #764ba2;
-    --primary-gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    /* Core Palette - Glassmorphism */
+    --primary: #a855f7;
+    --secondary: #6366f1;
+    --accent: #22d3ee;
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
 
-    /* Backgrounds */
-    --server-bg: #0a0b0e;
-    /* Darkest (Server List) */
-    --sidebar-bg: #111217;
-    /* Dark (Sidebar) */
-    --chat-bg: #1a1b26;
-    /* Main Content */
-    --header-bg: #1a1b26;
-    /* Header matches content or slightly lighter */
+    /* Glass Effects */
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --glass-blur: blur(20px);
+
+    /* Backgrounds - Now transparent for glass effect */
+    --server-bg: rgba(15, 15, 25, 0.6);
+    --sidebar-bg: rgba(20, 20, 35, 0.5);
+    --chat-bg: rgba(25, 25, 45, 0.4);
+    --header-bg: rgba(30, 30, 50, 0.6);
 
     /* Interactive */
-    --channel-hover: rgba(255, 255, 255, 0.05);
-    --channel-active: rgba(102, 126, 234, 0.15);
-    /* Primary tint */
-    --item-active-border: #667eea;
+    --channel-hover: rgba(255, 255, 255, 0.1);
+    --channel-active: rgba(168, 85, 247, 0.25);
+    --item-active-border: #a855f7;
 
     /* Text */
     --text-normal: #ffffff;
-    --text-muted: rgba(255, 255, 255, 0.6);
+    --text-muted: rgba(255, 255, 255, 0.65);
 
-    /* Brand Overrides */
-    --brand: #667eea;
-    --danger: #ef4444;
-    --success: #22c55e;
+    /* Brand */
+    --brand: #a855f7;
+    --danger: #f43f5e;
+    --success: #10b981;
+
+    /* Glow */
+    --glow-primary: 0 0 20px rgba(168, 85, 247, 0.4);
+    --glow-accent: 0 0 15px rgba(34, 211, 238, 0.3);
 }
 
 body {
     margin: 0;
     padding: 0;
-    background-color: var(--chat-bg);
     color: var(--text-normal);
     font-family: 'Inter', sans-serif;
     overflow: hidden;
-    /* Subtle background gradient hint */
-    background-image: radial-gradient(circle at 100% 0%, rgba(102, 126, 234, 0.05) 0%, transparent 20%),
-        radial-gradient(circle at 0% 100%, rgba(118, 75, 162, 0.05) 0%, transparent 20%);
+    /* Animated gradient background */
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #1a1a2e 75%, #16213e 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 .discord-app {
@@ -52,7 +72,9 @@ body {
 /* 1. SERVER LIST */
 .server-list {
     width: 72px;
-    background-color: var(--server-bg);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -60,14 +82,16 @@ body {
     gap: 12px;
     overflow-y: auto;
     flex-shrink: 0;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-right: 1px solid var(--glass-border);
 }
 
 .server-icon {
     width: 48px;
     height: 48px;
-    background-color: rgba(255, 255, 255, 0.1);
-    /* Glassy placeholder */
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
     border-radius: 50%;
     display: flex;
     justify-content: center;
@@ -77,21 +101,22 @@ body {
     color: var(--text-muted);
     font-size: 24px;
     position: relative;
-    border: 2px solid transparent;
 }
 
 .server-icon:hover {
     border-radius: 16px;
-    background-color: var(--primary);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
-    box-shadow: 0 0 15px rgba(102, 126, 234, 0.4);
+    box-shadow: var(--glow-primary);
+    border-color: var(--primary);
 }
 
 .server-icon.active {
     border-radius: 16px;
     background: var(--primary-gradient);
     color: white;
-    box-shadow: 0 0 15px rgba(118, 75, 162, 0.5);
+    box-shadow: var(--glow-primary);
+    border-color: transparent;
 }
 
 .server-sep {
@@ -104,7 +129,10 @@ body {
 /* 2. CHANNEL SIDEBAR */
 .channel-sidebar {
     width: 240px;
-    background-color: var(--sidebar-bg);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-right: 1px solid var(--glass-border);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -226,10 +254,12 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background-color: var(--chat-bg);
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
     position: relative;
-    /* Ambient glow top right */
-    background: radial-gradient(circle at top right, rgba(102, 126, 234, 0.08), transparent 40%), var(--chat-bg);
+    /* Ambient glow effects */
+    box-shadow: inset 0 0 100px rgba(168, 85, 247, 0.05);
 }
 
 .chat-header {
@@ -444,20 +474,22 @@ body {
 }
 
 .chat-input-wrapper {
-    background-color: rgba(255, 255, 255, 0.05);
-    /* Glassy input */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
     display: flex;
     align-items: center;
-    padding: 12px 16px;
-    transition: all 0.2s;
+    padding: 14px 18px;
+    transition: all 0.3s ease;
+    box-shadow: var(--glass-shadow);
 }
 
 .chat-input-wrapper:focus-within {
-    background-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.12);
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    box-shadow: var(--glow-primary), var(--glass-shadow);
 }
 
 .input-btn {
@@ -526,26 +558,28 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
-
     animation: fadeIn 0.2s forwards;
 }
 
 .discord-modal {
-    background: #1a1b26;
-    /* Match theme */
+    background: var(--glass-bg);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid var(--glass-border);
     width: 440px;
     max-height: 90vh;
-    /* Handle small screens */
     overflow-y: auto;
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 24px;
     position: relative;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--glass-shadow);
     transform: scale(0.9);
     animation: scaleIn 0.2s forwards;
     color: var(--text-normal);
@@ -1427,42 +1461,44 @@ body {
 
 
 .btn-primary {
-    background: linear-gradient(135deg, #5865F2 0%, #7289DA 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 12px 28px;
+    border-radius: 12px;
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(88, 101, 242, 0.4);
-    text-transform: none;
-    letter-spacing: 0.3px;
+    box-shadow: var(--glow-primary);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #4752C4 0%, #5865F2 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(88, 101, 242, 0.5);
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.6);
 }
 
 .btn-primary:active {
     transform: translateY(0);
-    box-shadow: 0 2px 10px rgba(88, 101, 242, 0.3);
+    box-shadow: var(--glow-primary);
 }
 
 .btn-secondary {
-    background: linear-gradient(135deg, #3a3c42 0%, #4E5058 100%);
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
     color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 12px 24px;
-    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    padding: 12px 28px;
+    border-radius: 12px;
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--glass-shadow);
 }
 
 .btn-secondary:hover {
