@@ -650,7 +650,14 @@ const DiscordModule = {
 
     handleInput: async () => {
         const input = document.getElementById('global-input');
+        if (!input) {
+            console.error('global-input element not found!');
+            return;
+        }
+
         const text = input.value.trim();
+        console.log('[handleInput] text:', text, 'currentChannel:', DiscordModule.currentChannel, 'activeDM:', DiscordModule.activeDM);
+
         if (!text) return;
         input.value = '';
 
@@ -663,9 +670,11 @@ const DiscordModule = {
             if (DiscordModule.currentChannel === 'helper') await DiscordModule.askAI(text);
         } else if (DiscordModule.activeDM) {
             // Direct Message
+            console.log('[handleInput] Sending DM to:', DiscordModule.activeDM);
             DiscordModule.sendDMMessage(DiscordModule.activeDM, text);
         } else {
             // Real Persistent Channel
+            console.log('[handleInput] Sending message to channel:', DiscordModule.currentChannel);
             DiscordModule.sendMessage(DiscordModule.currentChannel, text);
         }
     },
