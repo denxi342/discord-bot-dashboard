@@ -345,7 +345,7 @@ const DiscordModule = {
                 data.dms.forEach(dm => {
                     const u = dm.other_user;
                     container.innerHTML += `
-                    <div class="channel-item" onclick="DiscordModule.startDM('${u.id}')">
+                    <div class="channel-item" id="btn-ch-dm-${dm.id}" onclick="DiscordModule.selectChannel('dm-${dm.id}', 'dm')">
                         <div class="member-avatar" style="width:32px; height:32px; margin-right:8px;">
                             <img src="${u.avatar}" style="width:100%; height:100%; border-radius:50%;">
                         </div>
@@ -1266,25 +1266,31 @@ const WebSocketModule = {
                 // But for responsiveness, optimistic is good.
                 // Let's ignore if author is ME.
                 // We need my ID/Name.
-                if (DiscordModule.me && data.author !== DiscordModule.me.username) {
-                    const box = document.getElementById(`dm-messages-${data.dm_id}`);
-                    if (box) {
-                        box.innerHTML += `
-                        <div class="message">
-                            <img src="${data.avatar}" class="message-avatar">
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-username">${data.author}</span>
-                                    <span class="message-time">${new Date(data.timestamp * 1000).toLocaleTimeString()}</span>
+                if (DiscordModule.activeDM && String(DiscordModule.activeDM) === String(data.dm_id)) {
+                    // Check if we are sender to avoid partial collision with optimistic UI
+                    // If we don't know who we are yet (me is null), we show the message just in case (better dupe than missing).
+                    let isMe = false;
+                    if (DiscordModule.me && data.author === DiscordModule.me.username) isMe = true;
+
+                    if (!isMe) {
+                        const box = document.getElementById(`dm-messages-${data.dm_id}`);
+                        if (box) {
+                            box.innerHTML += `
+                            <div class="message">
+                                <img src="${data.avatar}" class="message-avatar">
+                                <div class="message-content">
+                                    <div class="message-header">
+                                        <span class="message-username">${data.author}</span>
+                                        <span class="message-time">${new Date(data.timestamp * 1000).toLocaleTimeString()}</span>
+                                    </div>
+                                    <div class="message-text">${Utils.escapeHtml(data.content)}</div>
                                 </div>
-                                <div class="message-text">${Utils.escapeHtml(data.content)}</div>
-                            </div>
-                        </div>`;
-                        box.scrollTop = box.scrollHeight;
+                            </div>`;
+                            box.scrollTop = box.scrollHeight;
+                        }
                     }
                 }
-            }
-        });
+            });
     }
 };
 
