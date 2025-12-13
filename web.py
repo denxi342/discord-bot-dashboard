@@ -1856,6 +1856,10 @@ def api_friend_accept():
 # --- DM ROUTES ---
 
 def get_or_create_dm(user1_id, user2_id):
+    # Prevent self-DMs
+    if user1_id == user2_id:
+        return None
+    
     # Ensure consistent ordering for lookup
     if user1_id > user2_id: user1_id, user2_id = user2_id, user1_id
     
@@ -1892,6 +1896,10 @@ def api_get_dms():
         
         # Determine who the other is
         other_id = u2 if u1 == my_id else u1
+        
+        # Skip self-DMs (shouldn't exist but filter just in case)
+        if other_id == my_id:
+            continue
         
         # Get other user info
         u_row = execute_query("SELECT username, avatar, display_name FROM users WHERE id = %s", (other_id,), fetch_one=True)
