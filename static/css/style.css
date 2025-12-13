@@ -510,6 +510,16 @@ body {
 }
 
 /* --- MODAL STYLES (New) --- */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
 .modal-backdrop {
     position: fixed;
     top: 0;
@@ -521,7 +531,7 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    opacity: 0;
+
     animation: fadeIn 0.2s forwards;
 }
 
@@ -972,7 +982,9 @@ body {
 
 .is-online .status-indicator {
     background-color: var(--success);
-}/* --- HOME SIDEBAR (DM VIEW) STYLES --- */
+}
+
+/* --- HOME SIDEBAR (DM VIEW) STYLES --- */
 
 .search-bar-styled {
     width: 100%;
@@ -1134,23 +1146,31 @@ body {
 
 /* --- NEW SETTINGS MODAL STYLES --- */
 .settings-full-screen {
-    position: fixed; top:0; left:0; width:100%; height:100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: #313338;
     display: flex;
     z-index: 2000;
 }
+
 .settings-sidebar-col {
-    flex: 0 0 35%; /* Adjust for sidebar width logic */
+    flex: 0 0 35%;
+    /* Adjust for sidebar width logic */
     min-width: 218px;
     background: #2B2D31;
     display: flex;
     justify-content: flex-end;
 }
+
 .settings-sidebar-nav {
     width: 218px;
     padding: 60px 6px 60px 20px;
     overflow-y: auto;
 }
+
 .settings-content-col {
     flex: 1;
     background: #313338;
@@ -1158,33 +1178,86 @@ body {
     position: relative;
     overflow-y: auto;
 }
+
 .nav-header {
-    padding: 6px 10px; margin-bottom: 8px;
-    font-size: 12px; font-weight: 700; color: #949BA4;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #949BA4;
 }
+
 .nav-item {
-    padding: 6px 10px; margin-bottom: 2px;
-    font-size: 16px; color: #B5BAC1; border-radius: 4px; cursor: pointer;
+    padding: 6px 10px;
+    margin-bottom: 2px;
+    font-size: 16px;
+    color: #B5BAC1;
+    border-radius: 4px;
+    cursor: pointer;
 }
-.nav-item:hover { background: rgba(78,80,88,0.3); color: #DBDEE1; }
-.nav-item.active { background: rgba(78,80,88,0.6); color: #FFFFFF; }
-.nav-item.logout { color: #F23F42; }
-.nav-item.logout:hover { background: rgba(242,63,66,0.1); }
-.nav-sep { height: 1px; background: rgba(78,80,88,0.4); margin: 8px 10px; }
+
+.nav-item:hover {
+    background: rgba(78, 80, 88, 0.3);
+    color: #DBDEE1;
+}
+
+.nav-item.active {
+    background: rgba(78, 80, 88, 0.6);
+    color: #FFFFFF;
+}
+
+.nav-item.logout {
+    color: #F23F42;
+}
+
+.nav-item.logout:hover {
+    background: rgba(242, 63, 66, 0.1);
+}
+
+.nav-sep {
+    height: 1px;
+    background: rgba(78, 80, 88, 0.4);
+    margin: 8px 10px;
+}
 
 .settings-close-btn-wrapper {
-    position: absolute; right: 20px; top: 20px;
-    display: flex; flex-direction: column; align-items: center;
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
-.close-btn-circle {
-    width: 36px; height: 36px; border-radius: 50%; border: 2px solid #B5BAC1;
-    display: flex; align-items: center; justify-content: center;
-    color: #B5BAC1; cursor: pointer; transition: 0.2s;
-}
-.close-btn-circle:hover { border-color: #DBDEE1; color: #DBDEE1; background: rgba(255,255,255,0.1); }
-.esc-label { font-size: 11px; font-weight: 600; color: #949BA4; margin-top: 4px; }
 
-.settings-scroll-content { max-width: 740px; }
+.close-btn-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #B5BAC1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #B5BAC1;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.close-btn-circle:hover {
+    border-color: #DBDEE1;
+    color: #DBDEE1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.esc-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #949BA4;
+    margin-top: 4px;
+}
+
+.settings-scroll-content {
+    max-width: 740px;
+}
 
 /* ACCOUNT CARD */
 .account-profile-card {
@@ -1193,24 +1266,55 @@ body {
     overflow: hidden;
     margin-bottom: 40px;
 }
-.profile-banner { height: 100px; background: var(--primary); }
+
+.profile-banner {
+    height: 100px;
+    background: var(--primary);
+}
+
 .profile-header-s {
-    padding: 16px 16px 0 120px; /* space for avatar */
+    padding: 16px 16px 0 120px;
+    /* space for avatar */
     position: relative;
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 20px;
 }
+
 .profile-avatar-wrapper {
-    position: absolute; top: -40px; left: 16px;
-    width: 80px; height: 80px;
+    position: absolute;
+    top: -40px;
+    left: 16px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
-    background: #1E1F22; /* match card bg */
+    background: #1E1F22;
+    /* match card bg */
     padding: 6px;
 }
-.profile-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; }
-.profile-name-tag { display: flex; flex-direction: column; }
-.d-name { font-size: 20px; font-weight: 700; color: white; }
-.u-name { font-size: 14px; color: #B9BBBE; }
+
+.profile-avatar-wrapper img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+.profile-name-tag {
+    display: flex;
+    flex-direction: column;
+}
+
+.d-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+}
+
+.u-name {
+    font-size: 14px;
+    color: #B9BBBE;
+}
 
 .account-info-box {
     background: #2B2D31;
@@ -1218,31 +1322,59 @@ body {
     border-radius: 8px;
     padding: 8px;
 }
+
 .field-row {
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: 16px;
 }
-.field-row:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.06); }
-.field-label { font-size: 12px; font-weight: 700; color: #949BA4; margin-bottom: 4px; }
-.field-value { font-size: 16px; color: white; }
-.btn-edit {
-    background: #4E5058; color: white; border: none; padding: 4px 12px;
-    border-radius: 4px; cursor: pointer; font-size: 14px;
+
+.field-row:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
-.btn-edit:hover { background: #6D6F78; }
+
+.field-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #949BA4;
+    margin-bottom: 4px;
+}
+
+.field-value {
+    font-size: 16px;
+    color: white;
+}
+
+.btn-edit {
+    background: #4E5058;
+    color: white;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-edit:hover {
+    background: #6D6F78;
+}
 
 
-.btn-primary { 
-    background-color: var(--primary); 
-    color: white; 
-    border: none; 
-    padding: 10px 20px; 
-    border-radius: 4px; 
-    font-weight: 500; 
-    cursor: pointer; 
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
     transition: 0.2s;
 }
-.btn-primary:hover { background-color: #4752c4; }
+
+.btn-primary:hover {
+    background-color: #4752c4;
+}
 
 .btn-secondary {
     background-color: #4E5058;
@@ -1254,7 +1386,10 @@ body {
     cursor: pointer;
     transition: 0.2s;
 }
-.btn-secondary:hover { background-color: #6D6F78; }
+
+.btn-secondary:hover {
+    background-color: #6D6F78;
+}
 
 .btn-danger-outline {
     background: transparent;
@@ -1265,7 +1400,10 @@ body {
     cursor: pointer;
     font-weight: 500;
 }
-.btn-danger-outline:hover { background: rgba(242, 63, 66, 0.1); }
+
+.btn-danger-outline:hover {
+    background: rgba(242, 63, 66, 0.1);
+}
 
 
 /* Add Friend UI */
@@ -1275,6 +1413,7 @@ body {
     display: flex;
     flex-direction: column;
 }
+
 .hero-title {
     color: white;
     margin-bottom: 8px;
@@ -1282,24 +1421,28 @@ body {
     font-weight: 600;
     text-transform: uppercase;
 }
+
 .hero-subtitle {
     color: var(--text-muted);
     font-size: 14px;
     margin-bottom: 20px;
 }
+
 .add-friend-input-wrapper {
     display: flex;
     gap: 12px;
-    background-color: rgba(0, 0, 0, 0.2); 
+    background-color: rgba(0, 0, 0, 0.2);
     padding: 10px 15px;
     border-radius: 8px;
-    border: 1px solid rgba(0,0,0,0.2);
+    border: 1px solid rgba(0, 0, 0, 0.2);
     align-items: center;
     margin-bottom: 40px;
 }
+
 .add-friend-input-wrapper:focus-within {
     border-color: var(--primary);
 }
+
 .modern-input {
     flex: 1;
     background: transparent;
@@ -1309,6 +1452,7 @@ body {
     outline: none;
     width: 100%;
 }
+
 .hero-empty-state {
     flex: 1;
     display: flex;
@@ -1317,6 +1461,7 @@ body {
     justify-content: center;
     opacity: 0.6;
 }
+
 .hero-empty-state p {
     margin-top: 20px;
     color: var(--text-muted);
@@ -1330,30 +1475,40 @@ body {
     gap: 8px;
     align-items: center;
 }
+
 .fh-tab {
     padding: 2px 8px;
     border-radius: 4px;
     font-weight: 500;
-    color: var(--text-muted); /* Grayish */
+    color: var(--text-muted);
+    /* Grayish */
     cursor: pointer;
     transition: background-color 0.1s;
 }
+
 .fh-tab:hover {
-    background-color: rgba(255,255,255,0.04);
+    background-color: rgba(255, 255, 255, 0.04);
     color: var(--text-normal);
 }
+
 .fh-tab.active {
-    background-color: rgba(255,255,255,0.1); /* Active background */
-    color: var(--header-primary); /* White */
+    background-color: rgba(255, 255, 255, 0.1);
+    /* Active background */
+    color: var(--header-primary);
+    /* White */
 }
+
 .fh-tab.add-friend {
-    color: #2ECC71 !important; /* Green text */
+    color: #2ECC71 !important;
+    /* Green text */
     background: none !important;
 }
+
 .fh-tab.add-friend.active {
     background: none !important;
     color: #2ECC71 !important;
 }
+
 /* Specific override for the 'add friend' button to look distinct if needed, 
    but Discord keeps it simple text usually, just green. 
    Let's make it a pill if active? Actually standard discord is just green text until clicked. 
@@ -1361,4 +1516,3 @@ body {
 .fh-tab.add-friend[onclick*='add'] {
     /* Special styling if desired */
 }
-
