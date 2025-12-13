@@ -1265,7 +1265,7 @@ const DiscordModule = {
     sendDMMessage: async (dmId, text) => {
         if (!text) return;
 
-        await fetch(`/api/dms/${dmId}/send`, {
+        await fetch(`/api/dms/by_id/${dmId}/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: text })

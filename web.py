@@ -1979,6 +1979,51 @@ def api_dm_messages(target_id):
         
     return jsonify({'success': True, 'messages': messages})
 
+@app.route('/api/dms/by_id/<int:dm_id>/send', methods=['POST'])
+def api_dm_send_by_id(dm_id):
+    """Send a message to a DM conversation by DM ID"""
+    if 'user' not in session: return jsonify({'success': False}), 401
+    my_id = int(session['user']['id'])
+    
+    # Verify user is part of this DM
+    dm_row = execute_query('SELECT user_id_1, user_id_2 FROM direct_messages WHERE id = %s', (dm_id,), fetch_one=True)
+    if not dm_row:
+        return jsonify({'success': False, 'error': 'DM not found'}), 404
+    
+    if my_id not in [dm_row[0], dm_row[1]]:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    data = request.json
+    content = data.get('content', '').strip()
+    if not content:
+        return jsonify({'success': False, 'error': 'Empty message'}), 400
+    
+    # Insert message
+    execute_query('''
+        INSERT INTO dm_messages (dm_id, author_id, content, timestamp)
+        VALUES (%s, %s, %s, %s)
+    ''', (dm_id, my_id, content, time.time()), commit=True)
+    
+    # Update last_message_at
+    execute_query('UPDATE direct_messages SET last_message_at = %s WHERE id = %s',
+                  (time.time(), dm_id), commit=True)
+    
+    # Get user info for socket broadcast
+    u = execute_query('SELECT username, avatar FROM users WHERE id = %s', (my_id,), fetch_one=True)
+    username = u[0] if u else 'Unknown'
+    avatar = u[1] if (u and u[1]) else 'https://cdn.discordapp.com/embed/avatars/0.png'
+    
+    # Emit via Socket.IO
+    socketio.emit('new_dm_message', {
+        'dm_id': dm_id,
+        'author': username,
+        'avatar': avatar,
+        'content': content,
+        'timestamp': time.time()
+    })
+    
+    return jsonify({'success': True})
+
 @app.route('/api/dms/<int:target_id>/send', methods=['POST'])
 def api_dm_send(target_id):
     if 'user' not in session: return jsonify({'success': False}), 401
