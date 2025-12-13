@@ -1566,11 +1566,6 @@ def api_reputation_top():
     return jsonify({'success': True, 'top': top_list})
 
 # --- SERVER MANAGEMENT API ---
-threading.Thread(target=simulate, daemon=True).start()
-
-simulate_messages()
-
-# ===== SERVER & CHANNEL APIs =====
 
 @app.route('/api/servers', methods=['GET'])
 def api_get_servers():
