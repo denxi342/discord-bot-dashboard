@@ -1044,18 +1044,70 @@ const DiscordModule = {
     },
 
     uiEditProfile: () => {
-        // Shortcut to edit banner or avatar
-        const choice = prompt("Type 'avatar' or 'banner' to edit:");
-        if (choice === 'avatar') DiscordModule.updateAvatar();
-        if (choice === 'banner') {
-            const url = prompt("Enter Banner Image URL or Color Hex:");
-            if (url) DiscordModule.updateUser({ banner: url });
+        // Create beautiful avatar edit modal
+        const existingModal = document.getElementById('avatar-edit-modal');
+        if (existingModal) existingModal.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'avatar-edit-modal';
+        modal.className = 'avatar-edit-modal';
+        modal.innerHTML = `
+            <div class="avatar-modal-backdrop" onclick="DiscordModule.closeAvatarModal()"></div>
+            <div class="avatar-modal-content">
+                <div class="avatar-modal-bg-animation"></div>
+                <div class="avatar-modal-inner">
+                    <button class="avatar-modal-close" onclick="DiscordModule.closeAvatarModal()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    <h2>Изменить аватар</h2>
+                    <p>Введите URL изображения для нового аватара</p>
+                    
+                    <div class="avatar-preview-container">
+                        <img id="avatar-preview-img" src="${document.getElementById('settings-avatar-img')?.src || ''}" alt="Preview">
+                    </div>
+                    
+                    <div class="avatar-input-group">
+                        <input type="text" id="avatar-url-input" placeholder="https://example.com/avatar.png" 
+                               oninput="DiscordModule.previewAvatar(this.value)">
+                        <button class="avatar-save-btn" onclick="DiscordModule.saveNewAvatar()">
+                            <i class="fa-solid fa-check"></i> Сохранить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        // Focus input
+        setTimeout(() => document.getElementById('avatar-url-input')?.focus(), 100);
+    },
+
+    closeAvatarModal: () => {
+        const modal = document.getElementById('avatar-edit-modal');
+        if (modal) {
+            modal.classList.add('closing');
+            setTimeout(() => modal.remove(), 300);
         }
     },
 
-    updateAvatar: async () => {
-        const url = prompt("Enter new Avatar URL:");
-        if (url) DiscordModule.updateUser({ avatar: url });
+    previewAvatar: (url) => {
+        const preview = document.getElementById('avatar-preview-img');
+        if (preview && url) {
+            preview.src = url;
+        }
+    },
+
+    saveNewAvatar: async () => {
+        const url = document.getElementById('avatar-url-input')?.value;
+        if (url) {
+            await DiscordModule.updateUser({ avatar: url });
+            DiscordModule.closeAvatarModal();
+        }
+    },
+
+    updateAvatar: () => {
+        // Redirect to new modal
+        DiscordModule.uiEditProfile();
     },
 
     updateUser: async (payload) => {
