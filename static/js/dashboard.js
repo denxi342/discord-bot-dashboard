@@ -564,6 +564,27 @@ const DiscordModule = {
         DiscordModule.createChannelPrompt(sid, null);
     },
 
+    openServerSettings: (tab = 'overview') => {
+        // Switch to server settings view
+        document.getElementById('channel-view').style.display = 'none';
+        document.getElementById('server-settings-view').style.display = 'block';
+
+        // Load the selected tab
+        document.querySelectorAll('.ss-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.server-tab-view').forEach(view => view.style.display = 'none');
+
+        const tabBtn = document.querySelector(`.ss-tab-btn[onclick*="'${tab}'"]`);
+        if (tabBtn) tabBtn.classList.add('active');
+
+        const tabView = document.getElementById(`ss-view-${tab}`);
+        if (tabView) tabView.style.display = 'block';
+    },
+
+    closeServerSettings: () => {
+        document.getElementById('server-settings-view').style.display = 'none';
+        document.getElementById('channel-view').style.display = 'block';
+    },
+
     apiCreateServer: async (payload) => {
         try {
             const body = typeof payload === 'string' ? { name: payload } : payload;
