@@ -266,6 +266,7 @@ servers_db = {}
 
 def load_servers():
     global servers_db
+    print("--- Loading Servers from storage ---")
     try:
         if os.path.exists(SERVERS_FILE):
             with open(SERVERS_FILE, 'r', encoding='utf-8') as f:
