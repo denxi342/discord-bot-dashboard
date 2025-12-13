@@ -565,6 +565,13 @@ const DiscordModule = {
     },
 
     openServerSettings: (tab = 'overview') => {
+        // Check if a server is selected
+        if (!DiscordModule.currentServer) {
+            alert('Please select a server first');
+            console.warn('No server selected - currentServer is undefined');
+            return;
+        }
+
         // Use the correct modal ID
         const settingsModal = document.getElementById('server-settings-modal');
 
@@ -572,6 +579,13 @@ const DiscordModule = {
             alert('Server settings UI is being implemented. Coming soon!');
             console.warn('server-settings-modal element not found in DOM');
             return;
+        }
+
+        // Update server name in modal header
+        const serverData = DiscordModule.serverData[DiscordModule.currentServer];
+        if (serverData) {
+            const headerEl = document.querySelector('.settings-header');
+            if (headerEl) headerEl.textContent = serverData.name;
         }
 
         // Show the modal
