@@ -51,17 +51,7 @@ const DiscordModule = {
     // --- SERVER SETTINGS UI ---
     currentServerSettingsTab: 'overview',
 
-    openServerSettings: (tab = 'overview') => {
-        // Hide dropdown
-        document.getElementById('server-dropdown-menu').classList.remove('active');
-
-        const modal = document.getElementById('server-settings-modal');
-        modal.style.display = 'flex';
-        DiscordModule.switchServerTab(tab);
-
-        // Load roles if roles tab
-        if (tab === 'roles') DiscordModule.loadRolesUI();
-    },
+    // openServerSettings is defined later in the file (line ~580) - removed duplicate
 
     closeServerSettings: () => {
         document.getElementById('server-settings-modal').style.display = 'none';
@@ -579,9 +569,19 @@ const DiscordModule = {
     },
 
     openServerSettings: (tab = 'overview') => {
+        // Close the dropdown menu first
+        const dropdown = document.getElementById('server-dropdown-menu');
+        if (dropdown) dropdown.classList.remove('active');
+
+        // Reset dropdown icons
+        const iconOpen = document.getElementById('server-header-icon-open');
+        const iconClose = document.getElementById('server-header-icon-close');
+        if (iconOpen) iconOpen.style.display = 'block';
+        if (iconClose) iconClose.style.display = 'none';
+
         // Check if a server is selected
         if (!DiscordModule.currentServer) {
-            alert('Please select a server first');
+            alert('Сначала выберите сервер');
             console.warn('No server selected - currentServer is undefined');
             return;
         }
@@ -590,7 +590,7 @@ const DiscordModule = {
         const settingsModal = document.getElementById('server-settings-modal');
 
         if (!settingsModal) {
-            alert('Server settings UI is being implemented. Coming soon!');
+            alert('Модальное окно настроек не найдено!');
             console.warn('server-settings-modal element not found in DOM');
             return;
         }
