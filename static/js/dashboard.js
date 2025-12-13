@@ -452,6 +452,8 @@ const DiscordModule = {
 
 
     selectChannel: (chanId, type = 'channel') => {
+        console.log('[selectChannel] called with chanId:', chanId, 'type:', type);
+
         if (type === 'voice') {
             DiscordModule.connectVoice(chanId);
             return;
@@ -464,6 +466,7 @@ const DiscordModule = {
         }
 
         DiscordModule.currentChannel = chanId;
+        console.log('[selectChannel] Set currentChannel to:', DiscordModule.currentChannel);
         DiscordModule.activeDM = null; // Clear DM context when switching to normal channel
 
         document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
