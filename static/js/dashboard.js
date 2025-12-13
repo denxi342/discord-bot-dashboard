@@ -648,8 +648,14 @@ const DiscordModule = {
             document.getElementById('server-name-input').value = serverData.name || '';
             document.getElementById('server-desc-input').value = serverData.description || '';
             const iconPreview = document.getElementById('server-icon-preview');
-            if (iconPreview && serverData.icon) {
-                iconPreview.src = serverData.icon;
+            if (iconPreview) {
+                if (serverData.icon && (serverData.icon.startsWith('http') || serverData.icon.startsWith('/'))) {
+                    iconPreview.src = serverData.icon;
+                } else {
+                    // Determine a random color or default avatar for non-image icons
+                    // For now, use default Discord avatar
+                    iconPreview.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+                }
             }
         }
     },
