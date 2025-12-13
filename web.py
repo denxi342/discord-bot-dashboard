@@ -37,6 +37,21 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SERVERS_FILE = os.path.join(BASE_DIR, 'servers.json')
 servers_db = {}
 
+def load_servers():
+    global servers_db
+    if os.path.exists(SERVERS_FILE):
+        try:
+            with open(SERVERS_FILE, 'r', encoding='utf-8') as f:
+                servers_db = json.load(f)
+        except:
+            servers_db = {}
+    else:
+        servers_db = {}
+
+def save_servers():
+    with open(SERVERS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(servers_db, f, indent=4)
+
 def get_db_connection():
     db_url = os.environ.get('DATABASE_URL')
     if not db_url:
