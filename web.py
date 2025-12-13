@@ -328,8 +328,6 @@ def save_servers():
 load_servers()
 print(f"✓ Loaded {len(servers_db)} servers from storage")
 
-load_servers()
-
 # Bot status tracking
 bot_status = {
     'running': True,
