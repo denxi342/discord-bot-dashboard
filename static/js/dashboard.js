@@ -1259,6 +1259,11 @@ const DiscordModule = {
 
     loadFriends: async (activeTab = 'all') => {
         const container = document.getElementById('channel-view-general');
+
+        // Hide chat input on friends page
+        const chatInput = document.querySelector('.chat-input-area');
+        if (chatInput) chatInput.style.display = 'none';
+
         container.innerHTML = `
         <div class="friends-page">
             <!-- Header Bar with Tabs -->
