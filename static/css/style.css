@@ -2869,6 +2869,7 @@ body::before {
     background: transparent;
     overflow: hidden;
     margin: 0;
+    min-height: 100%;
 }
 
 .dm-profile-banner {
@@ -2951,11 +2952,16 @@ body::before {
     padding: 16px 20px;
     background: rgba(0, 0, 0, 0.3);
     margin-top: 1px;
+    flex: 1;
+    /* Occupy remaining space */
+    display: flex;
+    flex-direction: column;
 }
 
 .dm-profile-note textarea {
     width: 100%;
-    min-height: 80px;
+    flex: 1;
+    /* Fill the note container */
     background: rgba(0, 0, 0, 0.4);
     border: none;
     border-radius: 4px;
@@ -2965,6 +2971,7 @@ body::before {
     resize: none;
     outline: none;
     box-sizing: border-box;
+    min-height: 100px;
 }
 
 .dm-profile-note textarea::placeholder {
