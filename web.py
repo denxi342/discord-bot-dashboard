@@ -355,6 +355,51 @@ def api_update_user():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/user/upload-avatar', methods=['POST'])
+def api_upload_avatar():
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'})
+    
+    if 'avatar' not in request.files:
+        return jsonify({'success': False, 'error': 'No file provided'})
+    
+    file = request.files['avatar']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'})
+    
+    # Check file extension
+    allowed = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in allowed:
+        return jsonify({'success': False, 'error': 'Invalid file type'})
+    
+    # Create avatars directory if not exists
+    avatar_dir = os.path.join(app.static_folder, 'avatars')
+    os.makedirs(avatar_dir, exist_ok=True)
+    
+    # Generate unique filename
+    import uuid
+    filename = f"{session['user']['id']}_{uuid.uuid4().hex[:8]}.{ext}"
+    filepath = os.path.join(avatar_dir, filename)
+    
+    try:
+        file.save(filepath)
+        
+        # Generate URL
+        avatar_url = f"/static/avatars/{filename}"
+        
+        # Update database
+        execute_query("UPDATE users SET avatar = %s WHERE id = %s", 
+                     (avatar_url, session['user']['id']), commit=True)
+        
+        # Update session
+        session['user']['avatar'] = avatar_url
+        session.modified = True
+        
+        return jsonify({'success': True, 'avatar_url': avatar_url})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.before_request
 def check_auth():
     if request.endpoint and request.endpoint.startswith('static'): return

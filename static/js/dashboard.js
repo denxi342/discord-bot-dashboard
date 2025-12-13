@@ -1044,7 +1044,7 @@ const DiscordModule = {
     },
 
     uiEditProfile: () => {
-        // Create beautiful avatar edit modal
+        // Create beautiful avatar edit modal with file upload
         const existingModal = document.getElementById('avatar-edit-modal');
         if (existingModal) existingModal.remove();
 
@@ -1060,16 +1060,24 @@ const DiscordModule = {
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                     <h2>Изменить аватар</h2>
-                    <p>Введите URL изображения для нового аватара</p>
+                    <p>Выберите изображение с вашего устройства</p>
                     
-                    <div class="avatar-preview-container">
+                    <div class="avatar-preview-container" onclick="document.getElementById('avatar-file-input').click()">
                         <img id="avatar-preview-img" src="${document.getElementById('settings-avatar-img')?.src || ''}" alt="Preview">
+                        <div class="avatar-overlay">
+                            <i class="fa-solid fa-camera"></i>
+                            <span>Выбрать фото</span>
+                        </div>
                     </div>
                     
+                    <input type="file" id="avatar-file-input" accept="image/*" style="display:none" 
+                           onchange="DiscordModule.handleAvatarFile(this)">
+                    
                     <div class="avatar-input-group">
-                        <input type="text" id="avatar-url-input" placeholder="https://example.com/avatar.png" 
-                               oninput="DiscordModule.previewAvatar(this.value)">
-                        <button class="avatar-save-btn" onclick="DiscordModule.saveNewAvatar()">
+                        <button class="avatar-choose-btn" onclick="document.getElementById('avatar-file-input').click()">
+                            <i class="fa-solid fa-folder-open"></i> Выбрать файл
+                        </button>
+                        <button class="avatar-save-btn" id="avatar-save-btn" onclick="DiscordModule.saveNewAvatar()" disabled>
                             <i class="fa-solid fa-check"></i> Сохранить
                         </button>
                     </div>
@@ -1077,9 +1085,6 @@ const DiscordModule = {
             </div>
         `;
         document.body.appendChild(modal);
-
-        // Focus input
-        setTimeout(() => document.getElementById('avatar-url-input')?.focus(), 100);
     },
 
     closeAvatarModal: () => {
@@ -1090,18 +1095,52 @@ const DiscordModule = {
         }
     },
 
-    previewAvatar: (url) => {
-        const preview = document.getElementById('avatar-preview-img');
-        if (preview && url) {
-            preview.src = url;
+    handleAvatarFile: (input) => {
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.getElementById('avatar-preview-img');
+                if (preview) preview.src = e.target.result;
+                // Store file for upload
+                DiscordModule.pendingAvatarFile = file;
+                // Enable save button
+                document.getElementById('avatar-save-btn').disabled = false;
+            };
+            reader.readAsDataURL(file);
         }
     },
 
+    pendingAvatarFile: null,
+
     saveNewAvatar: async () => {
-        const url = document.getElementById('avatar-url-input')?.value;
-        if (url) {
-            await DiscordModule.updateUser({ avatar: url });
-            DiscordModule.closeAvatarModal();
+        if (!DiscordModule.pendingAvatarFile) return;
+
+        const formData = new FormData();
+        formData.append('avatar', DiscordModule.pendingAvatarFile);
+
+        try {
+            const res = await fetch('/api/user/upload-avatar', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                Utils.showToast('Аватар обновлён!');
+                // Update all avatar images on page
+                document.querySelectorAll('[id*="avatar"]').forEach(img => {
+                    if (img.tagName === 'IMG' && data.avatar_url) {
+                        img.src = data.avatar_url;
+                    }
+                });
+                DiscordModule.closeAvatarModal();
+                DiscordModule.pendingAvatarFile = null;
+            } else {
+                Utils.showToast('Ошибка: ' + (data.error || 'Unknown'));
+            }
+        } catch (e) {
+            Utils.showToast('Ошибка загрузки');
+            console.error(e);
         }
     },
 
