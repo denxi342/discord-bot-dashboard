@@ -1386,18 +1386,27 @@ const DiscordModule = {
 
     loadDM: async (dmId) => {
         // Create view logic for DM... 
-        // For now, let's reuse Chat Logic but point it to DM endpoint?
-        // This requires refactoring loadChannel to support DMs or creating loadDMChat.
-        // Let's create a stub for now that shows "Chat with X".
         const container = document.getElementById('channel-view-general');
         const activeDM = DiscordModule.dmList ? DiscordModule.dmList.find(d => d.id == dmId) : null;
         const name = activeDM ? activeDM.other_user.username : 'Chat';
 
+        // Update main header for DM view
+        const channelName = document.getElementById('current-channel-name');
+        if (channelName) channelName.textContent = name;
+
+        // Change # icon to @ for DM
+        const headerIcon = document.querySelector('.chat-header > i.fa-hashtag');
+        if (headerIcon) {
+            headerIcon.classList.remove('fa-hashtag');
+            headerIcon.classList.add('fa-at');
+        }
+
+        // Hide toolbar (call/search/members) for DM
+        const toolbar = document.querySelector('.header-toolbar');
+        if (toolbar) toolbar.style.display = 'none';
+
         container.innerHTML = `
-            <div class="chat-header">
-                <i class="fa-solid fa-at"></i> <span style="font-weight:700; margin-left:8px;">${name}</span>
-            </div>
-            <div class="chat-messages" id="dm-messages-${dmId}">
+            <div class="chat-messages dm-bubbles-container" id="dm-messages-${dmId}">
                 Fetching history...
             </div>
          `;
