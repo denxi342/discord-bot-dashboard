@@ -132,6 +132,15 @@ def init_db():
                   author_id INTEGER NOT NULL,
                   content TEXT,
                   timestamp REAL)''')
+
+    # Server Members Table - tracks who is a member of which server
+    c.execute(f'''CREATE TABLE IF NOT EXISTS server_members
+                 (id {pk_type},
+                  server_id TEXT NOT NULL,
+                  user_id INTEGER NOT NULL,
+                  role TEXT DEFAULT 'member',
+                  joined_at REAL,
+                  UNIQUE(server_id, user_id))''')
                   
     conn.commit()
     conn.close()
@@ -1688,6 +1697,15 @@ def api_create_server():
         'channels': default_channels
     }
     save_servers()
+    
+    # Add creator as owner member
+    import time
+    execute_query(
+        'INSERT OR IGNORE INTO server_members (server_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)',
+        (sid, session['user']['id'], 'owner', time.time()),
+        commit=True
+    )
+    
     return jsonify({'success': True, 'server': servers_db[sid], 'id': sid})
 
 @app.route('/api/servers/<sid>/channels/create', methods=['POST'])
@@ -1768,9 +1786,13 @@ def api_get_server_members(sid):
     if 'user' not in session: return jsonify({'success': False, 'error': 'Auth required'}), 401
     if sid not in servers_db: return jsonify({'success': False, 'error': 'Server not found'}), 404
     
-    # Get all users from the database as potential members
-    # In a real system, you'd track server membership properly
-    rows = execute_query('SELECT id, username, avatar, display_name FROM users LIMIT 50', fetch_all=True)
+    # Get actual members of this server from server_members table
+    rows = execute_query('''
+        SELECT u.id, u.username, u.avatar, u.display_name, sm.role 
+        FROM server_members sm 
+        JOIN users u ON sm.user_id = u.id 
+        WHERE sm.server_id = ?
+    ''', (sid,), fetch_all=True)
     
     members = []
     for r in rows:
@@ -1778,7 +1800,8 @@ def api_get_server_members(sid):
             'id': str(r[0]),
             'username': r[1],
             'avatar': r[2] if r[2] else DEFAULT_AVATAR,
-            'display_name': r[3]
+            'display_name': r[3],
+            'role': r[4] if len(r) > 4 else 'member'
         })
     
     return jsonify({'success': True, 'members': members})
