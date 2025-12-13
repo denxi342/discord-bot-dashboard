@@ -1610,7 +1610,9 @@ const DiscordModule = {
         // Create view logic for DM... 
         const container = document.getElementById('channel-view-general');
         const activeDM = DiscordModule.dmList ? DiscordModule.dmList.find(d => d.id == dmId) : null;
-        const name = activeDM ? activeDM.other_user.username : 'Chat';
+        const otherUser = activeDM ? activeDM.other_user : null;
+        const name = otherUser ? otherUser.username : 'Chat';
+        const avatar = otherUser ? (otherUser.avatar || DEFAULT_AVATAR) : DEFAULT_AVATAR;
 
         // Show chat input for DM
         const chatInput = document.querySelector('.chat-input-area');
@@ -1636,6 +1638,32 @@ const DiscordModule = {
                 Fetching history...
             </div>
          `;
+
+        // Show user profile sidebar
+        const memberSidebar = document.getElementById('member-sidebar');
+        if (memberSidebar && otherUser) {
+            memberSidebar.style.display = 'block';
+            memberSidebar.innerHTML = `
+                <div class="dm-profile-card">
+                    <div class="dm-profile-banner"></div>
+                    <div class="dm-profile-avatar-wrapper">
+                        <img src="${avatar}" class="dm-profile-avatar" alt="${name}">
+                        <div class="dm-profile-status online"></div>
+                    </div>
+                    <div class="dm-profile-info">
+                        <div class="dm-profile-name">${name}</div>
+                        <div class="dm-profile-tag">${otherUser.display_name || name}</div>
+                    </div>
+                    <div class="dm-profile-section">
+                        <div class="dm-profile-section-title">В число участников с</div>
+                        <div class="dm-profile-section-value">${otherUser.created_at ? new Date(otherUser.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Неизвестно'}</div>
+                    </div>
+                    <div class="dm-profile-note">
+                        <textarea placeholder="Нажмите, чтобы добавить заметку"></textarea>
+                    </div>
+                </div>
+            `;
+        }
 
         // Update Global Input Placeholder
         const globalInput = document.getElementById('global-input');
