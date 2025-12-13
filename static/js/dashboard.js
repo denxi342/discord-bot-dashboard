@@ -667,7 +667,15 @@ const DiscordModule = {
                 DiscordModule.serverData[sid].name = name;
                 DiscordModule.serverData[sid].description = description;
                 DiscordModule.renderServerList();
-                alert('Настройки сохранены!');
+
+                // Update server name in main header
+                document.getElementById('current-server-name').textContent = name;
+
+                // Update server name in modal header
+                const modalHeader = document.querySelector('.settings-header');
+                if (modalHeader) modalHeader.textContent = name;
+
+                Utils.showToast('Настройки сохранены!');
             } else {
                 alert(data.error || 'Ошибка сохранения');
             }
