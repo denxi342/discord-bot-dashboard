@@ -375,6 +375,7 @@ const DiscordModule = {
         }
 
         DiscordModule.currentChannel = chanId;
+        DiscordModule.activeDM = null; // Clear DM context when switching to normal channel
 
         document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); // For friend btn
@@ -618,6 +619,9 @@ const DiscordModule = {
                 author: 'You', avatar: 'https://cdn.discordapp.com/embed/avatars/1.png', text: text
             });
             if (DiscordModule.currentChannel === 'helper') await DiscordModule.askAI(text);
+        } else if (DiscordModule.activeDM) {
+            // Direct Message
+            DiscordModule.sendDMMessage(DiscordModule.activeDM, text);
         } else {
             // Real Persistent Channel
             DiscordModule.sendMessage(DiscordModule.currentChannel, text);
@@ -1122,38 +1126,7 @@ const DiscordModule = {
         } catch (e) { console.error(e); }
     },
 
-    startDM: async (uid) => {
-        // For now, simulate opening a DM by just loading the view
-        console.log("Starting DM with", uid);
-        // Deselect friend view
-        DiscordModule.selectChannel(null, 'dm');
 
-        // Find friend info to make a dummy DM object
-        let user = null;
-        if (DiscordModule.friendsData) {
-            user = DiscordModule.friendsData.friends.find(u => u.id === uid);
-        }
-
-        // Render DM view
-        const container = document.getElementById('channel-view-general');
-        container.innerHTML = `
-            <div class="chat-header">
-                <i class="fa-solid fa-at"></i> 
-                <span style="font-weight:700; margin-left:8px; color:white;">${user ? user.username : 'User'}</span>
-            </div>
-            <div class="chat-messages" id="dm-messages-${uid}">
-                <div style="padding:20px; color:gray;">Start of your history with ${user ? user.username : 'this user'}.</div>
-            </div>
-            <div class="chat-input-area">
-                <input type="text" placeholder="Message @${user ? user.username : 'User'}" 
-                    style="width:100%; background:transparent; border:none; color:white; outline:none;"
-                    onkeydown="if(event.key==='Enter') DiscordModule.sendDMMessage(${uid}, this)">
-            </div>
-        `;
-
-        // Load messages
-        DiscordModule.fetchDMMessages(uid);
-    },
 
     acceptFriend: async (id) => {
         try {
@@ -1186,10 +1159,12 @@ const DiscordModule = {
             <div class="chat-messages" id="dm-messages-${dmId}">
                 Fetching history...
             </div>
-            <div class="chat-input-area">
-                <input type="text" placeholder="Message @${name}" onkeydown="if(event.key==='Enter') DiscordModule.sendDMMessage(${dmId}, this)">
-            </div>
          `;
+
+        // Update Global Input Placeholder
+        const globalInput = document.getElementById('global-input');
+        if (globalInput) globalInput.placeholder = `Message @${name}`;
+        DiscordModule.activeDM = dmId;
 
         DiscordModule.fetchDMMessages(dmId);
     },
@@ -1215,8 +1190,7 @@ const DiscordModule = {
         box.scrollTop = box.scrollHeight;
     },
 
-    sendDMMessage: async (dmId, input) => {
-        const text = input.value.trim();
+    sendDMMessage: async (dmId, text) => {
         if (!text) return;
 
         await fetch(`/api/dms/${dmId}/send`, {
@@ -1224,7 +1198,6 @@ const DiscordModule = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: text })
         });
-        input.value = '';
         DiscordModule.fetchDMMessages(dmId); // Simple refresh
     }
 
