@@ -1659,6 +1659,7 @@ def api_create_server():
     if icon_data and 'base64,' in icon_data:
         try:
             # Save base64 image
+            import base64 as b64
             header, encoded = icon_data.split(",", 1)
             ext = 'png'
             if 'jpeg' in header: ext = 'jpg'
@@ -1669,8 +1670,7 @@ def api_create_server():
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             
             with open(filepath, "wb") as f:
-                import base64
-                f.write(base64.b64decode(encoded))
+                f.write(b64.b64decode(encoded))
             
             icon_url = f"/static/uploads/icons/{filename}"
             is_image = True
@@ -1699,11 +1699,14 @@ def api_create_server():
     save_servers()
     
     # Add creator as owner member
-    execute_query(
-        'INSERT OR IGNORE INTO server_members (server_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)',
-        (sid, session['user']['id'], 'owner', time.time()),
-        commit=True
-    )
+    try:
+        execute_query(
+            'INSERT INTO server_members (server_id, user_id, role, joined_at) VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING',
+            (sid, session['user']['id'], 'owner', time.time()),
+            commit=True
+        )
+    except Exception as e:
+        print(f"Server member insert error: {e}")
     
     return jsonify({'success': True, 'server': servers_db[sid], 'id': sid})
 
