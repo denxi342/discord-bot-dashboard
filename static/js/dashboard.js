@@ -649,12 +649,11 @@ const DiscordModule = {
             document.getElementById('server-desc-input').value = serverData.description || '';
             const iconPreview = document.getElementById('server-icon-preview');
             if (iconPreview) {
-                if (serverData.icon && (serverData.icon.startsWith('http') || serverData.icon.startsWith('/'))) {
+                if (serverData.icon && (serverData.icon.startsWith('http') || serverData.icon.startsWith('/') || serverData.icon.startsWith('data:'))) {
                     iconPreview.src = serverData.icon;
                 } else {
-                    // Determine a random color or default avatar for non-image icons
-                    // For now, use default Discord avatar
-                    iconPreview.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+                    // Use a Data URI placeholder to avoid external CDN blocking
+                    iconPreview.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzM2MzkzZiIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjUwIiBmaWxsPSIjZGNkZGNkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIj4/PC90ZXh0Pjwvc3ZnPg==';
                 }
             }
         }
