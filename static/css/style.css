@@ -6,26 +6,27 @@
     --accent: #22d3ee;
     --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
 
-    /* Glass Effects */
-    --glass-bg: rgba(255, 255, 255, 0.08);
-    --glass-border: rgba(255, 255, 255, 0.15);
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    --glass-blur: blur(20px);
+    /* Glass Effects - STRONGER */
+    --glass-bg: rgba(255, 255, 255, 0.15);
+    --glass-bg-dark: rgba(30, 30, 60, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.25);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    --glass-blur: blur(25px);
 
-    /* Backgrounds - Now transparent for glass effect */
-    --server-bg: rgba(15, 15, 25, 0.6);
-    --sidebar-bg: rgba(20, 20, 35, 0.5);
-    --chat-bg: rgba(25, 25, 45, 0.4);
-    --header-bg: rgba(30, 30, 50, 0.6);
+    /* Backgrounds - More transparent */
+    --server-bg: rgba(60, 40, 100, 0.3);
+    --sidebar-bg: rgba(80, 60, 140, 0.25);
+    --chat-bg: rgba(100, 80, 160, 0.15);
+    --header-bg: rgba(60, 40, 100, 0.4);
 
     /* Interactive */
-    --channel-hover: rgba(255, 255, 255, 0.1);
-    --channel-active: rgba(168, 85, 247, 0.25);
+    --channel-hover: rgba(255, 255, 255, 0.15);
+    --channel-active: rgba(168, 85, 247, 0.35);
     --item-active-border: #a855f7;
 
     /* Text */
     --text-normal: #ffffff;
-    --text-muted: rgba(255, 255, 255, 0.65);
+    --text-muted: rgba(255, 255, 255, 0.7);
 
     /* Brand */
     --brand: #a855f7;
@@ -33,33 +34,35 @@
     --success: #10b981;
 
     /* Glow */
-    --glow-primary: 0 0 20px rgba(168, 85, 247, 0.4);
-    --glow-accent: 0 0 15px rgba(34, 211, 238, 0.3);
+    --glow-primary: 0 0 25px rgba(168, 85, 247, 0.5);
+    --glow-accent: 0 0 20px rgba(34, 211, 238, 0.4);
 }
 
+/* Vibrant Gradient Background */
 body {
     margin: 0;
     padding: 0;
     color: var(--text-normal);
     font-family: 'Inter', sans-serif;
     overflow: hidden;
-    /* Animated gradient background */
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #1a1a2e 75%, #16213e 100%);
-    background-size: 400% 400%;
-    animation: gradientShift 15s ease infinite;
+    /* VIBRANT animated gradient - like the mockup */
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.5) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 30%, rgba(236, 72, 153, 0.4) 0%, transparent 45%),
+        radial-gradient(ellipse at 40% 80%, rgba(59, 130, 246, 0.5) 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 90%, rgba(168, 85, 247, 0.3) 0%, transparent 40%),
+        linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e3a5f 100%);
+    background-attachment: fixed;
+    animation: bgPulse 8s ease-in-out infinite alternate;
 }
 
-@keyframes gradientShift {
+@keyframes bgPulse {
     0% {
-        background-position: 0% 50%;
-    }
-
-    50% {
-        background-position: 100% 50%;
+        filter: brightness(1) saturate(1);
     }
 
     100% {
-        background-position: 0% 50%;
+        filter: brightness(1.1) saturate(1.15);
     }
 }
 
