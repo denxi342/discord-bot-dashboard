@@ -1508,6 +1508,18 @@ const DiscordModule = {
         DiscordModule.activeDM = dmId;
 
         DiscordModule.fetchDMMessages(dmId);
+
+        // Start polling fallback for real-time updates (every 3 seconds)
+        if (DiscordModule.dmPollingInterval) {
+            clearInterval(DiscordModule.dmPollingInterval);
+        }
+        DiscordModule.dmPollingInterval = setInterval(() => {
+            if (DiscordModule.activeDM === dmId) {
+                DiscordModule.fetchDMMessages(dmId);
+            } else {
+                clearInterval(DiscordModule.dmPollingInterval);
+            }
+        }, 3000);
     },
 
     fetchDMMessages: async (dmId) => {
