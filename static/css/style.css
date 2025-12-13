@@ -2842,11 +2842,10 @@ body::before {
    ======================================== */
 
 .member-sidebar {
-    width: 240px;
-    min-width: 240px;
+    width: 340px;
+    min-width: 340px;
     height: 100%;
-    background: rgba(20, 15, 40, 0.5);
-    backdrop-filter: blur(10px);
+    background: rgba(15, 10, 30, 0.95);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -2867,10 +2866,9 @@ body::before {
 .dm-profile-card {
     display: flex;
     flex-direction: column;
-    background: rgba(20, 15, 40, 0.9);
-    border-radius: 8px;
+    background: transparent;
     overflow: hidden;
-    margin: 16px;
+    margin: 0;
 }
 
 .dm-profile-banner {
@@ -2913,32 +2911,35 @@ body::before {
 
 .dm-profile-info {
     text-align: center;
-    padding: 16px;
+    padding: 16px 20px;
+    background: rgba(0, 0, 0, 0.3);
 }
 
 .dm-profile-name {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
     color: white;
 }
 
 .dm-profile-tag {
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
     margin-top: 4px;
 }
 
 .dm-profile-section {
-    padding: 12px 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    margin-top: 1px;
 }
 
 .dm-profile-section-title {
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 4px;
+    color: #b9bbbe;
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
 }
 
 .dm-profile-section-value {
@@ -2947,23 +2948,25 @@ body::before {
 }
 
 .dm-profile-note {
-    padding: 12px 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    margin-top: 1px;
 }
 
 .dm-profile-note textarea {
     width: 100%;
-    min-height: 60px;
-    background: rgba(0, 0, 0, 0.2);
+    min-height: 80px;
+    background: rgba(0, 0, 0, 0.4);
     border: none;
     border-radius: 4px;
-    padding: 8px;
+    padding: 10px 12px;
     color: white;
-    font-size: 13px;
+    font-size: 14px;
     resize: none;
     outline: none;
+    box-sizing: border-box;
 }
 
 .dm-profile-note textarea::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.3);
 }
