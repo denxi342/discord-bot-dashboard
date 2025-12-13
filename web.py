@@ -1870,6 +1870,46 @@ def get_or_create_dm(user1_id, user2_id):
     row = execute_query('SELECT id FROM direct_messages WHERE user_id_1 = %s AND user_id_2 = %s', (user1_id, user2_id), fetch_one=True)
     return row[0]
 
+@app.route('/api/dms', methods=['GET'])
+def api_get_dms():
+    if 'user' not in session: return jsonify({'success': False}), 401
+    my_id = int(session['user']['id'])
+    
+    # 1. Get DMs where I am involved
+    rows = execute_query("""
+        SELECT dm.id, dm.user_id_1, dm.user_id_2, dm.last_message_at
+        FROM direct_messages dm
+        WHERE dm.user_id_1 = %s OR dm.user_id_2 = %s
+        ORDER BY dm.last_message_at DESC
+    """, (my_id, my_id), fetch_all=True)
+    
+    dms = []
+    for r in rows:
+        dm_id = r[0]
+        u1 = r[1]
+        u2 = r[2]
+        ts = r[3]
+        
+        # Determine who the other is
+        other_id = u2 if u1 == my_id else u1
+        
+        # Get other user info
+        u_row = execute_query("SELECT username, avatar, display_name FROM users WHERE id = %s", (other_id,), fetch_one=True)
+        if not u_row: continue
+        
+        dms.append({
+            'id': str(dm_id),
+            'other_user': {
+                'id': str(other_id),
+                'username': u_row[0],
+                'avatar': u_row[1] if u_row[1] else 'https://cdn.discordapp.com/embed/avatars/0.png',
+                'display_name': u_row[2]
+            },
+            'last_message_at': ts
+        })
+        
+    return jsonify({'success': True, 'dms': dms})
+
 @app.route('/api/dms/<int:target_id>/messages', methods=['GET'])
 def api_dm_messages(target_id):
     if 'user' not in session: return jsonify({'success': False}), 401
@@ -1907,18 +1947,30 @@ def api_dm_send(target_id):
     
     dm_id = get_or_create_dm(my_id, target_id)
     
+    # Insert Message
     execute_query("INSERT INTO dm_messages (dm_id, author_id, content, timestamp) VALUES (%s, %s, %s, %s)",
                   (dm_id, my_id, content, time.time()), commit=True)
+                  
+    # Update timestamp for sorting
+    execute_query("UPDATE direct_messages SET last_message_at = %s WHERE id = %s", (time.time(), dm_id), commit=True)
+    
+    msg_obj = {
+        'dm_id': str(dm_id),
+        'author_id': my_id,
+        'author': session['user']['username'],
+        'avatar': session['user']['avatar'],
+        'content': content,
+        'timestamp': time.time(),
+        'users': [my_id, target_id] # IDs to filter on frontend
+    }
+    
+    # Emit real-time event
+    socketio.emit('new_dm_message', msg_obj)
     
     # Return message data for frontend optimistic update
     return jsonify({
         'success': True, 
-        'message': {
-            'content': content,
-            'author': session['user']['username'],
-            'avatar': session['user']['avatar'],
-            'timestamp': time.time()
-        }
+        'message': msg_obj
     })
 
 @app.route('/debug/friends_dump')
