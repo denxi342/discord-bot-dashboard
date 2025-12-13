@@ -1593,16 +1593,29 @@ const DiscordModule = {
         const res = await fetch(`/api/dms/by_id/${dmId}/messages`);
         const data = await res.json();
         const box = document.getElementById(`dm-messages-${dmId}`);
+        if (!box) return;
+
+        // Smart polling: only update if message count changed
+        const newCount = data.messages.length;
+        const currentCount = box.querySelectorAll('.dm-bubble').length;
+
+        // Skip update if count is same (prevents jitter during polling)
+        if (currentCount > 0 && newCount === currentCount && !DiscordModule.forceRefresh) {
+            return;
+        }
+        DiscordModule.forceRefresh = false;
+
         box.innerHTML = '';
         box.classList.add('dm-bubbles-container');
 
         // Use global currentUsername set by Jinja template
         const myUsername = window.currentUsername || '';
 
-        data.messages.forEach(m => {
+        data.messages.forEach((m, index) => {
             const isOwn = m.username === myUsername;
+            const isNew = index === data.messages.length - 1;
             box.innerHTML += `
-            <div class="dm-bubble ${isOwn ? 'own' : 'other'}">
+            <div class="dm-bubble ${isOwn ? 'own' : 'other'} ${isNew ? 'new-message' : ''}">
                 ${!isOwn ? `<img src="${m.avatar}" class="dm-bubble-avatar">` : ''}
                 <div class="dm-bubble-content">
                     <div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>
@@ -1614,15 +1627,34 @@ const DiscordModule = {
         box.scrollTop = box.scrollHeight;
     },
 
+    forceRefresh: false,
+
     sendDMMessage: async (dmId, text) => {
         if (!text) return;
+
+        // Optimistic UI: add message immediately with sending state
+        const box = document.getElementById(`dm-messages-${dmId}`);
+        if (box) {
+            const tempId = 'sending-' + Date.now();
+            box.innerHTML += `
+            <div class="dm-bubble own sending" id="${tempId}">
+                <div class="dm-bubble-content">
+                    <div class="dm-bubble-text">${Utils.escapeHtml(text)}</div>
+                    <div class="dm-bubble-time"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+                </div>
+            </div>`;
+            box.scrollTop = box.scrollHeight;
+        }
 
         await fetch(`/api/dms/by_id/${dmId}/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: text })
         });
-        DiscordModule.fetchDMMessages(dmId); // Simple refresh
+
+        // Force refresh after send
+        DiscordModule.forceRefresh = true;
+        DiscordModule.fetchDMMessages(dmId);
     }
 
 };

@@ -1970,6 +1970,67 @@ body::before {
     color: var(--text-muted);
 }
 
+/* Sending state animation */
+.dm-bubble.sending {
+    opacity: 0.7;
+    animation: sendPulse 1s ease-in-out infinite;
+}
+
+.dm-bubble.sending .dm-bubble-content {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.5), rgba(59, 130, 246, 0.5));
+}
+
+@keyframes sendPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+
+    50% {
+        transform: scale(1.02);
+        opacity: 0.9;
+    }
+}
+
+/* New message slide in animation */
+.dm-bubble.new-message {
+    animation: slideInMessage 0.3s ease-out;
+}
+
+.dm-bubble.own.new-message {
+    animation: slideInRight 0.3s ease-out;
+}
+
+.dm-bubble.other.new-message {
+    animation: slideInLeft 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
 /* ========================================
    AVATAR EDIT MODAL - Beautiful Design
    ======================================== */
