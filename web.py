@@ -141,6 +141,21 @@ def init_db():
 
 init_db()
 
+def fix_existing_avatars():
+    """Helper to replace broken CDN avatars with local default"""
+    try:
+        # Check for broken avatars
+        rows = execute_query("SELECT id FROM users WHERE avatar LIKE 'http%' AND avatar LIKE '%cdn.discordapp.com%'", fetch_all=True)
+        if rows:
+            print(f"[!] Found {len(rows)} users with external avatars. Fixing...")
+            execute_query("UPDATE users SET avatar = %s WHERE avatar LIKE 'http%' AND avatar LIKE '%cdn.discordapp.com%'", 
+                          (DEFAULT_AVATAR,), commit=True)
+            print("[+] Avatars fixed.")
+    except Exception as e:
+        print(f"Error fixing avatars: {e}")
+
+fix_existing_avatars()
+
 # ... (Keeping existing imports)
 
 # Database Setup
