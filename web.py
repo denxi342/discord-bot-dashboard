@@ -37,24 +37,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SERVERS_FILE = os.path.join(BASE_DIR, 'servers.json')
 servers_db = {}
 
-def load_servers():
-    global servers_db
-    if os.path.exists(SERVERS_FILE):
-        try:
-            with open(SERVERS_FILE, 'r', encoding='utf-8') as f:
-                servers_db = json.load(f)
-        except:
-            servers_db = {}
-    else:
-        servers_db = {}
-
-def save_servers():
-    with open(SERVERS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(servers_db, f, ensure_ascii=False, indent=2)
-
-# Initialize servers on startup
-load_servers()
-print(f"Loaded {len(servers_db)} servers from storage")
+# Servers will be loaded after the full load_servers() function is defined below
 
 def get_db_connection():
     db_url = os.environ.get('DATABASE_URL')
@@ -340,6 +323,10 @@ def save_servers():
             json.dump(servers_db, f, indent=4)
     except Exception as e:
         print(f"Error saving servers: {e}")
+
+# Initialize servers on startup
+load_servers()
+print(f"✓ Loaded {len(servers_db)} servers from storage")
 
 load_servers()
 
