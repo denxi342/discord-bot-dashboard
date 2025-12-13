@@ -1693,6 +1693,7 @@ body {
     width: calc(100vw - 80px);
     max-width: 1200px;
     height: calc(100vh - 80px);
+    margin: auto;
     background: var(--glass-bg);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
