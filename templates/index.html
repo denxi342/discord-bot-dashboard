@@ -18,7 +18,7 @@
         crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=30">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=31">
 
     <!-- Required Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"
@@ -249,13 +249,16 @@
 
         <!-- 4. MEMBER LIST (Right Sidebar) -->
         <div class="member-sidebar" id="member-sidebar">
-            <div class="member-header">MEMBERS</div>
-            <div class="member-list-content" id="member-list-content">
-                <!-- Dynamic Content -->
-                <div class="member-group">
-                    <div class="group-name">ONLINE — 0</div>
+            <div id="server-member-list-container">
+                <div class="member-header">MEMBERS</div>
+                <div class="member-list-content" id="member-list-content">
+                    <!-- Dynamic Content -->
+                    <div class="member-group">
+                        <div class="group-name">ONLINE — 0</div>
+                    </div>
                 </div>
             </div>
+            <div id="dm-profile-container" style="display: none; height: 100%;"></div>
         </div>
     </div>
 
@@ -658,7 +661,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=25"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=26"></script>
 </body>
 
 </html>

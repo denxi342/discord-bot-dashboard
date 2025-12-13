@@ -469,6 +469,18 @@ const DiscordModule = {
         DiscordModule.currentChannel = chanId;
         DiscordModule.activeDM = null; // Clear DM context when switching to normal channel
 
+        // Restore server member list and hide DM profile (if any)
+        const serverListContainer = document.getElementById('server-member-list-container');
+        const dmProfileContainer = document.getElementById('dm-profile-container');
+        const memberSidebar = document.getElementById('member-sidebar');
+
+        if (serverListContainer) serverListContainer.style.display = 'block';
+        if (dmProfileContainer) {
+            dmProfileContainer.style.display = 'none';
+            dmProfileContainer.innerHTML = '';
+        }
+        if (memberSidebar) memberSidebar.style.display = 'flex'; // Ensure sidebar parent is visible
+
         // Show chat input when selecting a channel (hide only on friends)
         const chatInput = document.querySelector('.chat-input-area');
         if (chatInput && chanId !== 'friends') {
@@ -1270,6 +1282,10 @@ const DiscordModule = {
         const chatInput = document.querySelector('.chat-input-area');
         if (chatInput) chatInput.style.display = 'none';
 
+        // Hide member sidebar on friends page
+        const memberSidebar = document.getElementById('member-sidebar');
+        if (memberSidebar) memberSidebar.style.display = 'none';
+
         container.innerHTML = `
         <div class="friends-page">
             <!-- Header Bar with Tabs -->
@@ -1639,11 +1655,20 @@ const DiscordModule = {
             </div>
          `;
 
-        // Show user profile sidebar
+        // Show user profile sidebar (Toggle containers)
         const memberSidebar = document.getElementById('member-sidebar');
-        if (memberSidebar && otherUser) {
-            memberSidebar.style.display = 'block';
-            memberSidebar.innerHTML = `
+        const serverListContainer = document.getElementById('server-member-list-container');
+        const dmProfileContainer = document.getElementById('dm-profile-container');
+
+        if (memberSidebar && otherUser && dmProfileContainer) {
+            memberSidebar.style.display = 'flex'; // Ensure sidebar is visible
+
+            // Hide server list, show DM profile
+            if (serverListContainer) serverListContainer.style.display = 'none';
+            dmProfileContainer.style.display = 'flex';
+            dmProfileContainer.style.flexDirection = 'column';
+
+            dmProfileContainer.innerHTML = `
                 <div class="dm-profile-card">
                     <div class="dm-profile-banner"></div>
                     <div class="dm-profile-avatar-wrapper">
