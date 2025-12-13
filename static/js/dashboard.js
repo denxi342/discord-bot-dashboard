@@ -1263,7 +1263,6 @@ const WebSocketModule = {
             }
         });
     }
-}
 };
 
 
