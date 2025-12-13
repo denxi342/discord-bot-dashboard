@@ -144,12 +144,19 @@ init_db()
 def fix_existing_avatars():
     """Helper to replace broken CDN avatars with local default"""
     try:
-        # Check for broken avatars
-        rows = execute_query("SELECT id FROM users WHERE avatar LIKE 'http%' AND avatar LIKE '%cdn.discordapp.com%'", fetch_all=True)
+        # Check for broken avatars using parameterized queries to avoid format string issues
+        # Postgres uses %s, SQLite uses ? (handled by wrapper)
+        check_query = "SELECT id FROM users WHERE avatar LIKE %s AND avatar LIKE %s"
+        update_query = "UPDATE users SET avatar = %s WHERE avatar LIKE %s AND avatar LIKE %s"
+        
+        # Note: We pass wildcards as parameters
+        params_check = ('http%', '%cdn.discordapp.com%')
+        params_update = (DEFAULT_AVATAR, 'http%', '%cdn.discordapp.com%')
+        
+        rows = execute_query(check_query, params_check, fetch_all=True)
         if rows:
             print(f"[!] Found {len(rows)} users with external avatars. Fixing...")
-            execute_query("UPDATE users SET avatar = %s WHERE avatar LIKE 'http%' AND avatar LIKE '%cdn.discordapp.com%'", 
-                          (DEFAULT_AVATAR,), commit=True)
+            execute_query(update_query, params_update, commit=True)
             print("[+] Avatars fixed.")
     except Exception as e:
         print(f"Error fixing avatars: {e}")
