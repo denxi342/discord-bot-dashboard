@@ -301,8 +301,10 @@ const DiscordModule = {
         const mainView = document.getElementById('channel-view-general');
         if (mainView) {
             mainView.innerHTML = `
-                <div class="chat-messages" id="messages-general" style="padding:20px; color:var(--text-muted);">
-                    Выберите канал для начала общения
+                <div class="message-stream" id="stream-general">
+                    <div class="empty-state" style="padding:20px; color:var(--text-muted);">
+                        Загрузка сообщений...
+                    </div>
                 </div>
             `;
         }
