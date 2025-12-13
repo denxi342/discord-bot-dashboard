@@ -600,6 +600,33 @@ def callback():
 
 # --- API ROUTES ---
 
+# Site News API - news displayed on home page
+@app.route('/api/site-news')
+def api_site_news():
+    """Return site news for the home page"""
+    # You can later connect this to a database
+    news = [
+        {
+            'id': 1,
+            'title': 'Добро пожаловать на Arizona AI!',
+            'content': 'Это ваш личный мессенджер с AI-помощником для Arizona RP. Исследуйте все функции!',
+            'date': 'Сегодня'
+        },
+        {
+            'id': 2,
+            'title': 'Новые функции чата',
+            'content': 'Добавлены красивые bubble сообщения для личных переписок, анимированные фоны и загрузка аватарок.',
+            'date': 'Недавно'
+        },
+        {
+            'id': 3,
+            'title': 'Arizona AI Помощник',
+            'content': 'Используйте вкладку Arizona AI для получения помощи по правилам сервера, генерации жалоб и многого другого.',
+            'date': 'Недавно'
+        }
+    ]
+    return jsonify({'news': news})
+
 @app.route('/api/stats')
 def api_stats():
     accounts = utils.get_all_accounts()

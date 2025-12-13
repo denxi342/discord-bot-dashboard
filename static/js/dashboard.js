@@ -266,6 +266,7 @@ const DiscordModule = {
 
         if (serverId === 'home') {
             DiscordModule.renderHomeSidebar(container);
+            DiscordModule.loadSiteNews(); // Show site news in main area
             return;
         }
 
@@ -339,6 +340,72 @@ const DiscordModule = {
         // 4. User List (Real DMs)
         container.innerHTML += `<div id="home-dm-list" style="margin-top:20px;"></div>`;
         DiscordModule.loadDMList();
+    },
+
+    loadSiteNews: async () => {
+        const container = document.getElementById('channel-view-general');
+        if (!container) return;
+
+        // Update header
+        const channelName = document.getElementById('current-channel-name');
+        if (channelName) channelName.textContent = 'Новости сайта';
+
+        // Change icon to newspaper
+        const headerIcon = document.querySelector('.chat-header > i');
+        if (headerIcon) {
+            headerIcon.className = 'fa-solid fa-newspaper';
+        }
+
+        // Hide toolbar for news
+        const toolbar = document.querySelector('.header-toolbar');
+        if (toolbar) toolbar.style.display = 'none';
+
+        container.innerHTML = `
+            <div class="site-news-container">
+                <div class="news-loading">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Загрузка новостей...
+                </div>
+            </div>
+        `;
+
+        try {
+            const res = await fetch('/api/site-news');
+            const data = await res.json();
+
+            if (data.news && data.news.length > 0) {
+                let newsHtml = '<div class="site-news-list">';
+                data.news.forEach(item => {
+                    newsHtml += `
+                        <div class="news-card">
+                            <div class="news-card-header">
+                                <i class="fa-solid fa-newspaper"></i>
+                                <span class="news-date">${item.date || 'Недавно'}</span>
+                            </div>
+                            <h3 class="news-title">${Utils.escapeHtml(item.title)}</h3>
+                            <p class="news-content">${Utils.escapeHtml(item.content)}</p>
+                        </div>
+                    `;
+                });
+                newsHtml += '</div>';
+                container.innerHTML = newsHtml;
+            } else {
+                container.innerHTML = `
+                    <div class="site-news-empty">
+                        <i class="fa-solid fa-newspaper"></i>
+                        <h2>Нет новостей</h2>
+                        <p>Новости сайта появятся здесь</p>
+                    </div>
+                `;
+            }
+        } catch (e) {
+            container.innerHTML = `
+                <div class="site-news-empty">
+                    <i class="fa-solid fa-exclamation-triangle"></i>
+                    <h2>Ошибка загрузки</h2>
+                    <p>Не удалось загрузить новости</p>
+                </div>
+            `;
+        }
     },
 
     loadDMList: async () => {
