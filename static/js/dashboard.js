@@ -469,6 +469,12 @@ const DiscordModule = {
         DiscordModule.currentChannel = chanId;
         DiscordModule.activeDM = null; // Clear DM context when switching to normal channel
 
+        // Show chat input when selecting a channel (hide only on friends)
+        const chatInput = document.querySelector('.chat-input-area');
+        if (chatInput && chanId !== 'friends') {
+            chatInput.style.display = 'flex';
+        }
+
         document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); // For friend btn
 
@@ -1502,6 +1508,11 @@ const DiscordModule = {
         const main = document.getElementById('channel-view-general');
         const stream = main.querySelector('#stream-general');
         if (!stream) return;
+
+        // Show chat input for channel
+        const chatInput = document.querySelector('.chat-input-area');
+        if (chatInput) chatInput.style.display = 'flex';
+
         stream.innerHTML = '<div class="loading-state">Loading messages...</div>';
 
         try {
@@ -1600,6 +1611,10 @@ const DiscordModule = {
         const container = document.getElementById('channel-view-general');
         const activeDM = DiscordModule.dmList ? DiscordModule.dmList.find(d => d.id == dmId) : null;
         const name = activeDM ? activeDM.other_user.username : 'Chat';
+
+        // Show chat input for DM
+        const chatInput = document.querySelector('.chat-input-area');
+        if (chatInput) chatInput.style.display = 'flex';
 
         // Update main header for DM view
         const channelName = document.getElementById('current-channel-name');
