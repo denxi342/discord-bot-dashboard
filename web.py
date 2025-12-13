@@ -1910,6 +1910,40 @@ def api_get_dms():
         
     return jsonify({'success': True, 'dms': dms})
 
+@app.route('/api/dms/by_id/<int:dm_id>/messages', methods=['GET'])
+def api_dm_messages_by_id(dm_id):
+    """Get messages for a specific DM conversation by DM ID"""
+    if 'user' not in session: return jsonify({'success': False}), 401
+    my_id = int(session['user']['id'])
+    
+    # Verify user is part of this DM
+    dm_row = execute_query('SELECT user_id_1, user_id_2 FROM direct_messages WHERE id = %s', (dm_id,), fetch_one=True)
+    if not dm_row:
+        return jsonify({'success': False, 'error': 'DM not found'}), 404
+    
+    if my_id not in [dm_row[0], dm_row[1]]:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    # Fetch messages
+    rows = execute_query("""
+        SELECT dm.content, dm.timestamp, u.username, u.avatar 
+        FROM dm_messages dm
+        JOIN users u ON u.id = dm.author_id
+        WHERE dm.dm_id = %s
+        ORDER BY dm.timestamp ASC LIMIT 50
+    """, (dm_id,), fetch_all=True)
+    
+    messages = []
+    for r in rows:
+        messages.append({
+            'content': r[0],
+            'timestamp': r[1],
+            'username': r[2],
+            'avatar': r[3] if r[3] else 'https://cdn.discordapp.com/embed/avatars/0.png'
+        })
+        
+    return jsonify({'success': True, 'messages': messages})
+
 @app.route('/api/dms/<int:target_id>/messages', methods=['GET'])
 def api_dm_messages(target_id):
     if 'user' not in session: return jsonify({'success': False}), 401

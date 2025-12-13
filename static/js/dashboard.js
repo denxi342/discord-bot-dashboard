@@ -1171,7 +1171,7 @@ const DiscordModule = {
     },
 
     fetchDMMessages: async (dmId) => {
-        const res = await fetch(`/api/dms/${dmId}/messages`);
+        const res = await fetch(`/api/dms/by_id/${dmId}/messages`);
         const data = await res.json();
         const box = document.getElementById(`dm-messages-${dmId}`);
         box.innerHTML = '';
