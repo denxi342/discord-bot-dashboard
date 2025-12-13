@@ -1846,3 +1846,93 @@ body {
 .nav-item-danger:hover {
     background: rgba(244, 63, 94, 0.15) !important;
 }
+
+/* ========================================
+   DM CHAT BUBBLES STYLE
+   ======================================== */
+
+.dm-bubbles-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+}
+
+.dm-bubble {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    max-width: 70%;
+    animation: bubbleIn 0.3s ease;
+}
+
+@keyframes bubbleIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dm-bubble.own {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.dm-bubble.other {
+    align-self: flex-start;
+}
+
+.dm-bubble-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.dm-bubble-content {
+    padding: 12px 16px;
+    border-radius: 18px;
+    position: relative;
+}
+
+.dm-bubble.own .dm-bubble-content {
+    background: var(--primary-gradient);
+    border-radius: 18px 18px 4px 18px;
+    box-shadow: var(--glow-primary);
+}
+
+.dm-bubble.other .dm-bubble-content {
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px 18px 18px 4px;
+}
+
+.dm-bubble-text {
+    font-size: 15px;
+    line-height: 1.5;
+    color: #fff;
+    word-wrap: break-word;
+}
+
+.dm-bubble-time {
+    font-size: 11px;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.dm-bubble.own .dm-bubble-time {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.dm-bubble.other .dm-bubble-time {
+    color: var(--text-muted);
+}

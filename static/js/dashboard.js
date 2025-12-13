@@ -1415,17 +1415,22 @@ const DiscordModule = {
         const data = await res.json();
         const box = document.getElementById(`dm-messages-${dmId}`);
         box.innerHTML = '';
+        box.classList.add('dm-bubbles-container');
+
+        // Get current user ID from page context
+        const myUsername = document.getElementById('setting-username')?.innerText ||
+            document.querySelector('.user-name')?.innerText || '';
+
         data.messages.forEach(m => {
+            const isOwn = m.username === myUsername;
             box.innerHTML += `
-            <div class="message">
-                <img src="${m.avatar}" class="message-avatar">
-                <div class="message-content">
-                    <div class="message-header">
-                        <span class="message-username">${m.username}</span>
-                        <span class="message-time">${new Date(m.timestamp * 1000).toLocaleTimeString()}</span>
-                    </div>
-                    <div class="message-text">${Utils.escapeHtml(m.content)}</div>
+            <div class="dm-bubble ${isOwn ? 'own' : 'other'}">
+                ${!isOwn ? `<img src="${m.avatar}" class="dm-bubble-avatar">` : ''}
+                <div class="dm-bubble-content">
+                    <div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>
+                    <div class="dm-bubble-time">${new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
+                ${isOwn ? `<img src="${m.avatar}" class="dm-bubble-avatar">` : ''}
             </div>`;
         });
         box.scrollTop = box.scrollHeight;
