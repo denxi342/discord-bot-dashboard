@@ -1699,7 +1699,6 @@ def api_create_server():
     save_servers()
     
     # Add creator as owner member
-    import time
     execute_query(
         'INSERT OR IGNORE INTO server_members (server_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)',
         (sid, session['user']['id'], 'owner', time.time()),

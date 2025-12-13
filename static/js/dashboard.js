@@ -1258,100 +1258,133 @@ const DiscordModule = {
     },
 
     loadFriends: async (activeTab = 'all') => {
-        const container = document.getElementById('channel-view-general'); // Reuse general/friends view
+        const container = document.getElementById('channel-view-general');
         container.innerHTML = `
-        <div class="friends-header">
-            <div class="fh-title"><i class="fa-solid fa-user-group"></i> Friends</div>
-            <div class="fh-tabs">
-                <div class="fh-tab active" onclick="DiscordModule.filterFriends('all')">All</div>
-                <div class="fh-tab" onclick="DiscordModule.filterFriends('pending')">Pending</div>
-                <div class="fh-tab add-friend" onclick="DiscordModule.filterFriends('add')">Add Friend</div>
+        <div class="friends-page">
+            <!-- Header Bar with Tabs -->
+            <div class="friends-header-bar">
+                <div class="fh-left">
+                    <i class="fa-solid fa-user-group"></i>
+                    <span class="fh-label">Друзья</span>
+                    <div class="fh-divider"></div>
+                    <div class="fh-tabs">
+                        <div class="fh-tab ${activeTab === 'online' ? 'active' : ''}" onclick="DiscordModule.filterFriends('online')">В сети</div>
+                        <div class="fh-tab ${activeTab === 'all' ? 'active' : ''}" onclick="DiscordModule.filterFriends('all')">Все</div>
+                        <div class="fh-tab ${activeTab === 'pending' ? 'active' : ''}" onclick="DiscordModule.filterFriends('pending')">Ожидание</div>
+                        <div class="fh-tab add-friend ${activeTab === 'add' ? 'active' : ''}" onclick="DiscordModule.filterFriends('add')">Добавить в друзья</div>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="friends-list-container" id="friends-list-content">
-            <div style="padding:20px; color:gray;">Loading friends...</div>
+            
+            <!-- Search Bar -->
+            <div class="friends-search-bar">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="friends-search-input" placeholder="Поиск" oninput="DiscordModule.searchFriendsList(this.value)">
+            </div>
+            
+            <!-- Section Label -->
+            <div class="friends-section-label" id="friends-section-label">В сети</div>
+            
+            <!-- Friends List -->
+            <div class="friends-list" id="friends-list-content">
+                <div style="padding:20px; color:var(--text-muted);">Загрузка...</div>
+            </div>
         </div>
         `;
 
         try {
             const res = await fetch('/api/friends');
             const data = await res.json();
-            DiscordModule.friendsData = data; // Cache
+            DiscordModule.friendsData = data;
             DiscordModule.filterFriends(activeTab);
         } catch (e) {
             console.error(e);
         }
     },
 
+    searchFriendsList: (query) => {
+        // Filter displayed friends by search query
+        const items = document.querySelectorAll('.friend-item');
+        const lowerQuery = query.toLowerCase();
+        items.forEach(item => {
+            const name = item.dataset.username?.toLowerCase() || '';
+            item.style.display = name.includes(lowerQuery) ? 'flex' : 'none';
+        });
+    },
+
     filterFriends: (tab) => {
         const container = document.getElementById('friends-list-content');
+        const label = document.getElementById('friends-section-label');
         container.innerHTML = '';
 
         // Update tabs visual
         document.querySelectorAll('.fh-tab').forEach(e => e.classList.remove('active'));
-        // Simple hack to find the clicked tab based on text, or just re-render logic. 
-        // For speed, just rendering content:
+        const tabs = document.querySelectorAll('.fh-tab');
+        if (tab === 'online') tabs[0]?.classList.add('active');
+        if (tab === 'all') tabs[1]?.classList.add('active');
+        if (tab === 'pending') tabs[2]?.classList.add('active');
+        if (tab === 'add') tabs[3]?.classList.add('active');
 
         if (tab === 'add') {
+            if (label) label.style.display = 'none';
             container.innerHTML = `
-             <div class="add-friend-hero">
-                <h3 class="hero-title">ADD FRIEND</h3>
-                <div class="hero-subtitle">You can add friends with their Discord username. It's case sensitive!</div>
+             <div class="add-friend-section">
+                <h3 class="add-friend-title">ДОБАВИТЬ В ДРУЗЬЯ</h3>
+                <p class="add-friend-subtitle">Вы можете добавить друзей по имени пользователя.</p>
                 
-                <div class="add-friend-input-wrapper" style="position:relative;">
-                    <div style="flex:1;">
-                        <input type="text" id="add-friend-input" class="modern-input" placeholder="Enter a Username" autocomplete="off" onkeyup="if(event.key === 'Enter') DiscordModule.sendFriendRequest()">
-                        <!-- Autocomplete result box could go here -->
-                    </div>
-                    <button class="btn-primary" onclick="DiscordModule.sendFriendRequest()">Send Friend Request</button>
-                </div>
-
-                <div class="hero-empty-state">
-                    <div style="font-size: 64px; margin-bottom: 16px;">😢</div>
-                    <p>Здесь пока пусто... Добавьте друзей!</p>
+                <div class="add-friend-input-row">
+                    <input type="text" id="add-friend-input" class="add-friend-input" placeholder="Введите имя пользователя" autocomplete="off" onkeyup="if(event.key === 'Enter') DiscordModule.sendFriendRequest()">
+                    <button class="add-friend-btn" onclick="DiscordModule.sendFriendRequest()">Отправить запрос</button>
                 </div>
              </div>`;
             return;
+        }
+
+        if (label) {
+            label.style.display = 'block';
+            if (tab === 'online') label.textContent = 'В сети';
+            if (tab === 'all') label.textContent = 'Все друзья';
+            if (tab === 'pending') label.textContent = 'Ожидающие';
         }
 
         const data = DiscordModule.friendsData;
         if (!data) return;
 
         let list = [];
-        if (tab === 'all') list = data.friends;
-        if (tab === 'pending') list = [...data.incoming, ...data.outgoing]; // Show both
+        if (tab === 'online' || tab === 'all') list = data.friends || [];
+        if (tab === 'pending') list = [...(data.incoming || []), ...(data.outgoing || [])];
 
         if (list.length === 0) {
-            container.innerHTML = `<div class="empty-state">No friends to show here!</div>`;
+            container.innerHTML = `<div class="friends-empty">Здесь пока никого нет</div>`;
             return;
         }
 
         list.forEach(u => {
-            const isPending = data.incoming.includes(u) || data.outgoing.includes(u);
-            const isIncoming = data.incoming.includes(u);
+            const isPending = (data.incoming || []).some(f => f.id === u.id) || (data.outgoing || []).some(f => f.id === u.id);
+            const isIncoming = (data.incoming || []).some(f => f.id === u.id);
 
             let actions = '';
             if (isPending) {
                 if (isIncoming) {
-                    actions = `<i class="fa-solid fa-check" title="Accept" style="color:#23A559; cursor:pointer;" onclick="DiscordModule.acceptFriend(${u.id})"></i>`;
+                    actions = `<div class="friend-action accept" onclick="DiscordModule.acceptFriend(${u.id})" title="Принять"><i class="fa-solid fa-check"></i></div>`;
                 } else {
-                    actions = `<span style="font-size:12px; color:gray;">Outgoing Request</span>`;
+                    actions = `<span class="friend-status-text">Исходящий запрос</span>`;
                 }
             } else {
                 actions = `
-                <div class="action-icon" onclick="DiscordModule.startDM(${u.id})"><i class="fa-solid fa-message"></i></div>
-                <div class="action-icon" style="color:#F23F42"><i class="fa-solid fa-trash"></i></div>
+                <div class="friend-action" onclick="DiscordModule.startDM(${u.id})" title="Сообщение"><i class="fa-solid fa-message"></i></div>
+                <div class="friend-action danger" title="Удалить"><i class="fa-solid fa-trash"></i></div>
                 `;
             }
 
             container.innerHTML += `
-            <div class="friend-row" style="display:flex; align-items:center; padding:10px 20px; border-top:1px solid rgba(255,255,255,0.06); hover:background:rgba(255,255,255,0.05);">
-                <img src="${u.avatar}" style="width:32px; height:32px; border-radius:50%; margin-right:12px;">
-                <div style="flex:1;">
-                    <div style="color:white; font-weight:600;">${u.username}</div>
-                    <div style="color:gray; font-size:12px;">${isPending ? 'Friend Request' : 'Online'}</div>
+            <div class="friend-item" data-username="${u.username}">
+                <img src="${u.avatar || DEFAULT_AVATAR}" class="friend-avatar">
+                <div class="friend-info">
+                    <div class="friend-name">${u.username}</div>
+                    <div class="friend-status">${isPending ? 'Запрос в друзья' : 'В сети'}</div>
                 </div>
-                <div style="display:flex; gap:10px;">${actions}</div>
+                <div class="friend-actions">${actions}</div>
             </div>`;
         });
     },

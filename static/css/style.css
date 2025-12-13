@@ -2505,3 +2505,263 @@ body::before {
     width: 100%;
     padding-top: 20px;
 }
+
+/* ========================================
+   DISCORD-STYLE FRIENDS PAGE
+   ======================================== */
+
+.friends-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #2f3136;
+}
+
+.friends-header-bar {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: #36393f;
+    border-bottom: 1px solid #202225;
+    min-height: 48px;
+}
+
+.fh-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.fh-left>i {
+    color: #72767d;
+    font-size: 20px;
+}
+
+.fh-label {
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.fh-divider {
+    width: 1px;
+    height: 24px;
+    background: #3f4147;
+    margin: 0 8px;
+}
+
+.fh-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.fh-tab {
+    padding: 4px 12px;
+    color: #b9bbbe;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+}
+
+.fh-tab:hover {
+    background: rgba(79, 84, 92, 0.4);
+    color: #dcddde;
+}
+
+.fh-tab.active {
+    background: rgba(79, 84, 92, 0.6);
+    color: white;
+}
+
+.fh-tab.add-friend {
+    background: #3ba55d;
+    color: white;
+}
+
+.fh-tab.add-friend:hover {
+    background: #2d8049;
+}
+
+.fh-tab.add-friend.active {
+    background: #2d7d46;
+}
+
+.friends-search-bar {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background: #36393f;
+}
+
+.friends-search-bar i {
+    color: #72767d;
+    margin-right: 8px;
+}
+
+.friends-search-bar input {
+    flex: 1;
+    background: #202225;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: white;
+    font-size: 14px;
+    outline: none;
+}
+
+.friends-search-bar input::placeholder {
+    color: #72767d;
+}
+
+.friends-section-label {
+    padding: 16px;
+    color: #72767d;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.friends-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.friend-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-top: 1px solid #3f4147;
+}
+
+.friend-item:hover {
+    background: rgba(79, 84, 92, 0.3);
+}
+
+.friend-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 12px;
+}
+
+.friend-info {
+    flex: 1;
+}
+
+.friend-name {
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.friend-status {
+    color: #72767d;
+    font-size: 12px;
+}
+
+.friend-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.friend-action {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2f3136;
+    border-radius: 50%;
+    color: #b9bbbe;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.friend-action:hover {
+    background: #36393f;
+    color: white;
+}
+
+.friend-action.accept {
+    color: #3ba55d;
+}
+
+.friend-action.accept:hover {
+    color: #2d8049;
+}
+
+.friend-action.danger:hover {
+    color: #ed4245;
+}
+
+.friend-status-text {
+    color: #72767d;
+    font-size: 12px;
+}
+
+.friends-empty {
+    padding: 40px;
+    text-align: center;
+    color: #72767d;
+}
+
+/* Add Friend Section */
+.add-friend-section {
+    padding: 24px;
+}
+
+.add-friend-title {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 0 0 8px 0;
+}
+
+.add-friend-subtitle {
+    color: #b9bbbe;
+    font-size: 14px;
+    margin: 0 0 20px 0;
+}
+
+.add-friend-input-row {
+    display: flex;
+    gap: 12px;
+    background: #202225;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.add-friend-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 12px 16px;
+    color: white;
+    font-size: 16px;
+    outline: none;
+}
+
+.add-friend-input::placeholder {
+    color: #72767d;
+}
+
+.add-friend-btn {
+    background: #5865f2;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.add-friend-btn:hover {
+    background: #4752c4;
+}
