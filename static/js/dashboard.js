@@ -297,6 +297,16 @@ const DiscordModule = {
             <i class="fa-solid fa-plus"></i>
         </div>`;
 
+        // Reset main content area (clear news/DM content)
+        const mainView = document.getElementById('channel-view-general');
+        if (mainView) {
+            mainView.innerHTML = `
+                <div class="chat-messages" id="messages-general" style="padding:20px; color:var(--text-muted);">
+                    Выберите канал для начала общения
+                </div>
+            `;
+        }
+
         const first = data.channels.find(c => c.type === 'channel');
         if (first) DiscordModule.selectChannel(first.id, 'channel');
     },
