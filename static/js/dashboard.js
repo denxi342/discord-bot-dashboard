@@ -1571,39 +1571,30 @@ const WebSocketModule = {
 
         // DM Messages
         socket.on('new_dm_message', (data) => {
-            // Data has { users: [id1, id2], ... }
-            // We need to know OUR user ID. Assuming we can get it from somewhere or just reload.
-            // Since we don't have easy access to "my_id" in JS global, we'll just reload the list 
-            // if we are in the DM view or home view.
-
             // 1. Refresh DM Sidebar (to show new convos or reorder)
             if (DiscordModule.currentServer === 'home') {
                 DiscordModule.loadDMList();
             }
 
-            // 2. If we are currently viewing this DM, append message
+            // 2. If we are currently viewing this DM, append message with bubble style
             if (DiscordModule.activeDM && String(DiscordModule.activeDM) === String(data.dm_id)) {
-                // Check if we are sender to avoid partial collision with optimistic UI
-                // If we don't know who we are yet (me is null), we show the message just in case (better dupe than missing).
-                let isMe = false;
-                if (DiscordModule.me && data.author === DiscordModule.me.username) isMe = true;
+                const myUsername = window.currentUsername || '';
+                const isOwn = data.author === myUsername;
 
-                if (!isMe) {
-                    const box = document.getElementById(`dm-messages-${data.dm_id}`);
-                    if (box) {
-                        box.innerHTML += `
-                            <div class="message">
-                                <img src="${data.avatar}" class="message-avatar">
-                                <div class="message-content">
-                                    <div class="message-header">
-                                        <span class="message-username">${data.author}</span>
-                                        <span class="message-time">${new Date(data.timestamp * 1000).toLocaleTimeString()}</span>
-                                    </div>
-                                    <div class="message-text">${Utils.escapeHtml(data.content)}</div>
-                                </div>
-                            </div>`;
-                        box.scrollTop = box.scrollHeight;
-                    }
+                // Skip own messages (already added optimistically)
+                if (isOwn) return;
+
+                const box = document.getElementById(`dm-messages-${data.dm_id}`);
+                if (box) {
+                    box.innerHTML += `
+                        <div class="dm-bubble other">
+                            <img src="${data.avatar}" class="dm-bubble-avatar">
+                            <div class="dm-bubble-content">
+                                <div class="dm-bubble-text">${Utils.escapeHtml(data.content)}</div>
+                                <div class="dm-bubble-time">${new Date(data.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            </div>
+                        </div>`;
+                    box.scrollTop = box.scrollHeight;
                 }
             }
         });
