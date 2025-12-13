@@ -836,13 +836,78 @@ body {
     /* Modal bg */
 }
 
-.settings-category {
-    font-size: 12px;
+/* Settings Sidebar */
+.settings-sidebar {
+    width: 220px;
+    background: linear-gradient(180deg, #2B2D31 0%, #232428 100%);
+    padding: 20px 12px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.settings-header {
+    padding: 12px 14px;
+    font-size: 14px;
     font-weight: 700;
-    color: #8E9297;
-    margin-top: 16px;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, rgba(88, 101, 242, 0.15) 0%, rgba(114, 137, 218, 0.1) 100%);
+    border-radius: 8px;
+    border-left: 3px solid #5865F2;
+}
+
+.settings-item {
+    padding: 10px 14px;
+    margin: 2px 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: #B5BAC1;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-item:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+    color: #fff;
+    transform: translateX(4px);
+}
+
+.settings-item.active {
+    background: linear-gradient(135deg, rgba(88, 101, 242, 0.3) 0%, rgba(88, 101, 242, 0.15) 100%);
+    color: #fff;
+    border-left: 3px solid #5865F2;
+    font-weight: 600;
+}
+
+.settings-category {
+    font-size: 11px;
+    font-weight: 800;
+    color: #949BA4;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-top: 20px;
     margin-bottom: 8px;
-    padding: 0 10px;
+    padding: 0 14px;
+}
+
+.settings-sep {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    margin: 12px 8px;
+}
+
+.settings-content {
+    flex: 1;
+    padding: 30px 40px;
+    overflow-y: auto;
+    background: #313338;
 }
 
 /* ROLES EDITOR SPLIT VIEW */
