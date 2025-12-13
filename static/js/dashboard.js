@@ -693,6 +693,10 @@ const DiscordModule = {
         }
     },
 
+    uploadServerIcon: () => {
+        alert('Функция загрузки иконки находится в разработке.');
+    },
+
     loadServerMembers: async () => {
         if (!DiscordModule.currentServer) return;
         const sid = DiscordModule.currentServer;
