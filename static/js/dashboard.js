@@ -1800,8 +1800,9 @@ const DiscordModule = {
             dmProfileContainer.style.display = 'flex';
             dmProfileContainer.style.flexDirection = 'column';
 
-            // ALWAYS show offline for now - online status removed until properly fixed
-            const statusClass = 'offline';
+            // Check real online status from userStatuses dict
+            const isOnline = DiscordModule.userStatuses[otherUser.id] === 'online';
+            const statusClass = isOnline ? 'online' : 'offline';
 
             dmProfileContainer.innerHTML = `
                 <div class="dm-profile-card">
