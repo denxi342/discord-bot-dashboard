@@ -2521,7 +2521,7 @@ def api_edit_message(message_id):
         'message_id': message_id,
         'content': new_content,
         'edited_at': time.time()
-    }, broadcast=True)
+    })
     
     return jsonify({'success': True})
 
@@ -2554,7 +2554,7 @@ def api_delete_message(message_id):
     socketio.emit('message_deleted', {
         'message_id': message_id,
         'dm_id': dm_id
-    }, broadcast=True)
+    })
     
     return jsonify({'success': True})
 
@@ -2589,7 +2589,7 @@ def api_pin_message(message_id):
         'message_id': message_id,
         'dm_id': dm_id,
         'is_pinned': bool(new_pinned)
-    }, broadcast=True)
+    })
     
     return jsonify({'success': True, 'is_pinned': bool(new_pinned)})
 
@@ -2675,7 +2675,7 @@ def api_react_message(message_id):
             'message_id': message_id,
             'dm_id': dm_id,
             'reactions': reactions
-        }, broadcast=True)
+        })
         
         return jsonify({'success': True, 'action': action, 'reactions': reactions})
     
