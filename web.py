@@ -208,6 +208,25 @@ def load_servers():
                         { 'id': 'cat-ai', 'type': 'category', 'name': 'ASSISTANT' },
                         { 'id': 'helper', 'type': 'channel', 'name': 'chat-gpt', 'icon': 'robot' }
                     ]
+                },
+                'smi': {
+                    'name': 'СМИ Тулс',
+                    'icon': 'newspaper',
+                    'owner': 'system',
+                    'channels': [
+                        { 'id': 'cat-smi', 'type': 'category', 'name': 'TOOLS' },
+                        { 'id': 'ad-editor', 'type': 'channel', 'name': 'ad-editor', 'icon': 'pen-to-square' }
+                    ]
+                },
+                'admin': {
+                    'name': 'Admin Panel',
+                    'icon': 'shield-halved',
+                    'owner': 'system',
+                    'channels': [
+                        { 'id': 'cat-admin', 'type': 'category', 'name': 'ADMINISTRATION' },
+                        { 'id': 'users', 'type': 'channel', 'name': 'users', 'icon': 'users' },
+                        { 'id': 'stats', 'type': 'channel', 'name': 'stats', 'icon': 'chart-line' }
+                    ]
                 }
             }
             save_servers()
@@ -1651,7 +1670,24 @@ def api_get_servers():
     user_server_ids = [r[0] for r in rows]
     
     # Filter global DB
-    user_servers = {sid: data for sid, data in servers_db.items() if sid in user_server_ids}
+    user_servers = {}
+    
+    # 1. Add User's Servers (Validation against server_members)
+    for sid, data in servers_db.items():
+        if sid in user_server_ids:
+            user_servers[sid] = data
+            
+    # 2. Force Include System Servers (Bypass DB check)
+    system_servers = ['home', 'ai', 'smi']
+    
+    # Check if admin
+    is_admin = session['user'].get('role') in ['developer', 'tester', 'admin']
+    if is_admin:
+        system_servers.append('admin')
+        
+    for sys_sid in system_servers:
+        if sys_sid in servers_db:
+            user_servers[sys_sid] = servers_db[sys_sid]
     
     return jsonify({'success': True, 'servers': user_servers})
 
