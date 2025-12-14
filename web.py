@@ -2165,15 +2165,13 @@ def api_dm_messages_by_id(dm_id):
     if my_id not in [dm_row[0], dm_row[1]]:
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
-    # Fetch LAST 50 messages (subquery to get latest, then order chronologically)
+    # Fetch ALL messages ordered chronologically
     rows = execute_query("""
-        SELECT * FROM (
-            SELECT dm.content, dm.timestamp, u.username, u.avatar 
-            FROM dm_messages dm
-            JOIN users u ON u.id = dm.author_id
-            WHERE dm.dm_id = %s
-            ORDER BY dm.timestamp DESC LIMIT 50
-        ) sub ORDER BY timestamp ASC
+        SELECT dm.content, dm.timestamp, u.username, u.avatar 
+        FROM dm_messages dm
+        JOIN users u ON u.id = dm.author_id
+        WHERE dm.dm_id = %s
+        ORDER BY dm.timestamp ASC
     """, (dm_id,), fetch_all=True)
     
     messages = []
@@ -2194,15 +2192,13 @@ def api_dm_messages(target_id):
     
     dm_id = get_or_create_dm(my_id, target_id)
     
-    # Fetch LAST 50 messages (subquery to get latest, then order chronologically)
+    # Fetch ALL messages ordered chronologically
     rows = execute_query("""
-        SELECT * FROM (
-            SELECT dm.content, dm.timestamp, u.username, u.avatar 
-            FROM dm_messages dm
-            JOIN users u ON u.id = dm.author_id
-            WHERE dm.dm_id = %s
-            ORDER BY dm.timestamp DESC LIMIT 50
-        ) sub ORDER BY timestamp ASC
+        SELECT dm.content, dm.timestamp, u.username, u.avatar 
+        FROM dm_messages dm
+        JOIN users u ON u.id = dm.author_id
+        WHERE dm.dm_id = %s
+        ORDER BY dm.timestamp ASC
     """, (dm_id,), fetch_all=True)
     
     messages = []
