@@ -1821,7 +1821,10 @@ const WebSocketModule = {
     socket: null,
     init: () => {
         if (typeof io === 'undefined') return;
-        WebSocketModule.socket = io();
+        // Force WebSocket transport to avoid 400 errors with Polling on Render/Cloud platforms
+        WebSocketModule.socket = io({
+            transports: ['websocket', 'polling']
+        });
 
         const socket = WebSocketModule.socket;
 
