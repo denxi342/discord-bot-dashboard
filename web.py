@@ -2174,13 +2174,15 @@ def api_dm_messages_by_id(dm_id):
         print(f"[DM GET] ERROR: User {my_id} not authorized")
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
-    # Fetch messages
+    # Fetch LAST 50 messages (subquery to get latest, then order chronologically)
     rows = execute_query("""
-        SELECT dm.content, dm.timestamp, u.username, u.avatar 
-        FROM dm_messages dm
-        JOIN users u ON u.id = dm.author_id
-        WHERE dm.dm_id = %s
-        ORDER BY dm.timestamp ASC LIMIT 50
+        SELECT * FROM (
+            SELECT dm.content, dm.timestamp, u.username, u.avatar 
+            FROM dm_messages dm
+            JOIN users u ON u.id = dm.author_id
+            WHERE dm.dm_id = %s
+            ORDER BY dm.timestamp DESC LIMIT 50
+        ) sub ORDER BY timestamp ASC
     """, (dm_id,), fetch_all=True)
     
     print(f"[DM GET] Found {len(rows) if rows else 0} messages in DB")
@@ -2204,13 +2206,15 @@ def api_dm_messages(target_id):
     
     dm_id = get_or_create_dm(my_id, target_id)
     
-    # Fetch messages
+    # Fetch LAST 50 messages (subquery to get latest, then order chronologically)
     rows = execute_query("""
-        SELECT dm.content, dm.timestamp, u.username, u.avatar 
-        FROM dm_messages dm
-        JOIN users u ON u.id = dm.author_id
-        WHERE dm.dm_id = %s
-        ORDER BY dm.timestamp ASC LIMIT 50
+        SELECT * FROM (
+            SELECT dm.content, dm.timestamp, u.username, u.avatar 
+            FROM dm_messages dm
+            JOIN users u ON u.id = dm.author_id
+            WHERE dm.dm_id = %s
+            ORDER BY dm.timestamp DESC LIMIT 50
+        ) sub ORDER BY timestamp ASC
     """, (dm_id,), fetch_all=True)
     
     messages = []
