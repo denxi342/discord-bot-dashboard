@@ -1757,44 +1757,29 @@ const DiscordModule = {
     },
 
     fetchDMMessages: async (dmId) => {
-        console.log(`[DM FETCH] Fetching messages for DM ${dmId}`);
-
         try {
             const res = await fetch(`/api/dms/by_id/${dmId}/messages`);
             const data = await res.json();
 
-            console.log(`[DM FETCH] Response:`, data);
-            console.log(`[DM FETCH] Messages count from server: ${data.messages ? data.messages.length : 'undefined'}`);
-
             const box = document.getElementById(`dm-messages-${dmId}`);
-            if (!box) {
-                console.log(`[DM FETCH] ERROR: Container dm-messages-${dmId} not found`);
-                return;
-            }
+            if (!box) return;
 
             // Check if we should skip update
             const newCount = data.messages ? data.messages.length : 0;
             const currentCount = box.querySelectorAll('.dm-bubble:not(.sending)').length;
 
-            console.log(`[DM FETCH] newCount: ${newCount}, currentCount: ${currentCount}, forceRefresh: ${DiscordModule.forceRefresh}`);
-
             // Skip update if count is same (prevents jitter during polling)
             if (currentCount > 0 && newCount === currentCount && !DiscordModule.forceRefresh) {
-                console.log(`[DM FETCH] Skipping update - counts match`);
                 return;
             }
             DiscordModule.forceRefresh = false;
 
-            console.log(`[DM FETCH] Rebuilding message list...`);
             box.innerHTML = '';
             box.classList.add('dm-bubbles-container');
 
-            // Use global currentUsername set by Jinja template
             const myUsername = window.currentUsername || '';
-            console.log(`[DM FETCH] My username: "${myUsername}"`);
 
             if (!data.messages || data.messages.length === 0) {
-                console.log(`[DM FETCH] No messages to display`);
                 box.innerHTML = '<div class="dm-empty">Начните беседу!</div>';
                 return;
             }
@@ -1813,10 +1798,9 @@ const DiscordModule = {
                 </div>`;
             });
 
-            console.log(`[DM FETCH] Displayed ${data.messages.length} messages`);
             box.scrollTop = box.scrollHeight;
         } catch (e) {
-            console.error(`[DM FETCH] Error:`, e);
+            console.error(`[DM] Fetch error:`, e);
         }
     },
 
@@ -1824,8 +1808,6 @@ const DiscordModule = {
 
     sendDMMessage: async (dmId, text) => {
         if (!text) return;
-
-        console.log(`[DM] Sending message to DM ${dmId}: "${text.substring(0, 50)}..."`);
 
         // Optimistic UI: add message immediately with sending state
         const box = document.getElementById(`dm-messages-${dmId}`);
@@ -1842,29 +1824,17 @@ const DiscordModule = {
         }
 
         try {
-            console.log(`[DM] Fetching /api/dms/by_id/${dmId}/send`);
             const res = await fetch(`/api/dms/by_id/${dmId}/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: text })
             });
 
-            console.log(`[DM] Response status: ${res.status}`);
-
             const d = await res.json();
-            console.log('[DM] Response data:', d);
 
-            if (!res.ok) {
-                console.error('[DM] Server error response:', res.status, d);
+            if (!res.ok || !d.success) {
                 throw new Error(d.error || `Server error ${res.status}`);
             }
-
-            if (!d.success) {
-                console.error('[DM] Failed response:', d);
-                throw new Error(d.error || "Failed to send");
-            }
-
-            console.log('[DM] Message sent successfully');
 
             // Update the optimistic message to show success
             const tempEl = document.getElementById(tempId);
@@ -1882,11 +1852,10 @@ const DiscordModule = {
             setTimeout(() => DiscordModule.fetchDMMessages(dmId), 500);
 
         } catch (e) {
-            console.error("[DM] Send Error:", e);
-            // Remove optimistic message on error
+            console.error("[DM] Send error:", e);
             const failEl = document.getElementById(tempId);
             if (failEl) failEl.remove();
-            Utils.showToast("Failed to send message: " + e.message);
+            Utils.showToast("Ошибка отправки: " + e.message);
         }
     }
 

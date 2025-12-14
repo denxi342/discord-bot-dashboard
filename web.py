@@ -31,13 +31,9 @@ socketio = SocketIO(app, cors_allowed_origins="*", manage_session=True, async_mo
 
 @socketio.on('connect')
 def handle_connect():
-    print(f"[Socket.IO] New connection attempt, session: {'user' in session}")
     if 'user' in session:
         user_id = str(session['user']['id'])
         join_room(user_id)
-        print(f"[Socket.IO] User {session['user']['username']} (ID: {user_id}) joined room {user_id}")
-    else:
-        print("[Socket.IO] Anonymous connection (no user in session)")
 
 import psycopg2
 from urllib.parse import urlparse
@@ -2157,21 +2153,16 @@ def api_get_dms():
 @app.route('/api/dms/by_id/<int:dm_id>/messages', methods=['GET'])
 def api_dm_messages_by_id(dm_id):
     """Get messages for a specific DM conversation by DM ID"""
-    print(f"[DM GET] Fetching messages for DM {dm_id}")
-    
     if 'user' not in session: 
-        print("[DM GET] ERROR: User not in session")
         return jsonify({'success': False}), 401
     my_id = int(session['user']['id'])
     
     # Verify user is part of this DM
     dm_row = execute_query('SELECT user_id_1, user_id_2 FROM direct_messages WHERE id = %s', (dm_id,), fetch_one=True)
     if not dm_row:
-        print(f"[DM GET] ERROR: DM {dm_id} not found")
         return jsonify({'success': False, 'error': 'DM not found'}), 404
     
     if my_id not in [dm_row[0], dm_row[1]]:
-        print(f"[DM GET] ERROR: User {my_id} not authorized")
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
     # Fetch LAST 50 messages (subquery to get latest, then order chronologically)
@@ -2185,10 +2176,8 @@ def api_dm_messages_by_id(dm_id):
         ) sub ORDER BY timestamp ASC
     """, (dm_id,), fetch_all=True)
     
-    print(f"[DM GET] Found {len(rows) if rows else 0} messages in DB")
-    
     messages = []
-    for r in rows:
+    for r in rows or []:
         messages.append({
             'content': r[0],
             'timestamp': r[1],
@@ -2196,7 +2185,6 @@ def api_dm_messages_by_id(dm_id):
             'avatar': r[3] if r[3] else DEFAULT_AVATAR
         })
     
-    print(f"[DM GET] Returning {len(messages)} messages")
     return jsonify({'success': True, 'messages': messages})
 
 @app.route('/api/dms/<int:target_id>/messages', methods=['GET'])
@@ -2232,31 +2220,22 @@ def api_dm_messages(target_id):
 @app.route('/api/dms/by_id/<int:dm_id>/send', methods=['POST'])
 def api_dm_send_by_id(dm_id):
     """Send a message to a DM conversation by DM ID"""
-    print(f"[DM] Attempting to send message to DM {dm_id}")
-    
     if 'user' not in session: 
-        print("[DM] ERROR: User not in session")
         return jsonify({'success': False, 'error': 'Not authenticated'}), 401
     
     my_id = int(session['user']['id'])
-    print(f"[DM] User ID: {my_id}")
     
     # Verify user is part of this DM
     dm_row = execute_query('SELECT user_id_1, user_id_2 FROM direct_messages WHERE id = %s', (dm_id,), fetch_one=True)
     if not dm_row:
-        print(f"[DM] ERROR: DM {dm_id} not found in database")
         return jsonify({'success': False, 'error': 'DM not found'}), 404
     
-    print(f"[DM] DM participants: user_1={dm_row[0]}, user_2={dm_row[1]}")
-    
     if my_id not in [dm_row[0], dm_row[1]]:
-        print(f"[DM] ERROR: User {my_id} not authorized for this DM")
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
     data = request.json
     content = data.get('content', '').strip()
     if not content:
-        print("[DM] ERROR: Empty message content")
         return jsonify({'success': False, 'error': 'Empty message'}), 400
     
     timestamp = time.time()
@@ -2267,15 +2246,12 @@ def api_dm_send_by_id(dm_id):
             INSERT INTO dm_messages (dm_id, author_id, content, timestamp)
             VALUES (%s, %s, %s, %s)
         ''', (dm_id, my_id, content, timestamp), commit=True)
-        print(f"[DM] Message inserted successfully")
         
         # Update last_message_at
         execute_query('UPDATE direct_messages SET last_message_at = %s WHERE id = %s',
                       (timestamp, dm_id), commit=True)
-        print(f"[DM] DM timestamp updated")
         
     except Exception as e:
-        print(f"[DM] ERROR inserting message: {e}")
         return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
     
     # Get user info for socket broadcast
@@ -2292,13 +2268,9 @@ def api_dm_send_by_id(dm_id):
         'timestamp': timestamp
     }
     
-    print(f"[DM] Emitting to rooms: {dm_row[0]}, {dm_row[1]}")
-    
     # Send to sender and recipient
-    socketio.emit('new_dm_message', payload, room=str(dm_row[0])) # User 1
-    socketio.emit('new_dm_message', payload, room=str(dm_row[1])) # User 2
-    
-    print(f"[DM] Message sent successfully to DM {dm_id}")
+    socketio.emit('new_dm_message', payload, room=str(dm_row[0]))
+    socketio.emit('new_dm_message', payload, room=str(dm_row[1]))
     
     # Return full message data for frontend optimistic update
     return jsonify({
