@@ -1964,6 +1964,20 @@ const WebSocketModule = {
 
         socket.on('connect', () => {
             console.log("Connected to Socket.IO");
+            // Set current user's status to online (green) in the user bar
+            const userBarAvatar = document.getElementById('user-bar-avatar');
+            if (userBarAvatar) {
+                userBarAvatar.classList.add('is-online');
+            }
+        });
+
+        socket.on('disconnect', () => {
+            console.log("Disconnected from Socket.IO");
+            // Set current user's status to offline (gray) in the user bar
+            const userBarAvatar = document.getElementById('user-bar-avatar');
+            if (userBarAvatar) {
+                userBarAvatar.classList.remove('is-online');
+            }
         });
 
         // Channel Messages
