@@ -185,7 +185,19 @@ def init_db():
                   dm_id INTEGER NOT NULL,
                   author_id INTEGER NOT NULL,
                   content TEXT,
-                  timestamp REAL)''')
+                  timestamp REAL,
+                  reply_to_id INTEGER,
+                  is_pinned INTEGER DEFAULT 0,
+                  edited_at REAL)''')
+
+    # Message Reactions Table
+    c.execute(f'''CREATE TABLE IF NOT EXISTS message_reactions
+                 (id {pk_type},
+                  message_id INTEGER NOT NULL,
+                  user_id INTEGER NOT NULL,
+                  emoji TEXT NOT NULL,
+                  created_at REAL,
+                  UNIQUE(message_id, user_id, emoji))''')
 
     # Server Members Table - tracks who is a member of which server
     c.execute(f'''CREATE TABLE IF NOT EXISTS server_members
@@ -2196,9 +2208,10 @@ def api_dm_messages_by_id(dm_id):
     if my_id not in [dm_row[0], dm_row[1]]:
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
-    # Fetch ALL messages ordered chronologically
+    # Fetch ALL messages ordered chronologically with extended fields
     rows = execute_query("""
-        SELECT dm.content, dm.timestamp, u.username, u.avatar 
+        SELECT dm.id, dm.content, dm.timestamp, u.username, u.avatar, 
+               dm.is_pinned, dm.edited_at, dm.reply_to_id, u.id as author_id
         FROM dm_messages dm
         JOIN users u ON u.id = dm.author_id
         WHERE dm.dm_id = %s
@@ -2207,11 +2220,34 @@ def api_dm_messages_by_id(dm_id):
     
     messages = []
     for r in rows or []:
+        msg_id = r[0]
+        # Get reactions for this message
+        reactions = get_message_reactions(msg_id) if 'get_message_reactions' in dir() else {}
+        
+        # Get reply preview if exists
+        reply_preview = None
+        if r[7]:  # reply_to_id
+            reply_row = execute_query(
+                'SELECT content, u.username FROM dm_messages dm JOIN users u ON u.id = dm.author_id WHERE dm.id = %s',
+                (r[7],), fetch_one=True
+            )
+            if reply_row:
+                reply_preview = {
+                    'content': reply_row[0][:100] + '...' if len(reply_row[0]) > 100 else reply_row[0],
+                    'username': reply_row[1]
+                }
+        
         messages.append({
-            'content': r[0],
-            'timestamp': r[1],
-            'username': r[2],
-            'avatar': r[3] if r[3] else DEFAULT_AVATAR
+            'id': msg_id,
+            'content': r[1],
+            'timestamp': r[2],
+            'username': r[3],
+            'avatar': r[4] if r[4] else DEFAULT_AVATAR,
+            'is_pinned': bool(r[5]),
+            'edited_at': r[6],
+            'reply_to': reply_preview,
+            'author_id': r[8],
+            'reactions': reactions
         })
     
     return jsonify({'success': True, 'messages': messages})
@@ -2262,17 +2298,18 @@ def api_dm_send_by_id(dm_id):
     
     data = request.json
     content = data.get('content', '').strip()
+    reply_to_id = data.get('reply_to_id')  # ID сообщения на которое отвечаем
     if not content:
         return jsonify({'success': False, 'error': 'Empty message'}), 400
     
     timestamp = time.time()
     
     try:
-        # Insert message
+        # Insert message with reply support
         execute_query('''
-            INSERT INTO dm_messages (dm_id, author_id, content, timestamp)
-            VALUES (%s, %s, %s, %s)
-        ''', (dm_id, my_id, content, timestamp), commit=True)
+            INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id)
+            VALUES (%s, %s, %s, %s, %s)
+        ''', (dm_id, my_id, content, timestamp, reply_to_id), commit=True)
         
         # Update last_message_at
         execute_query('UPDATE direct_messages SET last_message_at = %s WHERE id = %s',
@@ -2347,6 +2384,241 @@ def api_dm_send(target_id):
         'success': True, 
         'message': msg_obj
     })
+
+
+# ============================================================
+# РАСШИРЕННЫЕ ФУНКЦИИ СООБЩЕНИЙ
+# ============================================================
+
+@app.route('/api/messages/<int:message_id>/edit', methods=['PUT'])
+def api_edit_message(message_id):
+    """Редактировать сообщение"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+    
+    my_id = int(session['user']['id'])
+    data = request.json
+    new_content = data.get('content', '').strip()
+    
+    if not new_content:
+        return jsonify({'success': False, 'error': 'Empty content'}), 400
+    
+    # Check if user owns this message
+    msg = execute_query('SELECT author_id, dm_id FROM dm_messages WHERE id = %s', (message_id,), fetch_one=True)
+    if not msg:
+        return jsonify({'success': False, 'error': 'Message not found'}), 404
+    
+    if msg[0] != my_id:
+        return jsonify({'success': False, 'error': 'Cannot edit others messages'}), 403
+    
+    # Update message
+    execute_query('UPDATE dm_messages SET content = %s, edited_at = %s WHERE id = %s',
+                  (new_content, time.time(), message_id), commit=True)
+    
+    # Emit update via socket
+    socketio.emit('message_edited', {
+        'message_id': message_id,
+        'content': new_content,
+        'edited_at': time.time()
+    }, broadcast=True)
+    
+    return jsonify({'success': True})
+
+
+@app.route('/api/messages/<int:message_id>/delete', methods=['DELETE'])
+def api_delete_message(message_id):
+    """Удалить сообщение"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+    
+    my_id = int(session['user']['id'])
+    
+    # Check if user owns this message
+    msg = execute_query('SELECT author_id, dm_id FROM dm_messages WHERE id = %s', (message_id,), fetch_one=True)
+    if not msg:
+        return jsonify({'success': False, 'error': 'Message not found'}), 404
+    
+    if msg[0] != my_id:
+        return jsonify({'success': False, 'error': 'Cannot delete others messages'}), 403
+    
+    dm_id = msg[1]
+    
+    # Delete reactions first
+    execute_query('DELETE FROM message_reactions WHERE message_id = %s', (message_id,), commit=True)
+    
+    # Delete message
+    execute_query('DELETE FROM dm_messages WHERE id = %s', (message_id,), commit=True)
+    
+    # Emit delete via socket
+    socketio.emit('message_deleted', {
+        'message_id': message_id,
+        'dm_id': dm_id
+    }, broadcast=True)
+    
+    return jsonify({'success': True})
+
+
+@app.route('/api/messages/<int:message_id>/pin', methods=['POST'])
+def api_pin_message(message_id):
+    """Закрепить/открепить сообщение"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+    
+    my_id = int(session['user']['id'])
+    
+    # Check message exists and user has access
+    msg = execute_query('SELECT dm_id, is_pinned FROM dm_messages WHERE id = %s', (message_id,), fetch_one=True)
+    if not msg:
+        return jsonify({'success': False, 'error': 'Message not found'}), 404
+    
+    dm_id = msg[0]
+    current_pinned = msg[1] or 0
+    
+    # Check user is part of this DM
+    dm = execute_query('SELECT user_id_1, user_id_2 FROM direct_messages WHERE id = %s', (dm_id,), fetch_one=True)
+    if not dm or my_id not in [dm[0], dm[1]]:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    # Toggle pin status
+    new_pinned = 0 if current_pinned else 1
+    execute_query('UPDATE dm_messages SET is_pinned = %s WHERE id = %s', (new_pinned, message_id), commit=True)
+    
+    # Emit via socket
+    socketio.emit('message_pinned', {
+        'message_id': message_id,
+        'dm_id': dm_id,
+        'is_pinned': bool(new_pinned)
+    }, broadcast=True)
+    
+    return jsonify({'success': True, 'is_pinned': bool(new_pinned)})
+
+
+@app.route('/api/dms/<int:dm_id>/pinned', methods=['GET'])
+def api_get_pinned_messages(dm_id):
+    """Получить закреплённые сообщения"""
+    if 'user' not in session:
+        return jsonify({'success': False}), 401
+    
+    my_id = int(session['user']['id'])
+    
+    # Check access
+    dm = execute_query('SELECT user_id_1, user_id_2 FROM direct_messages WHERE id = %s', (dm_id,), fetch_one=True)
+    if not dm or my_id not in [dm[0], dm[1]]:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    rows = execute_query('''
+        SELECT dm.id, dm.content, dm.timestamp, u.username, u.avatar
+        FROM dm_messages dm
+        JOIN users u ON u.id = dm.author_id
+        WHERE dm.dm_id = %s AND dm.is_pinned = 1
+        ORDER BY dm.timestamp DESC
+    ''', (dm_id,), fetch_all=True)
+    
+    pinned = []
+    for r in rows or []:
+        pinned.append({
+            'id': r[0],
+            'content': r[1],
+            'timestamp': r[2],
+            'username': r[3],
+            'avatar': r[4] or DEFAULT_AVATAR
+        })
+    
+    return jsonify({'success': True, 'pinned': pinned})
+
+
+@app.route('/api/messages/<int:message_id>/react', methods=['POST'])
+def api_react_message(message_id):
+    """Добавить/удалить реакцию"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+    
+    my_id = int(session['user']['id'])
+    data = request.json
+    emoji = data.get('emoji', '').strip()
+    
+    if not emoji:
+        return jsonify({'success': False, 'error': 'No emoji provided'}), 400
+    
+    # Check message exists
+    msg = execute_query('SELECT dm_id FROM dm_messages WHERE id = %s', (message_id,), fetch_one=True)
+    if not msg:
+        return jsonify({'success': False, 'error': 'Message not found'}), 404
+    
+    dm_id = msg[0]
+    
+    # Check if reaction already exists
+    existing = execute_query(
+        'SELECT id FROM message_reactions WHERE message_id = %s AND user_id = %s AND emoji = %s',
+        (message_id, my_id, emoji), fetch_one=True
+    )
+    
+    if existing:
+        # Remove reaction
+        execute_query('DELETE FROM message_reactions WHERE id = %s', (existing[0],), commit=True)
+        action = 'removed'
+    else:
+        # Add reaction
+        execute_query(
+            'INSERT INTO message_reactions (message_id, user_id, emoji, created_at) VALUES (%s, %s, %s, %s)',
+            (message_id, my_id, emoji, time.time()), commit=True
+        )
+        action = 'added'
+    
+    # Get updated reactions count
+    reactions = get_message_reactions(message_id)
+    
+    # Emit via socket
+    socketio.emit('message_reaction', {
+        'message_id': message_id,
+        'dm_id': dm_id,
+        'reactions': reactions
+    }, broadcast=True)
+    
+    return jsonify({'success': True, 'action': action, 'reactions': reactions})
+
+
+def get_message_reactions(message_id):
+    """Helper: получить реакции для сообщения"""
+    rows = execute_query('''
+        SELECT emoji, COUNT(*) as count
+        FROM message_reactions
+        WHERE message_id = %s
+        GROUP BY emoji
+    ''', (message_id,), fetch_all=True)
+    
+    reactions = {}
+    for r in rows or []:
+        reactions[r[0]] = r[1]
+    
+    return reactions
+
+
+@app.route('/api/messages/<int:message_id>/reactions', methods=['GET'])
+def api_get_reactions(message_id):
+    """Получить все реакции на сообщение с пользователями"""
+    if 'user' not in session:
+        return jsonify({'success': False}), 401
+    
+    rows = execute_query('''
+        SELECT mr.emoji, u.username, u.avatar
+        FROM message_reactions mr
+        JOIN users u ON u.id = mr.user_id
+        WHERE mr.message_id = %s
+    ''', (message_id,), fetch_all=True)
+    
+    reactions = {}
+    for r in rows or []:
+        emoji = r[0]
+        if emoji not in reactions:
+            reactions[emoji] = []
+        reactions[emoji].append({
+            'username': r[1],
+            'avatar': r[2] or DEFAULT_AVATAR
+        })
+    
+    return jsonify({'success': True, 'reactions': reactions})
+
 
 @app.route('/debug/friends_dump')
 def debug_friends_dump():

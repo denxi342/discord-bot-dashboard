@@ -918,6 +918,307 @@ async def arizona_help(ctx):
     await ctx.send(embed=embed)
 
 
+# ============================================================
+# 💬 РАСШИРЕННЫЕ СООБЩЕНИЯ
+# ============================================================
+
+@bot.group(name='msg', aliases=['message', 'сообщение'], invoke_without_command=True)
+async def msg_group(ctx):
+    """Расширенные функции сообщений"""
+    embed = ui.create_base_embed(
+        title="💬 Расширенные сообщения",
+        description=(
+            "**Доступные команды:**\n\n"
+            "📩 `!msg reply <ID> <текст>` — Ответить на сообщение\n"
+            "📌 `!msg pin <ID>` — Закрепить сообщение\n"
+            "📌 `!msg unpin <ID>` — Открепить сообщение\n"
+            "😀 `!msg react <ID> <эмодзи>` — Добавить реакцию\n"
+            "✏️ `!msg edit <ID> <текст>` — Редактировать сообщение бота\n"
+            "🗑️ `!msg delete <ID>` — Удалить сообщение\n\n"
+            "**Как получить ID сообщения:**\n"
+            "ПКМ на сообщение → Копировать ID\n"
+            "(Нужен режим разработчика в настройках Discord)"
+        ),
+        color=ui.COLOR_BLURPLE,
+        ctx=ctx
+    )
+    await ctx.send(embed=embed)
+
+
+@msg_group.command(name='reply', aliases=['ответ', 'ответить'])
+async def msg_reply(ctx, message_id: int, *, content: str):
+    """Ответить на конкретное сообщение"""
+    try:
+        # Ищем сообщение в текущем канале
+        target_message = await ctx.channel.fetch_message(message_id)
+        
+        embed = ui.create_base_embed(
+            title="💬 Ответ",
+            description=content,
+            color=ui.COLOR_GREEN,
+            ctx=ctx
+        )
+        
+        # Отправляем с reply
+        await target_message.reply(embed=embed, mention_author=False)
+        
+        # Удаляем команду пользователя
+        try:
+            await ctx.message.delete()
+        except discord.Forbidden:
+            pass
+            
+    except discord.NotFound:
+        await ctx.send(embed=ui.error("❌ Сообщение не найдено. Проверьте ID.", ctx))
+    except discord.Forbidden:
+        await ctx.send(embed=ui.error("❌ Нет прав для отправки ответа.", ctx))
+    except Exception as e:
+        await ctx.send(embed=ui.error(f"Ошибка: {str(e)[:100]}", ctx))
+
+
+@msg_group.command(name='pin', aliases=['закрепить', 'пин'])
+async def msg_pin(ctx, message_id: int):
+    """Закрепить сообщение"""
+    try:
+        target_message = await ctx.channel.fetch_message(message_id)
+        await target_message.pin()
+        
+        await ctx.send(embed=ui.success(f"📌 Сообщение закреплено!", ctx))
+        
+    except discord.NotFound:
+        await ctx.send(embed=ui.error("❌ Сообщение не найдено.", ctx))
+    except discord.Forbidden:
+        await ctx.send(embed=ui.error("❌ Нет прав для закрепления сообщений.", ctx))
+    except discord.HTTPException as e:
+        if "Maximum number of pins" in str(e):
+            await ctx.send(embed=ui.error("❌ Достигнут лимит закреплённых сообщений (50).", ctx))
+        else:
+            await ctx.send(embed=ui.error(f"Ошибка: {str(e)[:100]}", ctx))
+
+
+@msg_group.command(name='unpin', aliases=['открепить', 'анпин'])
+async def msg_unpin(ctx, message_id: int):
+    """Открепить сообщение"""
+    try:
+        target_message = await ctx.channel.fetch_message(message_id)
+        await target_message.unpin()
+        
+        await ctx.send(embed=ui.success(f"📌 Сообщение откреплено!", ctx))
+        
+    except discord.NotFound:
+        await ctx.send(embed=ui.error("❌ Сообщение не найдено.", ctx))
+    except discord.Forbidden:
+        await ctx.send(embed=ui.error("❌ Нет прав для открепления сообщений.", ctx))
+
+
+@msg_group.command(name='pins', aliases=['закреплённые', 'пины'])
+async def msg_pins(ctx):
+    """Показать все закреплённые сообщения"""
+    try:
+        pinned = await ctx.channel.pins()
+        
+        if not pinned:
+            await ctx.send(embed=ui.info("📌 Закреплённые", "В этом канале нет закреплённых сообщений.", ctx))
+            return
+        
+        embed = ui.create_base_embed(
+            title=f"📌 Закреплённые сообщения ({len(pinned)})",
+            color=ui.COLOR_BLURPLE,
+            ctx=ctx
+        )
+        
+        for i, msg in enumerate(pinned[:10], 1):
+            content = msg.content[:100] + "..." if len(msg.content) > 100 else msg.content
+            if not content:
+                content = "*[Embed или медиа]*"
+            embed.add_field(
+                name=f"{i}. От {msg.author.display_name}",
+                value=f"ID: `{msg.id}`\n{content}",
+                inline=False
+            )
+        
+        if len(pinned) > 10:
+            embed.set_footer(text=f"Показано 10 из {len(pinned)} закреплённых")
+        
+        await ctx.send(embed=embed)
+        
+    except discord.Forbidden:
+        await ctx.send(embed=ui.error("❌ Нет доступа к закреплённым сообщениям.", ctx))
+
+
+@msg_group.command(name='react', aliases=['реакция', 'эмодзи'])
+async def msg_react(ctx, message_id: int, emoji: str):
+    """Добавить реакцию на сообщение"""
+    try:
+        target_message = await ctx.channel.fetch_message(message_id)
+        await target_message.add_reaction(emoji)
+        
+        await ctx.send(embed=ui.success(f"✅ Реакция {emoji} добавлена!", ctx))
+        
+        # Удаляем команду
+        try:
+            await ctx.message.delete()
+        except discord.Forbidden:
+            pass
+            
+    except discord.NotFound:
+        await ctx.send(embed=ui.error("❌ Сообщение не найдено.", ctx))
+    except discord.HTTPException:
+        await ctx.send(embed=ui.error("❌ Неверный эмодзи или ошибка Discord.", ctx))
+    except discord.Forbidden:
+        await ctx.send(embed=ui.error("❌ Нет прав для добавления реакций.", ctx))
+
+
+@msg_group.command(name='unreact', aliases=['удалитьреакцию'])
+async def msg_unreact(ctx, message_id: int, emoji: str):
+    """Удалить реакцию бота с сообщения"""
+    try:
+        target_message = await ctx.channel.fetch_message(message_id)
+        await target_message.remove_reaction(emoji, ctx.bot.user)
+        
+        await ctx.send(embed=ui.success(f"✅ Реакция {emoji} удалена!", ctx))
+        
+    except discord.NotFound:
+        await ctx.send(embed=ui.error("❌ Сообщение не найдено.", ctx))
+    except discord.HTTPException:
+        await ctx.send(embed=ui.error("❌ Реакция не найдена или ошибка.", ctx))
+
+
+@msg_group.command(name='edit', aliases=['изменить', 'редактировать'])
+async def msg_edit(ctx, message_id: int, *, new_content: str):
+    """Редактировать сообщение бота"""
+    try:
+        target_message = await ctx.channel.fetch_message(message_id)
+        
+        # Проверяем что это сообщение бота
+        if target_message.author != ctx.bot.user:
+            await ctx.send(embed=ui.error("❌ Можно редактировать только сообщения бота!", ctx))
+            return
+        
+        # Редактируем
+        old_content = target_message.content or "*[Embed]*"
+        await target_message.edit(content=new_content)
+        
+        embed = ui.create_base_embed(
+            title="✏️ Сообщение отредактировано",
+            color=ui.COLOR_GREEN,
+            ctx=ctx
+        )
+        embed.add_field(name="Было", value=f"```{old_content[:200]}```", inline=False)
+        embed.add_field(name="Стало", value=f"```{new_content[:200]}```", inline=False)
+        
+        await ctx.send(embed=embed)
+        
+    except discord.NotFound:
+        await ctx.send(embed=ui.error("❌ Сообщение не найдено.", ctx))
+    except discord.Forbidden:
+        await ctx.send(embed=ui.error("❌ Нет прав для редактирования.", ctx))
+
+
+@msg_group.command(name='delete', aliases=['удалить', 'удали'])
+async def msg_delete(ctx, message_id: int):
+    """Удалить сообщение"""
+    try:
+        target_message = await ctx.channel.fetch_message(message_id)
+        
+        # Проверяем права
+        is_bot_message = target_message.author == ctx.bot.user
+        has_manage_messages = ctx.author.guild_permissions.manage_messages if ctx.guild else False
+        
+        if not is_bot_message and not has_manage_messages:
+            await ctx.send(embed=ui.error("❌ Можно удалять только сообщения бота или нужны права на управление сообщениями!", ctx))
+            return
+        
+        await target_message.delete()
+        
+        confirm = await ctx.send(embed=ui.success("🗑️ Сообщение удалено!", ctx))
+        
+        # Автоудаление подтверждения через 5 секунд
+        import asyncio
+        await asyncio.sleep(5)
+        try:
+            await confirm.delete()
+            await ctx.message.delete()
+        except:
+            pass
+        
+    except discord.NotFound:
+        await ctx.send(embed=ui.error("❌ Сообщение не найдено.", ctx))
+    except discord.Forbidden:
+        await ctx.send(embed=ui.error("❌ Нет прав для удаления сообщений.", ctx))
+
+
+@msg_group.command(name='quote', aliases=['цитата', 'цитировать'])
+async def msg_quote(ctx, message_id: int, *, comment: str = None):
+    """Процитировать сообщение"""
+    try:
+        target_message = await ctx.channel.fetch_message(message_id)
+        
+        content = target_message.content or "*[Embed или медиа]*"
+        if len(content) > 500:
+            content = content[:500] + "..."
+        
+        embed = ui.create_base_embed(
+            title="💬 Цитата",
+            description=f"> {content}",
+            color=ui.COLOR_BLURPLE,
+            ctx=ctx
+        )
+        embed.set_author(
+            name=target_message.author.display_name,
+            icon_url=target_message.author.avatar.url if target_message.author.avatar else None
+        )
+        embed.add_field(name="📅 Дата", value=target_message.created_at.strftime("%d.%m.%Y %H:%M"), inline=True)
+        embed.add_field(name="🔗 Ссылка", value=f"[Перейти]({target_message.jump_url})", inline=True)
+        
+        if comment:
+            embed.add_field(name="💭 Комментарий", value=comment, inline=False)
+        
+        await ctx.send(embed=embed)
+        
+    except discord.NotFound:
+        await ctx.send(embed=ui.error("❌ Сообщение не найдено.", ctx))
+
+
+@msg_group.command(name='info', aliases=['инфо'])
+async def msg_info(ctx, message_id: int):
+    """Показать информацию о сообщении"""
+    try:
+        target_message = await ctx.channel.fetch_message(message_id)
+        
+        embed = ui.create_base_embed(
+            title="ℹ️ Информация о сообщении",
+            color=ui.COLOR_BLURPLE,
+            ctx=ctx
+        )
+        
+        embed.add_field(name="👤 Автор", value=f"{target_message.author.mention}", inline=True)
+        embed.add_field(name="🆔 ID", value=f"`{target_message.id}`", inline=True)
+        embed.add_field(name="📅 Создано", value=target_message.created_at.strftime("%d.%m.%Y %H:%M:%S"), inline=True)
+        
+        if target_message.edited_at:
+            embed.add_field(name="✏️ Изменено", value=target_message.edited_at.strftime("%d.%m.%Y %H:%M:%S"), inline=True)
+        
+        embed.add_field(name="📌 Закреплено", value="✅ Да" if target_message.pinned else "❌ Нет", inline=True)
+        
+        # Реакции
+        if target_message.reactions:
+            reactions_str = " ".join([f"{r.emoji} ({r.count})" for r in target_message.reactions])
+            embed.add_field(name="😀 Реакции", value=reactions_str, inline=False)
+        
+        # Вложения
+        if target_message.attachments:
+            attachments_str = "\n".join([f"📎 {a.filename}" for a in target_message.attachments[:5]])
+            embed.add_field(name="📁 Вложения", value=attachments_str, inline=False)
+        
+        embed.add_field(name="🔗 Ссылка", value=f"[Перейти к сообщению]({target_message.jump_url})", inline=False)
+        
+        await ctx.send(embed=embed)
+        
+    except discord.NotFound:
+        await ctx.send(embed=ui.error("❌ Сообщение не найдено.", ctx))
+
+
 if __name__ == "__main__":
     if not TOKEN:
         print("Error: DISCORD_TOKEN not found in .env")

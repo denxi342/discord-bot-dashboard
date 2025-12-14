@@ -1883,12 +1883,46 @@ const DiscordModule = {
             data.messages.forEach((m, index) => {
                 const isOwn = m.username === myUsername;
                 const isNew = index === data.messages.length - 1;
+
+                // Build reply preview HTML
+                let replyHtml = '';
+                if (m.reply_to) {
+                    replyHtml = `
+                        <div class="dm-bubble-reply">
+                            <i class="fa-solid fa-reply"></i>
+                            <span class="reply-author">@${Utils.escapeHtml(m.reply_to.username)}</span>
+                            <span class="reply-text">${Utils.escapeHtml(m.reply_to.content)}</span>
+                        </div>`;
+                }
+
+                // Build reactions HTML
+                let reactionsHtml = '';
+                if (m.reactions && Object.keys(m.reactions).length > 0) {
+                    const reactItems = Object.entries(m.reactions)
+                        .map(([emoji, count]) => `<div class="reaction-item" onclick="DiscordModule.toggleReaction(${m.id}, '${emoji}')">${emoji} ${count}</div>`)
+                        .join('');
+                    reactionsHtml = `<div class="dm-bubble-reactions">${reactItems}</div>`;
+                }
+
+                // Status indicators
+                let statusHtml = '';
+                if (m.is_pinned) statusHtml += '<i class="fa-solid fa-thumbtack pinned-icon" title="Закреплено"></i>';
+                if (m.edited_at) statusHtml += '<span class="edited-label">(ред.)</span>';
+
                 box.innerHTML += `
-                <div class="dm-bubble ${isOwn ? 'own' : 'other'} ${isNew ? 'new-message' : ''}">
+                <div class="dm-bubble ${isOwn ? 'own' : 'other'} ${isNew ? 'new-message' : ''} ${m.is_pinned ? 'pinned' : ''}" 
+                     data-message-id="${m.id}" 
+                     data-author-id="${m.author_id}"
+                     oncontextmenu="DiscordModule.showMessageMenu(event, ${m.id}, ${isOwn})">
                     ${!isOwn ? `<img src="${m.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">` : ''}
                     <div class="dm-bubble-content">
+                        ${replyHtml}
                         <div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>
-                        <div class="dm-bubble-time">${new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        ${reactionsHtml}
+                        <div class="dm-bubble-time">
+                            ${statusHtml}
+                            ${new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                     </div>
                     ${isOwn ? `<img src="${m.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">` : ''}
                 </div>`;
@@ -1920,10 +1954,17 @@ const DiscordModule = {
         }
 
         try {
+            // Include reply_to_id if replying
+            const payload = { content: text };
+            if (DiscordModule.replyingTo) {
+                payload.reply_to_id = DiscordModule.replyingTo.id;
+                DiscordModule.cancelReply(); // Clear reply state
+            }
+
             const res = await fetch(`/api/dms/by_id/${dmId}/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: text })
+                body: JSON.stringify(payload)
             });
 
             const d = await res.json();
@@ -1952,6 +1993,238 @@ const DiscordModule = {
             const failEl = document.getElementById(tempId);
             if (failEl) failEl.remove();
             Utils.showToast("Ошибка отправки: " + e.message);
+        }
+    },
+
+    // === РАСШИРЕННЫЕ ФУНКЦИИ СООБЩЕНИЙ ===
+
+    replyingTo: null, // { id, username, content }
+
+    showMessageMenu: (event, messageId, isOwn) => {
+        event.preventDefault();
+
+        // Remove existing menu
+        const existingMenu = document.querySelector('.message-context-menu');
+        if (existingMenu) existingMenu.remove();
+
+        const menu = document.createElement('div');
+        menu.className = 'message-context-menu';
+        menu.innerHTML = `
+            <div class="menu-item" onclick="DiscordModule.startReply(${messageId})">
+                <i class="fa-solid fa-reply"></i> Ответить
+            </div>
+            <div class="menu-item" onclick="DiscordModule.showEmojiPicker(${messageId})">
+                <i class="fa-solid fa-face-smile"></i> Реакция
+            </div>
+            <div class="menu-item" onclick="DiscordModule.togglePin(${messageId})">
+                <i class="fa-solid fa-thumbtack"></i> Закрепить
+            </div>
+            ${isOwn ? `
+            <div class="menu-divider"></div>
+            <div class="menu-item" onclick="DiscordModule.editMessage(${messageId})">
+                <i class="fa-solid fa-pen"></i> Редактировать
+            </div>
+            <div class="menu-item danger" onclick="DiscordModule.deleteMessage(${messageId})">
+                <i class="fa-solid fa-trash"></i> Удалить
+            </div>
+            ` : ''}
+        `;
+
+        menu.style.left = event.pageX + 'px';
+        menu.style.top = event.pageY + 'px';
+        document.body.appendChild(menu);
+
+        // Close on click outside
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu() {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }, { once: true });
+        }, 10);
+    },
+
+    startReply: (messageId) => {
+        const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!msgEl) return;
+
+        const content = msgEl.querySelector('.dm-bubble-text')?.textContent || '';
+        const username = msgEl.classList.contains('own') ? window.currentUsername :
+            (DiscordModule.dmList?.find(d => d.id == DiscordModule.activeDM)?.other_user?.username || 'User');
+
+        DiscordModule.replyingTo = { id: messageId, username, content: content.slice(0, 50) };
+
+        // Show reply preview above input
+        let replyBar = document.getElementById('reply-preview-bar');
+        if (!replyBar) {
+            replyBar = document.createElement('div');
+            replyBar.id = 'reply-preview-bar';
+            replyBar.className = 'reply-preview-bar';
+            const inputArea = document.querySelector('.chat-input-area');
+            if (inputArea) inputArea.insertBefore(replyBar, inputArea.firstChild);
+        }
+
+        replyBar.innerHTML = `
+            <i class="fa-solid fa-reply"></i>
+            <span>Ответ на <strong>@${Utils.escapeHtml(username)}</strong>: ${Utils.escapeHtml(content.slice(0, 40))}...</span>
+            <button onclick="DiscordModule.cancelReply()"><i class="fa-solid fa-xmark"></i></button>
+        `;
+        replyBar.style.display = 'flex';
+
+        document.getElementById('global-input')?.focus();
+    },
+
+    cancelReply: () => {
+        DiscordModule.replyingTo = null;
+        const replyBar = document.getElementById('reply-preview-bar');
+        if (replyBar) replyBar.style.display = 'none';
+    },
+
+    showEmojiPicker: (messageId) => {
+        const existingPicker = document.querySelector('.emoji-picker-popup');
+        if (existingPicker) existingPicker.remove();
+
+        const emojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🎉', '💯'];
+        const picker = document.createElement('div');
+        picker.className = 'emoji-picker-popup';
+        picker.innerHTML = emojis.map(e =>
+            `<div class="emoji-option" onclick="DiscordModule.addReaction(${messageId}, '${e}')">${e}</div>`
+        ).join('');
+
+        document.body.appendChild(picker);
+
+        // Position near the message
+        const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (msgEl) {
+            const rect = msgEl.getBoundingClientRect();
+            picker.style.left = rect.left + 'px';
+            picker.style.top = (rect.bottom + 5) + 'px';
+        }
+
+        setTimeout(() => {
+            document.addEventListener('click', function closePicker() {
+                picker.remove();
+                document.removeEventListener('click', closePicker);
+            }, { once: true });
+        }, 10);
+    },
+
+    addReaction: async (messageId, emoji) => {
+        try {
+            const res = await fetch(`/api/messages/${messageId}/react`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ emoji })
+            });
+            const data = await res.json();
+            if (data.success) {
+                DiscordModule.forceRefresh = true;
+                DiscordModule.fetchDMMessages(DiscordModule.activeDM);
+            }
+        } catch (e) {
+            console.error('Reaction error:', e);
+        }
+    },
+
+    toggleReaction: async (messageId, emoji) => {
+        await DiscordModule.addReaction(messageId, emoji);
+    },
+
+    togglePin: async (messageId) => {
+        try {
+            const res = await fetch(`/api/messages/${messageId}/pin`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                Utils.showToast(data.is_pinned ? 'Сообщение закреплено' : 'Сообщение откреплено');
+                DiscordModule.forceRefresh = true;
+                DiscordModule.fetchDMMessages(DiscordModule.activeDM);
+            }
+        } catch (e) {
+            console.error('Pin error:', e);
+        }
+    },
+
+    editMessage: (messageId) => {
+        const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!msgEl) return;
+
+        const textEl = msgEl.querySelector('.dm-bubble-text');
+        const currentText = textEl?.textContent || '';
+
+        const newText = prompt('Редактировать сообщение:', currentText);
+        if (newText && newText !== currentText) {
+            DiscordModule.saveEditedMessage(messageId, newText);
+        }
+    },
+
+    saveEditedMessage: async (messageId, newContent) => {
+        try {
+            const res = await fetch(`/api/messages/${messageId}/edit`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: newContent })
+            });
+            const data = await res.json();
+            if (data.success) {
+                Utils.showToast('Сообщение изменено');
+                DiscordModule.forceRefresh = true;
+                DiscordModule.fetchDMMessages(DiscordModule.activeDM);
+            } else {
+                Utils.showToast('Ошибка: ' + (data.error || 'Unknown'));
+            }
+        } catch (e) {
+            console.error('Edit error:', e);
+        }
+    },
+
+    deleteMessage: async (messageId) => {
+        if (!confirm('Удалить это сообщение?')) return;
+
+        try {
+            const res = await fetch(`/api/messages/${messageId}/delete`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                Utils.showToast('Сообщение удалено');
+                const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
+                if (msgEl) msgEl.remove();
+            } else {
+                Utils.showToast('Ошибка: ' + (data.error || 'Unknown'));
+            }
+        } catch (e) {
+            console.error('Delete error:', e);
+        }
+    },
+
+    showPinnedMessages: async () => {
+        const dmId = DiscordModule.activeDM;
+        if (!dmId) return;
+
+        try {
+            const res = await fetch(`/api/dms/${dmId}/pinned`);
+            const data = await res.json();
+
+            if (!data.success) return;
+
+            const modal = document.createElement('div');
+            modal.className = 'pinned-modal';
+            modal.innerHTML = `
+                <div class="pinned-modal-backdrop" onclick="this.parentElement.remove()"></div>
+                <div class="pinned-modal-content">
+                    <h3><i class="fa-solid fa-thumbtack"></i> Закреплённые сообщения</h3>
+                    ${data.pinned.length === 0 ? '<p class="empty">Нет закреплённых сообщений</p>' :
+                    data.pinned.map(m => `
+                            <div class="pinned-item">
+                                <div class="pinned-author">${Utils.escapeHtml(m.username)}</div>
+                                <div class="pinned-text">${Utils.escapeHtml(m.content)}</div>
+                                <div class="pinned-time">${new Date(m.timestamp * 1000).toLocaleString()}</div>
+                            </div>
+                        `).join('')
+                }
+                    <button onclick="this.closest('.pinned-modal').remove()">Закрыть</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        } catch (e) {
+            console.error('Pinned error:', e);
         }
     }
 
