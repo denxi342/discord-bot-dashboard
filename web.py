@@ -49,6 +49,24 @@ servers_db = {}
 # Default Avatar (Data URI to avoid external CDN blocks)
 DEFAULT_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzU4NjVmMiIvPjwvc3ZnPg=="
 
+def get_valid_avatar(avatar_url):
+    """Check if avatar URL is valid - for local files, verify they exist.
+    Returns DEFAULT_AVATAR if the file is missing (common on Render's ephemeral filesystem)."""
+    if not avatar_url:
+        return DEFAULT_AVATAR
+    
+    # Data URIs are always valid
+    if avatar_url.startswith('data:'):
+        return avatar_url
+    
+    # For local static files, check if they exist
+    if avatar_url.startswith('/static/avatars/'):
+        filepath = os.path.join(BASE_DIR, avatar_url.lstrip('/'))
+        if not os.path.exists(filepath):
+            return DEFAULT_AVATAR
+    
+    return avatar_url
+
 # Servers will be loaded after the full load_servers() function is defined below
 
 def get_db_connection():
@@ -322,7 +340,7 @@ def api_login():
     
     if row and check_password_hash(row[2], password):
         # row: 0=id, 1=username, 2=pw, 3=av, 4=role
-        session['user'] = {'id': str(row[0]), 'username': row[1], 'avatar': row[3], 'role': row[4]}
+        session['user'] = {'id': str(row[0]), 'username': row[1], 'avatar': get_valid_avatar(row[3]), 'role': row[4]}
         session.permanent = True
         return jsonify({'success': True})
     
@@ -346,7 +364,7 @@ def api_get_me():
             'user': {
                 'id': row[0],
                 'username': row[1],
-                'avatar': row[2],
+                'avatar': get_valid_avatar(row[2]),
                 'display_name': row[3],
                 'banner': row[4],
                 'bio': row[5],
@@ -518,7 +536,7 @@ def api_get_users():
             users_list.append({
                 'id': str(r[0]),
                 'username': r[1],
-                'avatar': r[2] if r[2] else DEFAULT_AVATAR,
+                'avatar': get_valid_avatar(r[2]),
                 'role': r[3] if len(r) > 3 else 'user',
                 'status': 'online' # Mock status
             })
@@ -1648,7 +1666,7 @@ def api_reputation_top():
         top_list.append({
             'id': str(r[0]),
             'username': r[1],
-            'avatar': r[2],
+            'avatar': get_valid_avatar(r[2]),
             'reputation': r[3],
             'role': r[4]
         })
@@ -1876,7 +1894,7 @@ def api_get_server_members(sid):
         members.append({
             'id': str(r[0]),
             'username': r[1],
-            'avatar': r[2] if r[2] else DEFAULT_AVATAR,
+            'avatar': get_valid_avatar(r[2]),
             'display_name': r[3],
             'role': r[4] if len(r) > 4 else 'member'
         })
@@ -1983,7 +2001,7 @@ def api_get_friends():
     
     # Helper to format user
     def fmt_user(row):
-        avatar = row[2] if row[2] else DEFAULT_AVATAR
+        avatar = get_valid_avatar(row[2])
         return {'id': str(row[0]), 'username': row[1], 'avatar': avatar, 'display_name': row[3]}
 
     friends = []
@@ -2235,7 +2253,7 @@ def api_dm_send_by_id(dm_id):
     # Get user info for socket broadcast
     u = execute_query('SELECT username, avatar FROM users WHERE id = %s', (my_id,), fetch_one=True)
     username = u[0] if u else 'Unknown'
-    avatar = u[1] if (u and u[1]) else DEFAULT_AVATAR
+    avatar = get_valid_avatar(u[1]) if u else DEFAULT_AVATAR
     
     # Emit via Socket.IO using Rooms
     payload = {
