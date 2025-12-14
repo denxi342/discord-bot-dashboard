@@ -27,14 +27,17 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev_secret_key_fixed_12345')
 app.permanent_session_lifetime = timedelta(days=30)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", manage_session=True, async_mode='eventlet')
 
 @socketio.on('connect')
 def handle_connect():
+    print(f"[Socket.IO] New connection attempt, session: {'user' in session}")
     if 'user' in session:
         user_id = str(session['user']['id'])
         join_room(user_id)
-        print(f"User {session['user']['username']} (ID: {user_id}) joined room {user_id}")
+        print(f"[Socket.IO] User {session['user']['username']} (ID: {user_id}) joined room {user_id}")
+    else:
+        print("[Socket.IO] Anonymous connection (no user in session)")
 
 import psycopg2
 from urllib.parse import urlparse
@@ -2217,31 +2220,51 @@ def api_dm_messages(target_id):
 @app.route('/api/dms/by_id/<int:dm_id>/send', methods=['POST'])
 def api_dm_send_by_id(dm_id):
     """Send a message to a DM conversation by DM ID"""
-    if 'user' not in session: return jsonify({'success': False}), 401
+    print(f"[DM] Attempting to send message to DM {dm_id}")
+    
+    if 'user' not in session: 
+        print("[DM] ERROR: User not in session")
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+    
     my_id = int(session['user']['id'])
+    print(f"[DM] User ID: {my_id}")
     
     # Verify user is part of this DM
     dm_row = execute_query('SELECT user_id_1, user_id_2 FROM direct_messages WHERE id = %s', (dm_id,), fetch_one=True)
     if not dm_row:
+        print(f"[DM] ERROR: DM {dm_id} not found in database")
         return jsonify({'success': False, 'error': 'DM not found'}), 404
     
+    print(f"[DM] DM participants: user_1={dm_row[0]}, user_2={dm_row[1]}")
+    
     if my_id not in [dm_row[0], dm_row[1]]:
+        print(f"[DM] ERROR: User {my_id} not authorized for this DM")
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
     data = request.json
     content = data.get('content', '').strip()
     if not content:
+        print("[DM] ERROR: Empty message content")
         return jsonify({'success': False, 'error': 'Empty message'}), 400
     
-    # Insert message
-    execute_query('''
-        INSERT INTO dm_messages (dm_id, author_id, content, timestamp)
-        VALUES (%s, %s, %s, %s)
-    ''', (dm_id, my_id, content, time.time()), commit=True)
+    timestamp = time.time()
     
-    # Update last_message_at
-    execute_query('UPDATE direct_messages SET last_message_at = %s WHERE id = %s',
-                  (time.time(), dm_id), commit=True)
+    try:
+        # Insert message
+        execute_query('''
+            INSERT INTO dm_messages (dm_id, author_id, content, timestamp)
+            VALUES (%s, %s, %s, %s)
+        ''', (dm_id, my_id, content, timestamp), commit=True)
+        print(f"[DM] Message inserted successfully")
+        
+        # Update last_message_at
+        execute_query('UPDATE direct_messages SET last_message_at = %s WHERE id = %s',
+                      (timestamp, dm_id), commit=True)
+        print(f"[DM] DM timestamp updated")
+        
+    except Exception as e:
+        print(f"[DM] ERROR inserting message: {e}")
+        return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
     
     # Get user info for socket broadcast
     u = execute_query('SELECT username, avatar FROM users WHERE id = %s', (my_id,), fetch_one=True)
@@ -2254,14 +2277,28 @@ def api_dm_send_by_id(dm_id):
         'author': username,
         'avatar': avatar,
         'content': content,
-        'timestamp': time.time()
+        'timestamp': timestamp
     }
+    
+    print(f"[DM] Emitting to rooms: {dm_row[0]}, {dm_row[1]}")
     
     # Send to sender and recipient
     socketio.emit('new_dm_message', payload, room=str(dm_row[0])) # User 1
     socketio.emit('new_dm_message', payload, room=str(dm_row[1])) # User 2
     
-    return jsonify({'success': True})
+    print(f"[DM] Message sent successfully to DM {dm_id}")
+    
+    # Return full message data for frontend optimistic update
+    return jsonify({
+        'success': True, 
+        'message': {
+            'dm_id': dm_id,
+            'author': username,
+            'avatar': avatar,
+            'content': content,
+            'timestamp': timestamp
+        }
+    })
 
 @app.route('/api/dms/<int:target_id>/send', methods=['POST'])
 def api_dm_send(target_id):

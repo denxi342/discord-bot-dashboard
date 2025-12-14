@@ -1799,6 +1799,8 @@ const DiscordModule = {
     sendDMMessage: async (dmId, text) => {
         if (!text) return;
 
+        console.log(`[DM] Sending message to DM ${dmId}: "${text.substring(0, 50)}..."`);
+
         // Optimistic UI: add message immediately with sending state
         const box = document.getElementById(`dm-messages-${dmId}`);
         const tempId = 'sending-' + Date.now();
@@ -1814,21 +1816,47 @@ const DiscordModule = {
         }
 
         try {
+            console.log(`[DM] Fetching /api/dms/by_id/${dmId}/send`);
             const res = await fetch(`/api/dms/by_id/${dmId}/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: text })
             });
 
-            if (!res.ok) throw new Error("Server error");
-            const d = await res.json();
-            if (!d.success) throw new Error(d.error || "Failed to send");
+            console.log(`[DM] Response status: ${res.status}`);
 
-            // Force refresh after send
+            const d = await res.json();
+            console.log('[DM] Response data:', d);
+
+            if (!res.ok) {
+                console.error('[DM] Server error response:', res.status, d);
+                throw new Error(d.error || `Server error ${res.status}`);
+            }
+
+            if (!d.success) {
+                console.error('[DM] Failed response:', d);
+                throw new Error(d.error || "Failed to send");
+            }
+
+            console.log('[DM] Message sent successfully');
+
+            // Update the optimistic message to show success
+            const tempEl = document.getElementById(tempId);
+            if (tempEl) {
+                tempEl.classList.remove('sending');
+                const timeEl = tempEl.querySelector('.dm-bubble-time');
+                if (timeEl) {
+                    const now = new Date();
+                    timeEl.innerHTML = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
+            }
+
+            // Force refresh after send (to ensure sync)
             DiscordModule.forceRefresh = true;
-            DiscordModule.fetchDMMessages(dmId);
+            setTimeout(() => DiscordModule.fetchDMMessages(dmId), 500);
+
         } catch (e) {
-            console.error("Send Error:", e);
+            console.error("[DM] Send Error:", e);
             // Remove optimistic message on error
             const failEl = document.getElementById(tempId);
             if (failEl) failEl.remove();
