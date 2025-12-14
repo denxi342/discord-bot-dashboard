@@ -6,6 +6,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof DiscordModule !== 'undefined') DiscordModule.init();
     if (typeof WebSocketModule !== 'undefined') WebSocketModule.init();
+
+    // Set current user as online immediately
+    const userBarAvatar = document.getElementById('user-bar-avatar');
+    if (userBarAvatar) {
+        userBarAvatar.classList.add('is-online');
+    }
 });
 
 const Utils = {
