@@ -15,6 +15,15 @@ const Utils = {
 };
 
 const DEFAULT_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzU4NjVmMiIvPjwvc3ZnPg==";
+window.DEFAULT_AVATAR = DEFAULT_AVATAR;
+
+// Global avatar error handler - catches all broken avatar images
+document.addEventListener('error', function (e) {
+    if (e.target.tagName === 'IMG' && e.target.src.includes('/static/avatars/')) {
+        e.target.onerror = null; // Prevent infinite loop
+        e.target.src = DEFAULT_AVATAR;
+    }
+}, true);
 
 const DiscordModule = {
     currentServer: 'home',
