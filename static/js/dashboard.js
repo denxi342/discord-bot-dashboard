@@ -191,9 +191,18 @@ const DiscordModule = {
             const data = await res.json();
             if (data.success && data.servers) {
                 DiscordModule.serverData = data.servers;
-                DiscordModule.renderServerList();
 
-                // Auto-select first server if none selected
+                // Ensure 'home' exists for the Discord icon
+                if (!DiscordModule.serverData['home']) {
+                    DiscordModule.serverData['home'] = {
+                        name: 'Home',
+                        icon: 'discord',
+                        is_image: false,
+                        channels: []
+                    };
+                }
+
+                DiscordModule.renderServerList();
                 if (!DiscordModule.currentServer) {
                     const serverIds = Object.keys(data.servers);
                     if (serverIds.length > 0) {
