@@ -2723,6 +2723,57 @@ def debug_friends_dump():
     rows = execute_query('SELECT * FROM friends', fetch_all=True)
     return jsonify({'rows': rows})
 
+@app.route('/debug/run_migration')
+def debug_run_migration():
+    """Manually trigger database migration"""
+    try:
+        run_db_migration()
+        return jsonify({'success': True, 'message': 'Migration completed! Check server logs.'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/debug/check_tables')
+def debug_check_tables():
+    """Check which tables exist in the database"""
+    try:
+        conn = get_db_connection()
+        is_sqlite = isinstance(conn, sqlite3.Connection)
+        cursor = conn.cursor()
+        
+        if is_sqlite:
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = [row[0] for row in cursor.fetchall()]
+        else:
+            cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")
+            tables = [row[0] for row in cursor.fetchall()]
+        
+        # Check message_reactions table structure if it exists
+        reactions_structure = None
+        if 'message_reactions' in tables:
+            if is_sqlite:
+                cursor.execute("PRAGMA table_info(message_reactions)")
+                reactions_structure = [{'name': r[1], 'type': r[2]} for r in cursor.fetchall()]
+            else:
+                cursor.execute("""
+                    SELECT column_name, data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name='message_reactions'
+                """)
+                reactions_structure = [{'name': r[0], 'type': r[1]} for r in cursor.fetchall()]
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'db_type': 'SQLite' if is_sqlite else 'PostgreSQL',
+            'tables': tables,
+            'message_reactions_exists': 'message_reactions' in tables,
+            'message_reactions_structure': reactions_structure
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 # Initialize servers after all functions are defined
 load_servers()
 print(f"✓ Loaded {len(servers_db)} servers")
