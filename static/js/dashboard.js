@@ -1757,41 +1757,67 @@ const DiscordModule = {
     },
 
     fetchDMMessages: async (dmId) => {
-        const res = await fetch(`/api/dms/by_id/${dmId}/messages`);
-        const data = await res.json();
-        const box = document.getElementById(`dm-messages-${dmId}`);
-        if (!box) return;
+        console.log(`[DM FETCH] Fetching messages for DM ${dmId}`);
 
-        // Smart polling: only update if message count changed
-        const newCount = data.messages.length;
-        const currentCount = box.querySelectorAll('.dm-bubble').length;
+        try {
+            const res = await fetch(`/api/dms/by_id/${dmId}/messages`);
+            const data = await res.json();
 
-        // Skip update if count is same (prevents jitter during polling)
-        if (currentCount > 0 && newCount === currentCount && !DiscordModule.forceRefresh) {
-            return;
+            console.log(`[DM FETCH] Response:`, data);
+            console.log(`[DM FETCH] Messages count from server: ${data.messages ? data.messages.length : 'undefined'}`);
+
+            const box = document.getElementById(`dm-messages-${dmId}`);
+            if (!box) {
+                console.log(`[DM FETCH] ERROR: Container dm-messages-${dmId} not found`);
+                return;
+            }
+
+            // Check if we should skip update
+            const newCount = data.messages ? data.messages.length : 0;
+            const currentCount = box.querySelectorAll('.dm-bubble:not(.sending)').length;
+
+            console.log(`[DM FETCH] newCount: ${newCount}, currentCount: ${currentCount}, forceRefresh: ${DiscordModule.forceRefresh}`);
+
+            // Skip update if count is same (prevents jitter during polling)
+            if (currentCount > 0 && newCount === currentCount && !DiscordModule.forceRefresh) {
+                console.log(`[DM FETCH] Skipping update - counts match`);
+                return;
+            }
+            DiscordModule.forceRefresh = false;
+
+            console.log(`[DM FETCH] Rebuilding message list...`);
+            box.innerHTML = '';
+            box.classList.add('dm-bubbles-container');
+
+            // Use global currentUsername set by Jinja template
+            const myUsername = window.currentUsername || '';
+            console.log(`[DM FETCH] My username: "${myUsername}"`);
+
+            if (!data.messages || data.messages.length === 0) {
+                console.log(`[DM FETCH] No messages to display`);
+                box.innerHTML = '<div class="dm-empty">Начните беседу!</div>';
+                return;
+            }
+
+            data.messages.forEach((m, index) => {
+                const isOwn = m.username === myUsername;
+                const isNew = index === data.messages.length - 1;
+                box.innerHTML += `
+                <div class="dm-bubble ${isOwn ? 'own' : 'other'} ${isNew ? 'new-message' : ''}">
+                    ${!isOwn ? `<img src="${m.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">` : ''}
+                    <div class="dm-bubble-content">
+                        <div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>
+                        <div class="dm-bubble-time">${new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                    ${isOwn ? `<img src="${m.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">` : ''}
+                </div>`;
+            });
+
+            console.log(`[DM FETCH] Displayed ${data.messages.length} messages`);
+            box.scrollTop = box.scrollHeight;
+        } catch (e) {
+            console.error(`[DM FETCH] Error:`, e);
         }
-        DiscordModule.forceRefresh = false;
-
-        box.innerHTML = '';
-        box.classList.add('dm-bubbles-container');
-
-        // Use global currentUsername set by Jinja template
-        const myUsername = window.currentUsername || '';
-
-        data.messages.forEach((m, index) => {
-            const isOwn = m.username === myUsername;
-            const isNew = index === data.messages.length - 1;
-            box.innerHTML += `
-            <div class="dm-bubble ${isOwn ? 'own' : 'other'} ${isNew ? 'new-message' : ''}">
-                ${!isOwn ? `<img src="${m.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">` : ''}
-                <div class="dm-bubble-content">
-                    <div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>
-                    <div class="dm-bubble-time">${new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
-                ${isOwn ? `<img src="${m.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">` : ''}
-            </div>`;
-        });
-        box.scrollTop = box.scrollHeight;
     },
 
     forceRefresh: false,

@@ -2157,15 +2157,21 @@ def api_get_dms():
 @app.route('/api/dms/by_id/<int:dm_id>/messages', methods=['GET'])
 def api_dm_messages_by_id(dm_id):
     """Get messages for a specific DM conversation by DM ID"""
-    if 'user' not in session: return jsonify({'success': False}), 401
+    print(f"[DM GET] Fetching messages for DM {dm_id}")
+    
+    if 'user' not in session: 
+        print("[DM GET] ERROR: User not in session")
+        return jsonify({'success': False}), 401
     my_id = int(session['user']['id'])
     
     # Verify user is part of this DM
     dm_row = execute_query('SELECT user_id_1, user_id_2 FROM direct_messages WHERE id = %s', (dm_id,), fetch_one=True)
     if not dm_row:
+        print(f"[DM GET] ERROR: DM {dm_id} not found")
         return jsonify({'success': False, 'error': 'DM not found'}), 404
     
     if my_id not in [dm_row[0], dm_row[1]]:
+        print(f"[DM GET] ERROR: User {my_id} not authorized")
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
     # Fetch messages
@@ -2177,16 +2183,18 @@ def api_dm_messages_by_id(dm_id):
         ORDER BY dm.timestamp ASC LIMIT 50
     """, (dm_id,), fetch_all=True)
     
+    print(f"[DM GET] Found {len(rows) if rows else 0} messages in DB")
+    
     messages = []
     for r in rows:
         messages.append({
             'content': r[0],
             'timestamp': r[1],
-            'timestamp': r[1],
             'username': r[2],
             'avatar': r[3] if r[3] else DEFAULT_AVATAR
         })
-        
+    
+    print(f"[DM GET] Returning {len(messages)} messages")
     return jsonify({'success': True, 'messages': messages})
 
 @app.route('/api/dms/<int:target_id>/messages', methods=['GET'])
