@@ -30,33 +30,38 @@ app.permanent_session_lifetime = timedelta(days=30)
 socketio = SocketIO(app, cors_allowed_origins="*", manage_session=True, async_mode='eventlet')
 
 # Online users tracking: {user_id: {socket_sid, username, avatar}}
+# Also track by sid for reliable disconnect: {sid: user_id}
 online_users = {}
+sid_to_user = {}
 
 @socketio.on('connect')
 def handle_connect():
     if 'user' in session:
         user_id = str(session['user']['id'])
+        sid = request.sid
         join_room(user_id)
         # Track online user
         online_users[user_id] = {
-            'sid': request.sid,
+            'sid': sid,
             'username': session['user'].get('username', ''),
             'avatar': session['user'].get('avatar', '')
         }
+        sid_to_user[sid] = user_id
         # Broadcast status to all users
         emit('user_status', {'user_id': user_id, 'status': 'online', 'username': session['user'].get('username', '')}, broadcast=True)
         print(f"[WS] User {session['user'].get('username')} connected. Online: {len(online_users)}")
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    if 'user' in session:
-        user_id = str(session['user']['id'])
-        # Remove from online users
-        if user_id in online_users:
-            del online_users[user_id]
+    sid = request.sid
+    # Look up user by socket ID (session may not be available on disconnect)
+    user_id = sid_to_user.pop(sid, None)
+    if user_id and user_id in online_users:
+        username = online_users[user_id].get('username', '')
+        del online_users[user_id]
         # Broadcast offline status
-        emit('user_status', {'user_id': user_id, 'status': 'offline', 'username': session['user'].get('username', '')}, broadcast=True)
-        print(f"[WS] User {session['user'].get('username')} disconnected. Online: {len(online_users)}")
+        emit('user_status', {'user_id': user_id, 'status': 'offline', 'username': username}, broadcast=True)
+        print(f"[WS] User {username} disconnected. Online: {len(online_users)}")
 
 import psycopg2
 from urllib.parse import urlparse
