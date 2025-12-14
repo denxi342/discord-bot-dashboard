@@ -1792,8 +1792,8 @@ const DiscordModule = {
 
         // Optimistic UI: add message immediately with sending state
         const box = document.getElementById(`dm-messages-${dmId}`);
+        const tempId = 'sending-' + Date.now();
         if (box) {
-            const tempId = 'sending-' + Date.now();
             box.innerHTML += `
             <div class="dm-bubble own sending" id="${tempId}">
                 <div class="dm-bubble-content">
@@ -1804,15 +1804,27 @@ const DiscordModule = {
             box.scrollTop = box.scrollHeight;
         }
 
-        await fetch(`/api/dms/by_id/${dmId}/send`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: text })
-        });
+        try {
+            const res = await fetch(`/api/dms/by_id/${dmId}/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: text })
+            });
 
-        // Force refresh after send
-        DiscordModule.forceRefresh = true;
-        DiscordModule.fetchDMMessages(dmId);
+            if (!res.ok) throw new Error("Server error");
+            const d = await res.json();
+            if (!d.success) throw new Error(d.error || "Failed to send");
+
+            // Force refresh after send
+            DiscordModule.forceRefresh = true;
+            DiscordModule.fetchDMMessages(dmId);
+        } catch (e) {
+            console.error("Send Error:", e);
+            // Remove optimistic message on error
+            const failEl = document.getElementById(tempId);
+            if (failEl) failEl.remove();
+            Utils.showToast("Failed to send message: " + e.message);
+        }
     }
 
 };
