@@ -1774,12 +1774,12 @@ const DiscordModule = {
             const isNew = index === data.messages.length - 1;
             box.innerHTML += `
             <div class="dm-bubble ${isOwn ? 'own' : 'other'} ${isNew ? 'new-message' : ''}">
-                ${!isOwn ? `<img src="${m.avatar}" onerror="this.src='/static/img/default_avatar.png'" class="dm-bubble-avatar">` : ''}
+                ${!isOwn ? `<img src="${m.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">` : ''}
                 <div class="dm-bubble-content">
                     <div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>
                     <div class="dm-bubble-time">${new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
-                ${isOwn ? `<img src="${m.avatar}" onerror="this.src='/static/img/default_avatar.png'" class="dm-bubble-avatar">` : ''}
+                ${isOwn ? `<img src="${m.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">` : ''}
             </div>`;
         });
         box.scrollTop = box.scrollHeight;
@@ -1872,7 +1872,7 @@ const WebSocketModule = {
                 if (box) {
                     box.innerHTML += `
                         <div class="dm-bubble other">
-                            <img src="${data.avatar}" onerror="this.src='/static/img/default_avatar.png'" class="dm-bubble-avatar">
+                            <img src="${data.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">
                             <div class="dm-bubble-content">
                                 <div class="dm-bubble-text">${Utils.escapeHtml(data.content)}</div>
                                 <div class="dm-bubble-time">${new Date(data.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
@@ -1891,4 +1891,5 @@ document.addEventListener('DOMContentLoaded', () => { DiscordModule.init(); WebS
 // Explicitly export for HTML inline handlers
 window.DiscordModule = DiscordModule;
 window.Utils = Utils;
+window.DEFAULT_AVATAR = DEFAULT_AVATAR;
 
