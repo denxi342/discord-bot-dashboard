@@ -1663,9 +1663,13 @@ def api_get_servers():
     if 'user' not in session:
         return jsonify({'success': False, 'error': 'Auth required'}), 401
     
-    uid = session['user']['id']
+    try:
+        uid = int(session['user']['id'])
+    except:
+        uid = 0 # Should not happen if auth valid
     
     # Get user's servers from DB
+    # Ensure param is tuple
     rows = execute_query("SELECT server_id FROM server_members WHERE user_id = %s", (uid,), fetch_all=True)
     user_server_ids = [r[0] for r in rows]
     
@@ -1739,6 +1743,12 @@ def api_create_server():
         { 'id': 'role_mod', 'name': 'Moderator', 'color': '#2ECC71', 'permissions': 4, 'hoist': True }
     ]
 
+    # Validating ID type
+    try:
+        user_id_int = int(session['user']['id'])
+    except:
+        user_id_int = 0
+
     servers_db[sid] = {
         'name': name,
         'icon': icon_url, 
@@ -1750,14 +1760,27 @@ def api_create_server():
     save_servers()
     
     # Add creator as owner member
+    # Use standard execute_query with tuple params and %s for cross-compatibility
     try:
+        # Check if already exists (shouldn't for new server)
+        # We use %s because execute_query handles SQLite conversion automatically
         execute_query(
-            'INSERT INTO server_members (server_id, user_id, role, joined_at) VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING',
-            (sid, session['user']['id'], 'owner', time.time()),
+            'INSERT INTO server_members (server_id, user_id, role, joined_at) VALUES (%s, %s, %s, %s)',
+            (sid, user_id_int, 'owner', time.time()),
             commit=True
         )
+        print(f"[+] Server {sid} created by user {user_id_int}")
     except Exception as e:
-        print(f"Server member insert error: {e}")
+        print(f"[!] Server member insert error: {e}")
+        # Retrying with string ID just in case of schema mismatch in legacy DBs
+        try:
+             execute_query(
+                'INSERT INTO server_members (server_id, user_id, role, joined_at) VALUES (%s, %s, %s, %s)',
+                (sid, session['user']['id'], 'owner', time.time()),
+                commit=True
+            )
+        except:
+            pass # Fail double safe
     
     return jsonify({'success': True, 'server': servers_db[sid], 'id': sid})
 
@@ -1792,15 +1815,14 @@ def api_create_channel(sid):
                 break
         
         if idx != -1:
-            # Insert AFTER category (and any existing children? for now just after category is fine, simple prepend to cat)
-            # Actually, to be at the bottom of the category, we need to find the NEXT category and insert before it.
-            # But "simple appending to category" usually means just after it.
-            # Let's simple insert at idx + 1
             channels.insert(idx + 1, new_chan)
         else:
              channels.append(new_chan)
     else:
         channels.append(new_chan)
+        
+    save_servers()
+    return jsonify({'success': True, 'channel': new_chan})
         
     save_servers()
     return jsonify({'success': True, 'channel': new_chan})
