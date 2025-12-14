@@ -244,6 +244,18 @@ def run_db_migration():
             if 'edited_at' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN edited_at REAL")
                 print("  ✓ Added edited_at to dm_messages")
+            
+            # Check if message_reactions table exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='message_reactions'")
+            if not cursor.fetchone():
+                cursor.execute('''CREATE TABLE message_reactions
+                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  message_id INTEGER NOT NULL,
+                                  user_id INTEGER NOT NULL,
+                                  emoji TEXT NOT NULL,
+                                  created_at REAL,
+                                  UNIQUE(message_id, user_id, emoji))''')
+                print("  ✓ Created message_reactions table")
                 
         else:
             # PostgreSQL: Check via information_schema
@@ -266,6 +278,22 @@ def run_db_migration():
             if 'edited_at' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN edited_at REAL")
                 print("  ✓ Added edited_at to dm_messages")
+            
+            # Check if message_reactions table exists
+            cursor.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_name='message_reactions'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("""CREATE TABLE message_reactions
+                                 (id SERIAL PRIMARY KEY,
+                                  message_id INTEGER NOT NULL,
+                                  user_id INTEGER NOT NULL,
+                                  emoji VARCHAR(50) NOT NULL,
+                                  created_at REAL,
+                                  UNIQUE(message_id, user_id, emoji))""")
+                print("  ✓ Created message_reactions table")
         
         conn.commit()
         cursor.close()
