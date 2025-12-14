@@ -220,24 +220,6 @@ def load_servers():
                         { 'id': 'news', 'type': 'channel', 'name': 'news-feed', 'icon': 'newspaper' }
                     ]
                 },
-                'ai': {
-                    'name': 'Arizona AI',
-                    'icon': 'robot',
-                    'owner': 'system',
-                    'channels': [
-                        { 'id': 'cat-ai', 'type': 'category', 'name': 'ASSISTANT' },
-                        { 'id': 'helper', 'type': 'channel', 'name': 'chat-gpt', 'icon': 'robot' }
-                    ]
-                },
-                'smi': {
-                    'name': 'СМИ Тулс',
-                    'icon': 'newspaper',
-                    'owner': 'system',
-                    'channels': [
-                        { 'id': 'cat-smi', 'type': 'category', 'name': 'TOOLS' },
-                        { 'id': 'ad-editor', 'type': 'channel', 'name': 'ad-editor', 'icon': 'pen-to-square' }
-                    ]
-                },
                 'admin': {
                     'name': 'Admin Panel',
                     'icon': 'shield-halved',
@@ -253,6 +235,17 @@ def load_servers():
     except Exception as e:
         print(f"Error loading servers: {e}")
         servers_db = {}
+    
+    # Remove deprecated servers if they exist
+    deprecated = ['ai', 'smi']
+    changed = False
+    for sid in deprecated:
+        if sid in servers_db:
+            del servers_db[sid]
+            changed = True
+            print(f"Removed deprecated server: {sid}")
+    if changed:
+        save_servers()
 
 def save_servers():
     try:
