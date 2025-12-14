@@ -581,7 +581,8 @@ def api_upload_avatar():
 @app.before_request
 def check_auth():
     if request.endpoint and request.endpoint.startswith('static'): return
-    if request.endpoint in ['login_page', 'register_page', 'api_login', 'api_register', 'api_auth_register', 'api_auth_login', 'favicon']: return
+    if request.endpoint in ['login_page', 'register_page', 'api_login', 'api_register', 'api_auth_register', 'api_auth_login', 'favicon', 
+                             'debug_check_tables', 'debug_run_migration', 'debug_friends_dump']: return
     
     if 'user' not in session:
         return redirect('/login')
