@@ -1889,6 +1889,10 @@ body::before {
     flex-direction: column;
     gap: 12px;
     padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    max-height: calc(100vh - 150px);
 }
 
 .dm-bubble {
