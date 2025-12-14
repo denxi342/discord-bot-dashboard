@@ -1644,8 +1644,16 @@ def api_get_servers():
     if 'user' not in session:
         return jsonify({'success': False, 'error': 'Auth required'}), 401
     
-    # For now, return all servers (in production, filter by user membership)
-    return jsonify({'success': True, 'servers': servers_db})
+    uid = session['user']['id']
+    
+    # Get user's servers from DB
+    rows = execute_query("SELECT server_id FROM server_members WHERE user_id = %s", (uid,), fetch_all=True)
+    user_server_ids = [r[0] for r in rows]
+    
+    # Filter global DB
+    user_servers = {sid: data for sid, data in servers_db.items() if sid in user_server_ids}
+    
+    return jsonify({'success': True, 'servers': user_servers})
 
 @app.route('/api/servers/create', methods=['POST'])
 def api_create_server():
