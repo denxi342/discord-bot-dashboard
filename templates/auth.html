@@ -91,6 +91,7 @@
             font-weight: 800;
             margin-bottom: 30px;
             background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             display: flex;
@@ -241,7 +242,7 @@
             </div>
 
             <!-- Login Form -->
-            <div id="login-form" style="display: {% if mode == 'login' %}block{% else %}none{% endif %};">
+            <div id="login-form" style="display: {% if mode == 'login' %}block{% else %}none{% endif %}">
                 <div class="form-group">
                     <label>Имя пользователя</label>
                     <div class="input-wrapper">
@@ -260,7 +261,7 @@
             </div>
 
             <!-- Register Form -->
-            <div id="register-form" style="display: {% if mode == 'register' %}block{% else %}none{% endif %};">
+            <div id="register-form" style="display: {% if mode == 'register' %}block{% else %}none{% endif %}">
                 <div class="form-group">
                     <label>Придумайте никнейм</label>
                     <div class="input-wrapper">
