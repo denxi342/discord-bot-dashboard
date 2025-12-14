@@ -216,6 +216,69 @@ def init_db():
 
 init_db()
 
+def run_db_migration():
+    """
+    Run database migration to add extended messaging fields to existing databases.
+    This is safe to run multiple times - it checks if columns exist before adding.
+    """
+    try:
+        conn = get_db_connection()
+        is_sqlite = isinstance(conn, sqlite3.Connection)
+        cursor = conn.cursor()
+        
+        print("🔄 Running database migration...")
+        
+        if is_sqlite:
+            # SQLite: Check columns via PRAGMA
+            cursor.execute("PRAGMA table_info(dm_messages)")
+            existing_cols = {row[1] for row in cursor.fetchall()}
+            
+            if 'reply_to_id' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN reply_to_id INTEGER")
+                print("  ✓ Added reply_to_id to dm_messages")
+            
+            if 'is_pinned' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN is_pinned INTEGER DEFAULT 0")
+                print("  ✓ Added is_pinned to dm_messages")
+            
+            if 'edited_at' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN edited_at REAL")
+                print("  ✓ Added edited_at to dm_messages")
+                
+        else:
+            # PostgreSQL: Check via information_schema
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='dm_messages' 
+                AND column_name IN ('reply_to_id', 'is_pinned', 'edited_at')
+            """)
+            existing_cols = {row[0] for row in cursor.fetchall()}
+            
+            if 'reply_to_id' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN reply_to_id INTEGER")
+                print("  ✓ Added reply_to_id to dm_messages")
+            
+            if 'is_pinned' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN is_pinned INTEGER DEFAULT 0")
+                print("  ✓ Added is_pinned to dm_messages")
+            
+            if 'edited_at' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN edited_at REAL")
+                print("  ✓ Added edited_at to dm_messages")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("✅ Database migration completed successfully!")
+        
+    except Exception as e:
+        print(f"⚠️ Migration error (this may be safe to ignore if columns already exist): {e}")
+
+# Run migration after init_db
+run_db_migration()
+
+
 def fix_existing_avatars():
     """Helper to replace broken CDN avatars with local default"""
     try:
