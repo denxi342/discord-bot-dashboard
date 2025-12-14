@@ -2133,7 +2133,7 @@ def api_dm_messages(target_id):
             'avatar': r[3] if r[3] else DEFAULT_AVATAR
         })
         
-    return jsonify({'success': True, 'messages': messages})
+    return jsonify({'success': True, 'messages': messages, 'dm_id': str(dm_id)})
 
 @app.route('/api/dms/by_id/<int:dm_id>/send', methods=['POST'])
 def api_dm_send_by_id(dm_id):

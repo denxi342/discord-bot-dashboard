@@ -1631,6 +1631,25 @@ const DiscordModule = {
         } catch (e) { console.error(e); }
     },
 
+    startDM: async (userId) => {
+        try {
+            // Get or Create DM via API
+            const res = await fetch(`/api/dms/${userId}/messages`);
+            const data = await res.json();
+            if (data.success && data.dm_id) {
+                // Refresh DM List to ensure it appears in sidebar
+                await DiscordModule.loadDMList();
+                // Load the DM view
+                DiscordModule.loadDM(data.dm_id);
+            } else {
+                Utils.showToast('Failed to start DM');
+            }
+        } catch (e) {
+            console.error("StartDM Error:", e);
+            Utils.showToast('Error starting DM');
+        }
+    },
+
     loadDM: async (dmId) => {
         // Create view logic for DM... 
         const container = document.getElementById('channel-view-general');
