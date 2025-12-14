@@ -2621,52 +2621,59 @@ def api_get_pinned_messages(dm_id):
 @app.route('/api/messages/<int:message_id>/react', methods=['POST'])
 def api_react_message(message_id):
     """Добавить/удалить реакцию"""
-    if 'user' not in session:
-        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
-    
-    my_id = int(session['user']['id'])
-    data = request.json
-    emoji = data.get('emoji', '').strip()
-    
-    if not emoji:
-        return jsonify({'success': False, 'error': 'No emoji provided'}), 400
-    
-    # Check message exists
-    msg = execute_query('SELECT dm_id FROM dm_messages WHERE id = %s', (message_id,), fetch_one=True)
-    if not msg:
-        return jsonify({'success': False, 'error': 'Message not found'}), 404
-    
-    dm_id = msg[0]
-    
-    # Check if reaction already exists
-    existing = execute_query(
-        'SELECT id FROM message_reactions WHERE message_id = %s AND user_id = %s AND emoji = %s',
-        (message_id, my_id, emoji), fetch_one=True
-    )
-    
-    if existing:
-        # Remove reaction
-        execute_query('DELETE FROM message_reactions WHERE id = %s', (existing[0],), commit=True)
-        action = 'removed'
-    else:
-        # Add reaction
-        execute_query(
-            'INSERT INTO message_reactions (message_id, user_id, emoji, created_at) VALUES (%s, %s, %s, %s)',
-            (message_id, my_id, emoji, time.time()), commit=True
+    try:
+        if 'user' not in session:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+        
+        my_id = int(session['user']['id'])
+        data = request.json
+        emoji = data.get('emoji', '').strip()
+        
+        if not emoji:
+            return jsonify({'success': False, 'error': 'No emoji provided'}), 400
+        
+        # Check message exists
+        msg = execute_query('SELECT dm_id FROM dm_messages WHERE id = %s', (message_id,), fetch_one=True)
+        if not msg:
+            return jsonify({'success': False, 'error': 'Message not found'}), 404
+        
+        dm_id = msg[0]
+        
+        # Check if reaction already exists
+        existing = execute_query(
+            'SELECT id FROM message_reactions WHERE message_id = %s AND user_id = %s AND emoji = %s',
+            (message_id, my_id, emoji), fetch_one=True
         )
-        action = 'added'
+        
+        if existing:
+            # Remove reaction
+            execute_query('DELETE FROM message_reactions WHERE id = %s', (existing[0],), commit=True)
+            action = 'removed'
+        else:
+            # Add reaction
+            execute_query(
+                'INSERT INTO message_reactions (message_id, user_id, emoji, created_at) VALUES (%s, %s, %s, %s)',
+                (message_id, my_id, emoji, time.time()), commit=True
+            )
+            action = 'added'
+        
+        # Get updated reactions count
+        reactions = get_message_reactions(message_id)
+        
+        # Emit via socket
+        socketio.emit('message_reaction', {
+            'message_id': message_id,
+            'dm_id': dm_id,
+            'reactions': reactions
+        }, broadcast=True)
+        
+        return jsonify({'success': True, 'action': action, 'reactions': reactions})
     
-    # Get updated reactions count
-    reactions = get_message_reactions(message_id)
-    
-    # Emit via socket
-    socketio.emit('message_reaction', {
-        'message_id': message_id,
-        'dm_id': dm_id,
-        'reactions': reactions
-    }, broadcast=True)
-    
-    return jsonify({'success': True, 'action': action, 'reactions': reactions})
+    except Exception as e:
+        print(f"[ERROR] Reaction error for message {message_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
 
 
 def get_message_reactions(message_id):
