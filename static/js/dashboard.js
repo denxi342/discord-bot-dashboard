@@ -181,6 +181,8 @@ const DiscordModule = {
 
     init: async () => {
         await DiscordModule.loadServers();
+        // Preload user statuses for accurate online/offline display
+        await DiscordModule.loadUserStatuses();
         // Fetch Me for context
         try {
             const res = await fetch('/api/user/me');
@@ -1067,6 +1069,22 @@ const DiscordModule = {
     // Storage for user statuses
     userStatuses: {},
 
+    // Preload all user statuses
+    loadUserStatuses: async () => {
+        try {
+            const res = await fetch('/api/admin/users');
+            const data = await res.json();
+            if (data.success && data.users) {
+                data.users.forEach(u => {
+                    DiscordModule.userStatuses[u.id] = u.status;
+                });
+                console.log('[Status] Loaded statuses for', data.users.length, 'users');
+            }
+        } catch (e) {
+            console.error('[Status] Failed to load:', e);
+        }
+    },
+
     renderMembers: async () => {
         const container = document.getElementById('member-list-content');
         if (!container) return;
@@ -1782,12 +1800,16 @@ const DiscordModule = {
             dmProfileContainer.style.display = 'flex';
             dmProfileContainer.style.flexDirection = 'column';
 
+            // Check real online status
+            const isOnline = DiscordModule.userStatuses[otherUser.id] === 'online';
+            const statusClass = isOnline ? 'online' : 'offline';
+
             dmProfileContainer.innerHTML = `
                 <div class="dm-profile-card">
                     <div class="dm-profile-banner"></div>
                     <div class="dm-profile-avatar-wrapper">
                         <img src="${avatar}" class="dm-profile-avatar" alt="${name}">
-                        <div class="dm-profile-status online"></div>
+                        <div class="dm-profile-status ${statusClass}"></div>
                     </div>
                     <div class="dm-profile-info">
                         <div class="dm-profile-name">${name}</div>
