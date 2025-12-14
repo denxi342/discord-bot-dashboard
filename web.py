@@ -147,6 +147,9 @@ def init_db():
     # SQLite: INTEGER PRIMARY KEY AUTOINCREMENT
     
     pk_type = "INTEGER PRIMARY KEY AUTOINCREMENT" if is_sqlite else "SERIAL PRIMARY KEY"
+    varchar_type = "TEXT" if is_sqlite else "VARCHAR(50)"
+    
+    print("🔧 Initializing database...")
     
     # Users Table
     c.execute(f'''CREATE TABLE IF NOT EXISTS users
@@ -162,6 +165,7 @@ def init_db():
                   phone TEXT,
                   role TEXT DEFAULT 'user',
                   reputation INTEGER DEFAULT 0)''')
+    print("  ✓ Users table ready")
 
     # Friends Table
     c.execute(f'''CREATE TABLE IF NOT EXISTS friends
@@ -171,6 +175,7 @@ def init_db():
                   status TEXT DEFAULT 'pending', 
                   created_at REAL,
                   UNIQUE(user_id_1, user_id_2))''')
+    print("  ✓ Friends table ready")
 
     # DM Tables
     c.execute(f'''CREATE TABLE IF NOT EXISTS direct_messages
@@ -179,6 +184,7 @@ def init_db():
                   user_id_2 INTEGER NOT NULL,
                   last_message_at REAL,
                   UNIQUE(user_id_1, user_id_2))''')
+    print("  ✓ Direct messages table ready")
 
     c.execute(f'''CREATE TABLE IF NOT EXISTS dm_messages
                  (id {pk_type},
@@ -189,15 +195,17 @@ def init_db():
                   reply_to_id INTEGER,
                   is_pinned INTEGER DEFAULT 0,
                   edited_at REAL)''')
+    print("  ✓ DM messages table ready")
 
-    # Message Reactions Table
+    # Message Reactions Table - CRITICAL for reactions feature
     c.execute(f'''CREATE TABLE IF NOT EXISTS message_reactions
                  (id {pk_type},
                   message_id INTEGER NOT NULL,
                   user_id INTEGER NOT NULL,
-                  emoji TEXT NOT NULL,
+                  emoji {varchar_type} NOT NULL,
                   created_at REAL,
                   UNIQUE(message_id, user_id, emoji))''')
+    print("  ✓ Message reactions table ready")
 
     # Server Members Table - tracks who is a member of which server
     c.execute(f'''CREATE TABLE IF NOT EXISTS server_members
@@ -207,10 +215,11 @@ def init_db():
                   role TEXT DEFAULT 'member',
                   joined_at REAL,
                   UNIQUE(server_id, user_id))''')
+    print("  ✓ Server members table ready")
                   
     conn.commit()
     conn.close()
-    print("Database initialized.")
+    print("✅ Database initialized successfully!")
 
 # Removed file-based users_db logic since we now have columns for role/reputation in DB.
 
@@ -303,8 +312,8 @@ def run_db_migration():
     except Exception as e:
         print(f"⚠️ Migration error (this may be safe to ignore if columns already exist): {e}")
 
-# Run migration after init_db
-run_db_migration()
+# Migration is now handled directly in init_db(), so we don't need to run it separately
+# run_db_migration()
 
 
 def fix_existing_avatars():
