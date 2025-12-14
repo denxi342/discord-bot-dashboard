@@ -1064,6 +1064,9 @@ const DiscordModule = {
         }
     },
 
+    // Storage for user statuses
+    userStatuses: {},
+
     renderMembers: async () => {
         const container = document.getElementById('member-list-content');
         if (!container) return;
@@ -1071,40 +1074,97 @@ const DiscordModule = {
         container.innerHTML = '<div style="padding:20px;color:gray;text-align:center">Loading...</div>';
 
         try {
-            // Using existing admin API which returns all users
+            // Using existing admin API which returns all users with real status
             const res = await fetch('/api/admin/users');
             const data = await res.json();
 
             if (data.success && data.users) {
                 container.innerHTML = '';
 
-                // Group by online/offline (mock status for now as backend doesn't track properly realtime yet)
-                const online = data.users; // Assume all "registered" are visible
+                // Group by online/offline status
+                const onlineUsers = data.users.filter(u => u.status === 'online');
+                const offlineUsers = data.users.filter(u => u.status !== 'online');
 
-                container.innerHTML += `
-                    <div class="member-group">
-                        <div class="group-name">MEMBERS — ${online.length}</div>
-                    </div>`;
-
-                online.forEach(u => {
-                    // Randomize status for visual flair since we don't have real presence
-                    // In a real app, this would come from the websocket heartbeat
-                    const statuses = ['online', 'idle', 'dnd'];
-                    const status = u.status || statuses[Math.floor(Math.random() * statuses.length)];
-                    const color = status === 'online' ? '#23A559' : (status === 'dnd' ? '#F23F42' : '#F0B232');
-
-                    container.innerHTML += `
-                     <div class="member-item">
-                        <div class="member-avatar">
-                           <img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;">
-                           <div class="member-status" style="background:${color}"></div>
-                        </div>
-                        <div class="member-name">${u.username}</div>
-                     </div>`;
+                // Store statuses in memory for real-time updates
+                data.users.forEach(u => {
+                    DiscordModule.userStatuses[u.id] = u.status;
                 });
+
+                // Render online users first
+                if (onlineUsers.length > 0) {
+                    container.innerHTML += `
+                        <div class="member-group">
+                            <div class="group-name">В СЕТИ — ${onlineUsers.length}</div>
+                        </div>`;
+
+                    onlineUsers.forEach(u => {
+                        container.innerHTML += `
+                         <div class="member-item" data-user-id="${u.id}">
+                            <div class="member-avatar">
+                               <img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;">
+                               <div class="member-status" style="background:#23A559"></div>
+                            </div>
+                            <div class="member-name">${u.username}</div>
+                         </div>`;
+                    });
+                }
+
+                // Render offline users
+                if (offlineUsers.length > 0) {
+                    container.innerHTML += `
+                        <div class="member-group">
+                            <div class="group-name">НЕ В СЕТИ — ${offlineUsers.length}</div>
+                        </div>`;
+
+                    offlineUsers.forEach(u => {
+                        container.innerHTML += `
+                         <div class="member-item" data-user-id="${u.id}">
+                            <div class="member-avatar">
+                               <img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;">
+                               <div class="member-status" style="background:#80848E"></div>
+                            </div>
+                            <div class="member-name" style="opacity:0.5">${u.username}</div>
+                         </div>`;
+                    });
+                }
             }
         } catch (e) {
             container.innerHTML = '<div style="padding:20px;color:red;">Failed to load members</div>';
+        }
+    },
+
+    // Real-time status update for member list
+    updateMemberStatus: (userId, status) => {
+        const memberItem = document.querySelector(`.member-item[data-user-id="${userId}"]`);
+        if (memberItem) {
+            const statusDot = memberItem.querySelector('.member-status');
+            const nameEl = memberItem.querySelector('.member-name');
+            if (statusDot) {
+                statusDot.style.background = status === 'online' ? '#23A559' : '#80848E';
+            }
+            if (nameEl) {
+                nameEl.style.opacity = status === 'online' ? '1' : '0.5';
+            }
+        }
+        // Also refresh the entire list if visible to update counts
+        const container = document.getElementById('member-list-content');
+        if (container && container.innerHTML !== '') {
+            // Debounce to prevent too many calls
+            if (DiscordModule.memberRefreshTimeout) clearTimeout(DiscordModule.memberRefreshTimeout);
+            DiscordModule.memberRefreshTimeout = setTimeout(() => {
+                DiscordModule.renderMembers();
+            }, 1000);
+        }
+    },
+
+    // Real-time status update for friend list
+    updateFriendStatus: (userId, status) => {
+        const friendItem = document.querySelector(`.friend-item[data-user-id="${userId}"]`);
+        if (friendItem) {
+            const statusText = friendItem.querySelector('.friend-status');
+            if (statusText) {
+                statusText.textContent = status === 'online' ? 'В сети' : 'Не в сети';
+            }
         }
     },
 
@@ -1431,12 +1491,20 @@ const DiscordModule = {
                 `;
             }
 
+            // Check real online status from memory
+            const isOnline = DiscordModule.userStatuses[u.id] === 'online';
+            const statusText = isPending ? 'Запрос в друзья' : (isOnline ? 'В сети' : 'Не в сети');
+            const statusColor = isOnline ? '#23A559' : '#80848E';
+
             container.innerHTML += `
-            <div class="friend-item" data-username="${u.username}">
-                <img src="${u.avatar || DEFAULT_AVATAR}" class="friend-avatar">
+            <div class="friend-item" data-username="${u.username}" data-user-id="${u.id}">
+                <div class="friend-avatar-wrapper">
+                    <img src="${u.avatar || DEFAULT_AVATAR}" class="friend-avatar">
+                    <div class="friend-status-dot" style="background:${statusColor}"></div>
+                </div>
                 <div class="friend-info">
                     <div class="friend-name">${u.username}</div>
-                    <div class="friend-status">${isPending ? 'Запрос в друзья' : 'В сети'}</div>
+                    <div class="friend-status">${statusText}</div>
                 </div>
                 <div class="friend-actions">${actions}</div>
             </div>`;
@@ -1913,6 +1981,20 @@ const WebSocketModule = {
                     box.scrollTop = box.scrollHeight;
                 }
             }
+        });
+
+        // User Status Updates (online/offline)
+        socket.on('user_status', (data) => {
+            console.log('[WS] User status:', data.username, data.status);
+            // Update status in memory
+            if (!DiscordModule.userStatuses) DiscordModule.userStatuses = {};
+            DiscordModule.userStatuses[data.user_id] = data.status;
+
+            // Update UI - member list
+            DiscordModule.updateMemberStatus(data.user_id, data.status);
+
+            // Update friend list if visible
+            DiscordModule.updateFriendStatus(data.user_id, data.status);
         });
     }
 };

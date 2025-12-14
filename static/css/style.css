@@ -2651,7 +2651,29 @@ body::before {
     width: 32px;
     height: 32px;
     border-radius: 50%;
+}
+
+.friend-avatar-wrapper {
+    position: relative;
+    width: 32px;
+    height: 32px;
     margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.friend-avatar-wrapper .friend-avatar {
+    margin-right: 0;
+}
+
+.friend-status-dot {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 3px solid rgba(30, 20, 50, 0.9);
+    transition: background 0.3s;
 }
 
 .friend-info {

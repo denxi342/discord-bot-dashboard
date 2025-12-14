@@ -29,11 +29,34 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev_secret_key_fixed_12345')
 app.permanent_session_lifetime = timedelta(days=30)
 socketio = SocketIO(app, cors_allowed_origins="*", manage_session=True, async_mode='eventlet')
 
+# Online users tracking: {user_id: {socket_sid, username, avatar}}
+online_users = {}
+
 @socketio.on('connect')
 def handle_connect():
     if 'user' in session:
         user_id = str(session['user']['id'])
         join_room(user_id)
+        # Track online user
+        online_users[user_id] = {
+            'sid': request.sid,
+            'username': session['user'].get('username', ''),
+            'avatar': session['user'].get('avatar', '')
+        }
+        # Broadcast status to all users
+        emit('user_status', {'user_id': user_id, 'status': 'online', 'username': session['user'].get('username', '')}, broadcast=True)
+        print(f"[WS] User {session['user'].get('username')} connected. Online: {len(online_users)}")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    if 'user' in session:
+        user_id = str(session['user']['id'])
+        # Remove from online users
+        if user_id in online_users:
+            del online_users[user_id]
+        # Broadcast offline status
+        emit('user_status', {'user_id': user_id, 'status': 'offline', 'username': session['user'].get('username', '')}, broadcast=True)
+        print(f"[WS] User {session['user'].get('username')} disconnected. Online: {len(online_users)}")
 
 import psycopg2
 from urllib.parse import urlparse
@@ -525,12 +548,15 @@ def api_get_users():
     users_list = []
     if rows:
         for r in rows:
+            user_id = str(r[0])
+            # Check real online status from online_users dict
+            is_online = user_id in online_users
             users_list.append({
-                'id': str(r[0]),
+                'id': user_id,
                 'username': r[1],
                 'avatar': get_valid_avatar(r[2]),
                 'role': r[3] if len(r) > 3 else 'user',
-                'status': 'online' # Mock status
+                'status': 'online' if is_online else 'offline'
             })
         
     return jsonify({'success': True, 'users': users_list})
