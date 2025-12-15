@@ -1,0 +1,37 @@
+/* Notification glow animation for new messages */
+@keyframes notification-glow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7),
+            0 0 0 0 rgba(168, 85, 247, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 20px 10px rgba(168, 85, 247, 0.5),
+            0 0 40px 20px rgba(168, 85, 247, 0.2);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(168, 85, 247, 0),
+            0 0 0 0 rgba(168, 85, 247, 0);
+    }
+}
+
+@keyframes slide-in-glow {
+    0% {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.message-group.new-message {
+    animation: notification-glow 2s ease-out, slide-in-glow 0.4s ease-out;
+}
+
+.chat-area.has-notification {
+    animation: notification-glow 1.5s ease-out;
+}

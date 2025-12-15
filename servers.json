@@ -1,0 +1,96 @@
+{
+    "home": {
+        "name": "Главная",
+        "icon": "discord",
+        "owner": "system",
+        "channels": [
+            {
+                "id": "cat-info",
+                "type": "category",
+                "name": "ИНФОРМАЦИЯ"
+            },
+            {
+                "id": "general",
+                "type": "channel",
+                "name": "general",
+                "icon": "hashtag"
+            },
+            {
+                "id": "news",
+                "type": "channel",
+                "name": "news-feed",
+                "icon": "newspaper"
+            }
+        ]
+    },
+    "admin": {
+        "name": "Admin Panel",
+        "icon": "shield-halved",
+        "owner": "system",
+        "channels": [
+            {
+                "id": "cat-admin",
+                "type": "category",
+                "name": "ADMINISTRATION"
+            },
+            {
+                "id": "users",
+                "type": "channel",
+                "name": "users",
+                "icon": "users"
+            },
+            {
+                "id": "stats",
+                "type": "channel",
+                "name": "stats",
+                "icon": "chart-line"
+            }
+        ]
+    },
+    "srv_1765804001891": {
+        "name": "Игры",
+        "icon": "server",
+        "is_image": false,
+        "owner": "1",
+        "roles": [
+            {
+                "id": "role_everyone",
+                "name": "@everyone",
+                "color": "#99aab5",
+                "permissions": 0
+            },
+            {
+                "id": "role_admin",
+                "name": "Administrator",
+                "color": "#E91E63",
+                "permissions": 8,
+                "hoist": true
+            },
+            {
+                "id": "role_mod",
+                "name": "Moderator",
+                "color": "#2ECC71",
+                "permissions": 4,
+                "hoist": true
+            }
+        ],
+        "channels": [
+            {
+                "id": "ch_1765804006050",
+                "type": "channel",
+                "name": "вы",
+                "icon": "hashtag",
+                "messages": [
+                    {
+                        "id": "msg_1765804007807_714",
+                        "author_id": "1",
+                        "author": "234",
+                        "avatar": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzU4NjVmMiIvPjwvc3ZnPg==",
+                        "content": "вы",
+                        "timestamp": 1765804007.8072143
+                    }
+                ]
+            }
+        ]
+    }
+}

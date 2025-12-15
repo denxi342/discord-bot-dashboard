@@ -24,6 +24,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"
         crossorigin="anonymous"></script>
 
+    <!-- Notification System -->
+    <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+
     <!-- Current User Data -->
     <script>
         window.currentUsername = "{{ user.username }}";
