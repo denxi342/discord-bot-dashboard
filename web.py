@@ -569,22 +569,35 @@ def api_upload_avatar():
     if ext not in allowed:
         return jsonify({'success': False, 'error': 'Invalid file type'})
     
-    # Create avatars directory if not exists
-    avatar_dir = os.path.join(app.static_folder, 'avatars')
-    os.makedirs(avatar_dir, exist_ok=True)
+    # Check file size (max 2MB for avatars)
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
     
-    # Generate unique filename
-    import uuid
-    filename = f"{session['user']['id']}_{uuid.uuid4().hex[:8]}.{ext}"
-    filepath = os.path.join(avatar_dir, filename)
+    MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2MB
+    if file_size > MAX_AVATAR_SIZE:
+        return jsonify({'success': False, 'error': 'Avatar too large (max 2MB)'})
     
     try:
-        file.save(filepath)
+        # Read file data and convert to base64 Data URI
+        import base64
+        file_data = file.read()
         
-        # Generate URL
-        avatar_url = f"/static/avatars/{filename}"
+        # Determine MIME type
+        mime_types = {
+            'png': 'image/png',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif': 'image/gif',
+            'webp': 'image/webp'
+        }
+        mime_type = mime_types.get(ext, 'image/jpeg')
         
-        # Update database
+        # Create Data URI
+        base64_data = base64.b64encode(file_data).decode('utf-8')
+        avatar_url = f"data:{mime_type};base64,{base64_data}"
+        
+        # Update database with Data URI
         execute_query("UPDATE users SET avatar = %s WHERE id = %s", 
                      (avatar_url, session['user']['id']), commit=True)
         
