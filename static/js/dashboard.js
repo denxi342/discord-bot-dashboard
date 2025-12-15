@@ -985,7 +985,7 @@ const DiscordModule = {
 
         // Upload files first if any
         const attachments = await DiscordModule.uploadFiles();
-        
+
         // Require either text or attachments  
         if (!text && attachments.length === 0) return;
         input.value = '';
@@ -1899,6 +1899,13 @@ const DiscordModule = {
                         </div>`;
                 }
 
+                // Build attachments HTML
+                let attachmentHTML = '';
+                if (m.attachments) {
+                    const attachments = typeof m.attachments === 'string' ? JSON.parse(m.attachments) : m.attachments;
+                    attachmentHTML = DiscordModule.renderAttachments(attachments);
+                }
+
                 // Build reactions HTML
                 let reactionsHtml = '';
                 if (m.reactions && Object.keys(m.reactions).length > 0) {
@@ -1921,7 +1928,8 @@ const DiscordModule = {
                     ${!isOwn ? `<img src="${m.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">` : ''}
                     <div class="dm-bubble-content">
                         ${replyHtml}
-                        <div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>
+                        ${m.content ? `<div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>` : ''}
+                        ${attachmentHTML}
                         ${reactionsHtml}
                         <div class="dm-bubble-time">
                             ${statusHtml}
@@ -1952,7 +1960,7 @@ const DiscordModule = {
             if (attachments && attachments.length > 0) {
                 attachmentHTML = DiscordModule.renderAttachments(attachments);
             }
-            
+
             box.innerHTML += `
             <div class="dm-bubble own sending" id="${tempId}">
                 <div class="dm-bubble-content">
@@ -2305,7 +2313,7 @@ const WebSocketModule = {
                         const attachments = typeof data.attachments === 'string' ? JSON.parse(data.attachments) : data.attachments;
                         attachmentHTML = DiscordModule.renderAttachments(attachments);
                     }
-                    
+
                     box.innerHTML += `
                         <div class="dm-bubble other">
                             <img src="${data.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">
