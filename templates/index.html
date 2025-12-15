@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=31">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/features.css') }}">
 
     <!-- Required Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"
@@ -26,6 +27,9 @@
 
     <!-- Notification System -->
     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+
+    <!-- Emoji Data -->
+    <script src="{{ url_for('static', filename='js/emoji-data.js') }}"></script>
 
     <!-- Current User Data -->
     <script>
@@ -554,19 +558,60 @@
             <!-- Global Input -->
             <div class="chat-input-area">
                 <div class="chat-input-wrapper">
-                    <button class="input-btn" id="attach-file-btn" title="Прикрепить файл" onclick="document.getElementById('file-input-hidden').click()"><i class="fa-solid fa-paperclip"></i></button>
-                    <input type="file" id="file-input-hidden" multiple style="display:none;" onchange="DiscordModule.handleFileSelect(this)">
+                    <button class="input-btn" id="attach-file-btn" title="Прикрепить файл"
+                        onclick="document.getElementById('file-input-hidden').click()"><i
+                            class="fa-solid fa-paperclip"></i></button>
+                    <input type="file" id="file-input-hidden" multiple style="display:none;"
+                        onchange="DiscordModule.handleFileSelect(this)">
                     <div id="file-preview-container" style="display:none;"></div>
                     <input id="global-input" placeholder="Message #general"
                         onkeydown="if(event.key==='Enter') DiscordModule.handleInput()">
                     <div class="right-icons">
                         <i class="fa-solid fa-gift"></i>
                         <i class="fa-solid fa-sticky-note"></i>
-                        <i class="fa-solid fa-face-smile"></i>
+                        <i class="fa-solid fa-face-smile" id="emoji-picker-btn"
+                            onclick="EmojiModule.toggleEmojiPicker()"></i>
+                        <i class="fa-solid fa-image" id="gif-panel-btn" onclick="GifModule.toggleGifPanel()"
+                            title="GIF"></i>
                     </div>
                 </div>
             </div>
-        </main>
+
+            <!-- Typing Indicator -->
+            <div id="typing-indicator" class="typing-indicator" style="display: none;">
+                <span id="typing-users"></span>
+                <span class="typing-dots">
+                    <span></span><span></span><span></span>
+                </span>
+            </div>
+
+            <!-- Emoji Picker Panel -->
+            <div id="emoji-picker-panel" class="emoji-picker" style="display: none;">
+                <div class="emoji-search">
+                    <input type="text" id="emoji-search-input" placeholder="Поиск эмодзи..."
+                        oninput="EmojiModule.searchEmoji(this.value)" />
+                </div>
+                <div class="emoji-categories" id="emoji-categories">
+                    <!-- Categories will be populated by JS -->
+                </div>
+                <div class="emoji-grid" id="emoji-grid">
+                    <!-- Emoji grid will be populated by JS -->
+                </div>
+            </div>
+
+            <!-- GIF Panel -->
+            <div id="gif-panel" class="gif-panel" style="display: none;">
+                <div class="gif-search-header">
+                    <input type="text" id="gif-search-input" placeholder="Поиск GIF..."
+                        onkeyup="if(event.key==='Enter') GifModule.searchGifs(this.value)" />
+                    <button class="close-gif-panel" onclick="GifModule.closeGifPanel()">×</button>
+                </div>
+                <div id="gif-results" class="gif-results-grid">
+                    <div class="gif-loading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        Введите запрос для поиска GIF
+                    </div>
+                </div>
+            </div>
         </main>
 
         <!-- 4. MEMBER LIST (Right Sidebar) -->
@@ -1030,6 +1075,10 @@
             ];
         });
     </script>
+
+    <!-- Feature Modules -->
+    <script src="{{ url_for('static', filename='js/emoji-module.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/gif-module.js') }}"></script>
 </body>
 
 </html>

@@ -63,6 +63,60 @@ def handle_disconnect():
         emit('user_status', {'user_id': user_id, 'status': 'offline', 'username': username}, broadcast=True)
         print(f"[WS] User {username} disconnected. Online: {len(online_users)}")
 
+# Typing indicator tracking: {dm_id: {user_id: timestamp}}
+typing_users = {}
+
+@socketio.on('typing_start')
+def handle_typing_start(data):
+    """Handle user starting to type in a DM"""
+    if 'user' not in session:
+        return
+    
+    user_id = str(session['user']['id'])
+    username = session['user'].get('username', '')
+    dm_id = data.get('dm_id')
+    recipient_id = data.get('recipient_id')
+    
+    if not dm_id or not recipient_id:
+        return
+    
+    # Track typing user
+    if dm_id not in typing_users:
+        typing_users[dm_id] = {}
+    typing_users[dm_id][user_id] = time.time()
+    
+    # Emit to recipient only
+    emit('typing_start', {
+        'user_id': user_id,
+        'username': username,
+        'dm_id': dm_id
+    }, room=recipient_id)
+
+@socketio.on('typing_stop')
+def handle_typing_stop(data):
+    """Handle user stopping typing in a DM"""
+    if 'user' not in session:
+        return
+    
+    user_id = str(session['user']['id'])
+    dm_id = data.get('dm_id')
+    recipient_id = data.get('recipient_id')
+    
+    if not dm_id or not recipient_id:
+        return
+    
+    # Remove typing user
+    if dm_id in typing_users and user_id in typing_users[dm_id]:
+        del typing_users[dm_id][user_id]
+        if not typing_users[dm_id]:  # Clean up empty dict
+            del typing_users[dm_id]
+    
+    # Emit to recipient only
+    emit('typing_stop', {
+        'user_id': user_id,
+        'dm_id': dm_id
+    }, room=recipient_id)
+
 import psycopg2
 from urllib.parse import urlparse
 
@@ -270,6 +324,18 @@ def run_db_migration():
                                   created_at REAL,
                                   UNIQUE(message_id, user_id, emoji))''')
                 print("  [+] Created message_reactions table")
+            
+            # Add new user profile fields
+            cursor.execute("PRAGMA table_info(users)")
+            user_existing_cols = {row[1] for row in cursor.fetchall()}
+            
+            if 'custom_status' not in user_existing_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN custom_status TEXT")
+                print("  [+] Added custom_status to users")
+            
+            if 'status_emoji' not in user_existing_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN status_emoji TEXT")
+                print("  [+] Added status_emoji to users")
                 
         else:
             # PostgreSQL: Check via information_schema
@@ -312,6 +378,23 @@ def run_db_migration():
                                   created_at REAL,
                                   UNIQUE(message_id, user_id, emoji))""")
                 print("  [+] Created message_reactions table")
+            
+            # Add new user profile fields
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='users' 
+                AND column_name IN ('custom_status', 'status_emoji')
+            """)
+            user_existing_cols = {row[0] for row in cursor.fetchall()}
+            
+            if 'custom_status' not in user_existing_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN custom_status TEXT")
+                print("  [+] Added custom_status to users")
+            
+            if 'status_emoji' not in user_existing_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN status_emoji TEXT")
+                print("  [+] Added status_emoji to users")
         
         conn.commit()
         cursor.close()
@@ -497,7 +580,7 @@ def api_get_me():
     if 'user' not in session: return jsonify({'success': False}), 401
     uid = session['user']['id']
     
-    row = execute_query("SELECT id, username, avatar, display_name, banner, bio, email, phone, role, reputation FROM users WHERE id = %s", (uid,), fetch_one=True)
+    row = execute_query("SELECT id, username, avatar, display_name, banner, bio, email, phone, role, reputation, custom_status, status_emoji FROM users WHERE id = %s", (uid,), fetch_one=True)
     
     if row:
         return jsonify({
@@ -512,7 +595,9 @@ def api_get_me():
                 'email': row[6],
                 'phone': row[7],
                 'role': row[8],
-                'reputation': row[9]
+                'reputation': row[9],
+                'custom_status': row[10],
+                'status_emoji': row[11]
             }
         })
     return jsonify({'success': False, 'error': 'User not found'})
@@ -528,7 +613,7 @@ def api_update_user():
     values = []
     
     # Mapping keys to DB columns
-    allowed = ['username', 'avatar', 'display_name', 'banner', 'bio', 'email', 'phone']
+    allowed = ['username', 'avatar', 'display_name', 'banner', 'bio', 'email', 'phone', 'custom_status', 'status_emoji']
     
     for k in allowed:
         if k in data:
@@ -699,6 +784,169 @@ def api_upload_file():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+
+# --- LINK PREVIEW & GIF API ---
+
+@app.route('/api/messages/preview-link', methods=['POST'])
+def api_preview_link():
+    """Generate a preview for a URL (YouTube, images, websites with OpenGraph)"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.json
+    url = data.get('url', '').strip()
+    
+    if not url:
+        return jsonify({'success': False, 'error': 'No URL provided'})
+    
+    try:
+        # Check if it's a YouTube link
+        youtube_patterns = ['youtube.com/watch', 'youtu.be/', 'youtube.com/embed/']
+        is_youtube = any(pattern in url for pattern in youtube_patterns)
+        
+        if is_youtube:
+            # Extract video ID
+            video_id = None
+            if 'youtu.be/' in url:
+                video_id = url.split('youtu.be/')[-1].split('?')[0]
+            elif 'watch?v=' in url:
+                video_id = url.split('watch?v=')[-1].split('&')[0]
+            elif 'embed/' in url:
+                video_id = url.split('embed/')[-1].split('?')[0]
+            
+            if video_id:
+                return jsonify({
+                    'success': True,
+                    'preview': {
+                        'type': 'youtube',
+                        'video_id': video_id,
+                        'url': url,
+                        'title': f'YouTube Video',
+                        'thumbnail': f'https://img.youtube.com/vi/{video_id}/maxresdefault.jpg'
+                    }
+                })
+        
+        # Check if it's a direct image link
+        image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp']
+        is_image = any(url.lower().endswith(ext) for ext in image_extensions)
+        
+        if is_image:
+            return jsonify({
+                'success': True,
+                'preview': {
+                    'type': 'image',
+                    'url': url,
+                    'image': url
+                }
+            })
+        
+        # Try to fetch OpenGraph metadata for websites
+        try:
+            from bs4 import BeautifulSoup
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            response = requests.get(url, headers=headers, timeout=5)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Extract OpenGraph tags
+            og_title = soup.find('meta', property='og:title')
+            og_description = soup.find('meta', property='og:description')
+            og_image = soup.find('meta', property='og:image')
+            
+            # Fallback to regular tags
+            title = og_title['content'] if og_title else (soup.find('title').text if soup.find('title') else url)
+            description = og_description['content'] if og_description else ''
+            image = og_image['content'] if og_image else ''
+            
+            return jsonify({
+                'success': True,
+                'preview': {
+                    'type': 'website',
+                    'url': url,
+                    'title': title[:200],  # Limit length
+                    'description': description[:300],
+                    'image': image
+                }
+            })
+        except:
+            # If OpenGraph parsing fails, return basic preview
+            return jsonify({
+                'success': True,
+                'preview': {
+                    'type': 'link',
+                    'url': url,
+                    'title': url
+                }
+            })
+    
+    except Exception as e:
+        print(f"Link preview error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# Tenor API key from environment
+TENOR_API_KEY = os.environ.get('TENOR_API_KEY', 'AIzaSyAyimkuYQYF_FXnHfK1y7K0rYRQgO1VjhQ')  # Public test key
+
+@app.route('/api/giphy/search', methods=['GET'])
+def api_gif_search():
+    """Search for GIFs using Tenor API"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    query = request.args.get('q', '').strip()
+    
+    if not query:
+        return jsonify({'success': False, 'error': 'No search query'})
+    
+    try:
+        # Tenor API endpoint
+        tenor_url = 'https://tenor.googleapis.com/v2/search'
+        params = {
+            'q': query,
+            'key': TENOR_API_KEY,
+            'limit': 20,
+            'media_filter': 'gif,tinygif'
+        }
+        
+        response = requests.get(tenor_url, params=params, timeout=5)
+        response.raise_for_status()
+        
+        data = response.json()
+        results = data.get('results', [])
+        
+        # Format results for frontend
+        gifs = []
+        for result in results:
+            media = result.get('media_formats', {})
+            
+            # Get GIF and preview URLs
+            gif_url = media.get('gif', {}).get('url', '')
+            tiny_url = media.get('tinygif', {}).get('url', gif_url)
+            preview_url = media.get('tinygif', {}).get('url', gif_url)
+            
+            if gif_url:
+                gifs.append({
+                    'id': result.get('id'),
+                    'title': result.get('content_description', 'GIF'),
+                    'url': gif_url,
+                    'preview': preview_url,
+                    'tiny': tiny_url,
+                    'width': media.get('gif', {}).get('dims', [300, 300])[0],
+                    'height': media.get('gif', {}).get('dims', [300, 300])[1]
+                })
+        
+        return jsonify({
+            'success': True,
+            'gifs': gifs
+        })
+    
+    except Exception as e:
+        print(f"GIF search error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.before_request
 def check_auth():

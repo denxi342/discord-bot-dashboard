@@ -11,3 +11,4 @@ feedparser==6.0.10
 gunicorn==21.2.0
 eventlet==0.33.3
 psycopg2-binary==2.9.9
+beautifulsoup4==4.12.2
