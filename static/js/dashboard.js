@@ -2289,11 +2289,19 @@ const WebSocketModule = {
 
                 const box = document.getElementById(`dm-messages-${data.dm_id}`);
                 if (box) {
+                    // Render attachments if present
+                    let attachmentHTML = '';
+                    if (data.attachments) {
+                        const attachments = typeof data.attachments === 'string' ? JSON.parse(data.attachments) : data.attachments;
+                        attachmentHTML = DiscordModule.renderAttachments(attachments);
+                    }
+                    
                     box.innerHTML += `
                         <div class="dm-bubble other">
                             <img src="${data.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">
                             <div class="dm-bubble-content">
                                 <div class="dm-bubble-text">${Utils.escapeHtml(data.content)}</div>
+                                ${attachmentHTML}
                                 <div class="dm-bubble-time">${new Date(data.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                             </div>
                         </div>`;
