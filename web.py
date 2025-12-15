@@ -149,7 +149,7 @@ def init_db():
     pk_type = "INTEGER PRIMARY KEY AUTOINCREMENT" if is_sqlite else "SERIAL PRIMARY KEY"
     varchar_type = "TEXT" if is_sqlite else "VARCHAR(50)"
     
-    print("🔧 Initializing database...")
+    print("[*] Initializing database...")
     
     # Users Table
     c.execute(f'''CREATE TABLE IF NOT EXISTS users
@@ -165,7 +165,7 @@ def init_db():
                   phone TEXT,
                   role TEXT DEFAULT 'user',
                   reputation INTEGER DEFAULT 0)''')
-    print("  ✓ Users table ready")
+    print("  [+] Users table ready")
 
     # Friends Table
     c.execute(f'''CREATE TABLE IF NOT EXISTS friends
@@ -175,7 +175,7 @@ def init_db():
                   status TEXT DEFAULT 'pending', 
                   created_at REAL,
                   UNIQUE(user_id_1, user_id_2))''')
-    print("  ✓ Friends table ready")
+    print("  [+] Friends table ready")
 
     # DM Tables
     c.execute(f'''CREATE TABLE IF NOT EXISTS direct_messages
@@ -184,7 +184,7 @@ def init_db():
                   user_id_2 INTEGER NOT NULL,
                   last_message_at REAL,
                   UNIQUE(user_id_1, user_id_2))''')
-    print("  ✓ Direct messages table ready")
+    print("  [+] Direct messages table ready")
 
     c.execute(f'''CREATE TABLE IF NOT EXISTS dm_messages
                  (id {pk_type},
@@ -196,7 +196,7 @@ def init_db():
                   is_pinned INTEGER DEFAULT 0,
                   edited_at REAL,
                   attachments TEXT)''')
-    print("  ✓ DM messages table ready")
+    print("  [+] DM messages table ready")
 
     # Message Reactions Table - CRITICAL for reactions feature
     c.execute(f'''CREATE TABLE IF NOT EXISTS message_reactions
@@ -206,7 +206,7 @@ def init_db():
                   emoji {varchar_type} NOT NULL,
                   created_at REAL,
                   UNIQUE(message_id, user_id, emoji))''')
-    print("  ✓ Message reactions table ready")
+    print("  [+] Message reactions table ready")
 
     # Server Members Table - tracks who is a member of which server
     c.execute(f'''CREATE TABLE IF NOT EXISTS server_members
@@ -216,11 +216,11 @@ def init_db():
                   role TEXT DEFAULT 'member',
                   joined_at REAL,
                   UNIQUE(server_id, user_id))''')
-    print("  ✓ Server members table ready")
+    print("  [+] Server members table ready")
                   
     conn.commit()
     conn.close()
-    print("✅ Database initialized successfully!")
+    print("[OK] Database initialized successfully!")
 
 # Removed file-based users_db logic since we now have columns for role/reputation in DB.
 
@@ -236,7 +236,7 @@ def run_db_migration():
         is_sqlite = isinstance(conn, sqlite3.Connection)
         cursor = conn.cursor()
         
-        print("🔄 Running database migration...")
+        print("[*] Running database migration...")
         
         if is_sqlite:
             # SQLite: Check columns via PRAGMA
@@ -245,19 +245,19 @@ def run_db_migration():
             
             if 'reply_to_id' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN reply_to_id INTEGER")
-                print("  ✓ Added reply_to_id to dm_messages")
+                print("  [+] Added reply_to_id to dm_messages")
             
             if 'is_pinned' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN is_pinned INTEGER DEFAULT 0")
-                print("  ✓ Added is_pinned to dm_messages")
+                print("  [+] Added is_pinned to dm_messages")
             
             if 'edited_at' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN edited_at REAL")
-                print("  ✓ Added edited_at to dm_messages")
+                print("  [+] Added edited_at to dm_messages")
             
             if 'attachments' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN attachments TEXT")
-                print("  ✓ Added attachments to dm_messages")
+                print("  [+] Added attachments to dm_messages")
             
             # Check if message_reactions table exists
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='message_reactions'")
@@ -269,7 +269,7 @@ def run_db_migration():
                                   emoji TEXT NOT NULL,
                                   created_at REAL,
                                   UNIQUE(message_id, user_id, emoji))''')
-                print("  ✓ Created message_reactions table")
+                print("  [+] Created message_reactions table")
                 
         else:
             # PostgreSQL: Check via information_schema
@@ -283,19 +283,19 @@ def run_db_migration():
             
             if 'reply_to_id' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN reply_to_id INTEGER")
-                print("  ✓ Added reply_to_id to dm_messages")
+                print("  [+] Added reply_to_id to dm_messages")
             
             if 'is_pinned' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN is_pinned INTEGER DEFAULT 0")
-                print("  ✓ Added is_pinned to dm_messages")
+                print("  [+] Added is_pinned to dm_messages")
             
             if 'edited_at' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN edited_at REAL")
-                print("  ✓ Added edited_at to dm_messages")
+                print("  [+] Added edited_at to dm_messages")
             
             if 'attachments' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN attachments TEXT")
-                print("  ✓ Added attachments to dm_messages")
+                print("  [+] Added attachments to dm_messages")
             
             # Check if message_reactions table exists
             cursor.execute("""
@@ -311,18 +311,18 @@ def run_db_migration():
                                   emoji VARCHAR(50) NOT NULL,
                                   created_at REAL,
                                   UNIQUE(message_id, user_id, emoji))""")
-                print("  ✓ Created message_reactions table")
+                print("  [+] Created message_reactions table")
         
         conn.commit()
         cursor.close()
         conn.close()
-        print("✅ Database migration completed successfully!")
+        print("[OK] Database migration completed successfully!")
         
     except Exception as e:
-        print(f"⚠️ Migration error (this may be safe to ignore if columns already exist): {e}")
+        print(f"[!] Migration error (this may be safe to ignore if columns already exist): {e}")
 
-# Migration is now handled directly in init_db(), so we don't need to run it separately
-# run_db_migration()
+# Run migration to add missing columns to existing databases
+run_db_migration()
 
 
 def fix_existing_avatars():
@@ -2867,7 +2867,7 @@ def debug_check_tables():
 
 # Initialize servers after all functions are defined
 load_servers()
-print(f"✓ Loaded {len(servers_db)} servers")
+print(f"[+] Loaded {len(servers_db)} servers")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
