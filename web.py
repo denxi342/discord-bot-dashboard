@@ -2573,26 +2573,40 @@ def api_dm_send(target_id):
     if 'user' not in session: return jsonify({'success': False}), 401
     my_id = int(session['user']['id'])
     data = request.json
-    content = data.get('content')
-    if not content: return jsonify({'success': False})
+    content = data.get('content', '').strip()
+    reply_to_id = data.get('reply_to_id')  # Support replies
+    attachments = data.get('attachments')  # Support attachments (JSON string)
+    
+    # Require either content or attachments
+    if not content and not attachments:
+        return jsonify({'success': False, 'error': 'Empty message'}), 400
     
     dm_id = get_or_create_dm(my_id, target_id)
+    timestamp = time.time()
     
-    # Insert Message
-    execute_query("INSERT INTO dm_messages (dm_id, author_id, content, timestamp) VALUES (%s, %s, %s, %s)",
-                  (dm_id, my_id, content, time.time()), commit=True)
+    # Insert Message with attachments and reply support
+    execute_query("""INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id, attachments) 
+                     VALUES (%s, %s, %s, %s, %s, %s)""",
+                  (dm_id, my_id, content, timestamp, reply_to_id, attachments), commit=True)
                   
     # Update timestamp for sorting
-    execute_query("UPDATE direct_messages SET last_message_at = %s WHERE id = %s", (time.time(), dm_id), commit=True)
+    execute_query("UPDATE direct_messages SET last_message_at = %s WHERE id = %s", (timestamp, dm_id), commit=True)
+    
+    # Get user info for proper avatar
+    u = execute_query('SELECT username, avatar FROM users WHERE id = %s', (my_id,), fetch_one=True)
+    username = u[0] if u else session['user']['username']
+    avatar = get_valid_avatar(u[1]) if u else session['user']['avatar']
     
     msg_obj = {
         'dm_id': str(dm_id),
         'author_id': my_id,
-        'author': session['user']['username'],
-        'avatar': session['user']['avatar'],
+        'author': username,
+        'avatar': avatar,
         'content': content,
-        'timestamp': time.time(),
-        'users': [my_id, target_id] # IDs to filter on frontend
+        'timestamp': timestamp,
+        'attachments': attachments,  # Include attachments in response
+        'reply_to_id': reply_to_id,  # Include reply info
+        'users': [my_id, target_id]  # IDs to filter on frontend
     }
     
     # Emit real-time event SECURELY
