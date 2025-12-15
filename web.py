@@ -632,35 +632,60 @@ def api_upload_file():
         return jsonify({'success': False, 'error': 'File too large (max 10MB)'})
     
     # Check file extension
-    allowed_extensions = {
-        'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg',  # Images
-        'pdf', 'txt', 'doc', 'docx', 'xls', 'xlsx',  # Documents
-        'zip', 'rar', '7z', 'tar', 'gz',  # Archives
-        'mp4', 'webm', 'mp3', 'wav', 'ogg'  # Media
-    }
+    image_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
+    document_extensions = {'pdf', 'txt', 'doc', 'docx', 'xls', 'xlsx'}
+    archive_extensions = {'zip', 'rar', '7z', 'tar', 'gz'}
+    media_extensions = {'mp4', 'webm', 'mp3', 'wav', 'ogg'}
+    
+    allowed_extensions = image_extensions | document_extensions | archive_extensions | media_extensions
     
     ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
     if ext not in allowed_extensions:
         return jsonify({'success': False, 'error': 'File type not allowed'})
     
-    # Create uploads directory if not exists
-    uploads_dir = os.path.join(app.static_folder, 'uploads')
-    os.makedirs(uploads_dir, exist_ok=True)
-    
-    # Generate unique filename
-    import uuid
-    safe_filename = file.filename.replace(' ', '_')[:50]  # Limit filename length
-    unique_filename = f"{uuid.uuid4().hex[:12]}_{safe_filename}"
-    filepath = os.path.join(uploads_dir, unique_filename)
-    
     try:
-        file.save(filepath)
+        # Read file data
+        file_data = file.read()
         
         # Determine file type
-        file_type = 'image' if ext in {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'} else 'file'
+        is_image = ext in image_extensions
+        file_type = 'image' if is_image else 'file'
+        
+        # For images, convert to Data URI
+        if is_image:
+            import base64
+            
+            # Determine MIME type
+            mime_types = {
+                'png': 'image/png',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'gif': 'image/gif',
+                'webp': 'image/webp',
+                'svg': 'image/svg+xml'
+            }
+            mime_type = mime_types.get(ext, 'image/jpeg')
+            
+            # Create Data URI
+            base64_data = base64.b64encode(file_data).decode('utf-8')
+            file_url = f"data:{mime_type};base64,{base64_data}"
+        else:
+            # For non-images, save to filesystem (will be lost on Render, but kept for now)
+            # TODO: Consider using external storage (S3, Cloudinary) for documents
+            uploads_dir = os.path.join(app.static_folder, 'uploads')
+            os.makedirs(uploads_dir, exist_ok=True)
+            
+            import uuid
+            safe_filename = file.filename.replace(' ', '_')[:50]
+            unique_filename = f"{uuid.uuid4().hex[:12]}_{safe_filename}"
+            filepath = os.path.join(uploads_dir, unique_filename)
+            
+            with open(filepath, 'wb') as f:
+                f.write(file_data)
+            
+            file_url = f"/static/uploads/{unique_filename}"
         
         # Return file metadata
-        file_url = f"/static/uploads/{unique_filename}"
         return jsonify({
             'success': True,
             'file': {
