@@ -2387,7 +2387,7 @@ def api_dm_messages_by_id(dm_id):
     # Fetch ALL messages ordered chronologically with extended fields
     rows = execute_query("""
         SELECT dm.id, dm.content, dm.timestamp, u.username, u.avatar, 
-               dm.is_pinned, dm.edited_at, dm.reply_to_id, u.id as author_id
+               dm.is_pinned, dm.edited_at, dm.reply_to_id, u.id as author_id, dm.attachments
         FROM dm_messages dm
         JOIN users u ON u.id = dm.author_id
         WHERE dm.dm_id = %s
@@ -2423,7 +2423,8 @@ def api_dm_messages_by_id(dm_id):
             'edited_at': r[6],
             'reply_to': reply_preview,
             'author_id': r[8],
-            'reactions': reactions
+            'reactions': reactions,
+            'attachments': r[9]  # JSON string of attachments
         })
     
     return jsonify({'success': True, 'messages': messages})
@@ -2475,7 +2476,10 @@ def api_dm_send_by_id(dm_id):
     data = request.json
     content = data.get('content', '').strip()
     reply_to_id = data.get('reply_to_id')  # ID сообщения на которое отвечаем
-    if not content:
+    attachments = data.get('attachments')  # JSON string of file metadata
+    
+    # Require either content or attachments
+    if not content and not attachments:
         return jsonify({'success': False, 'error': 'Empty message'}), 400
     
     timestamp = time.time()
@@ -2483,9 +2487,9 @@ def api_dm_send_by_id(dm_id):
     try:
         # Insert message with reply support
         execute_query('''
-            INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id)
-            VALUES (%s, %s, %s, %s, %s)
-        ''', (dm_id, my_id, content, timestamp, reply_to_id), commit=True)
+            INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id, attachments)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        ''', (dm_id, my_id, content, timestamp, reply_to_id, attachments), commit=True)
         
         # Update last_message_at
         execute_query('UPDATE direct_messages SET last_message_at = %s WHERE id = %s',
@@ -2505,7 +2509,8 @@ def api_dm_send_by_id(dm_id):
         'author': username,
         'avatar': avatar,
         'content': content,
-        'timestamp': timestamp
+        'timestamp': timestamp,
+        'attachments': attachments
     }
     
     # Send to sender and recipient
@@ -2520,7 +2525,8 @@ def api_dm_send_by_id(dm_id):
             'author': username,
             'avatar': avatar,
             'content': content,
-            'timestamp': timestamp
+            'timestamp': timestamp,
+            'attachments': attachments
         }
     })
 

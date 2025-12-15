@@ -1940,17 +1940,24 @@ const DiscordModule = {
 
     forceRefresh: false,
 
-    sendDMMessage: async (dmId, text) => {
-        if (!text) return;
+    sendDMMessage: async (dmId, text, attachments = []) => {
+        if (!text && (!attachments || attachments.length === 0)) return;
 
         // Optimistic UI: add message immediately with sending state
         const box = document.getElementById(`dm-messages-${dmId}`);
         const tempId = 'sending-' + Date.now();
         if (box) {
+            // Render attachments for optimistic UI
+            let attachmentHTML = '';
+            if (attachments && attachments.length > 0) {
+                attachmentHTML = DiscordModule.renderAttachments(attachments);
+            }
+            
             box.innerHTML += `
             <div class="dm-bubble own sending" id="${tempId}">
                 <div class="dm-bubble-content">
-                    <div class="dm-bubble-text">${Utils.escapeHtml(text)}</div>
+                    ${text ? `<div class="dm-bubble-text">${Utils.escapeHtml(text)}</div>` : ''}
+                    ${attachmentHTML}
                     <div class="dm-bubble-time"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
                 </div>
             </div>`;
@@ -1960,6 +1967,9 @@ const DiscordModule = {
         try {
             // Include reply_to_id if replying
             const payload = { content: text };
+            if (attachments && attachments.length > 0) {
+                payload.attachments = JSON.stringify(attachments);
+            }
             if (DiscordModule.replyingTo) {
                 payload.reply_to_id = DiscordModule.replyingTo.id;
                 DiscordModule.cancelReply(); // Clear reply state
