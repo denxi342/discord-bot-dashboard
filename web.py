@@ -194,7 +194,8 @@ def init_db():
                   timestamp REAL,
                   reply_to_id INTEGER,
                   is_pinned INTEGER DEFAULT 0,
-                  edited_at REAL)''')
+                  edited_at REAL,
+                  attachments TEXT)''')
     print("  ✓ DM messages table ready")
 
     # Message Reactions Table - CRITICAL for reactions feature
@@ -254,6 +255,10 @@ def run_db_migration():
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN edited_at REAL")
                 print("  ✓ Added edited_at to dm_messages")
             
+            if 'attachments' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN attachments TEXT")
+                print("  ✓ Added attachments to dm_messages")
+            
             # Check if message_reactions table exists
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='message_reactions'")
             if not cursor.fetchone():
@@ -272,7 +277,7 @@ def run_db_migration():
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name='dm_messages' 
-                AND column_name IN ('reply_to_id', 'is_pinned', 'edited_at')
+                AND column_name IN ('reply_to_id', 'is_pinned', 'edited_at', 'attachments')
             """)
             existing_cols = {row[0] for row in cursor.fetchall()}
             
@@ -287,6 +292,10 @@ def run_db_migration():
             if 'edited_at' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN edited_at REAL")
                 print("  ✓ Added edited_at to dm_messages")
+            
+            if 'attachments' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN attachments TEXT")
+                print("  ✓ Added attachments to dm_messages")
             
             # Check if message_reactions table exists
             cursor.execute("""
@@ -586,6 +595,72 @@ def api_upload_avatar():
         return jsonify({'success': True, 'avatar_url': avatar_url})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/upload-file', methods=['POST'])
+def api_upload_file():
+    """Upload file attachments for messages"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'})
+    
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file provided'})
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'})
+    
+    # Check file size (10MB max)
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    if file_size > MAX_FILE_SIZE:
+        return jsonify({'success': False, 'error': 'File too large (max 10MB)'})
+    
+    # Check file extension
+    allowed_extensions = {
+        'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg',  # Images
+        'pdf', 'txt', 'doc', 'docx', 'xls', 'xlsx',  # Documents
+        'zip', 'rar', '7z', 'tar', 'gz',  # Archives
+        'mp4', 'webm', 'mp3', 'wav', 'ogg'  # Media
+    }
+    
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in allowed_extensions:
+        return jsonify({'success': False, 'error': 'File type not allowed'})
+    
+    # Create uploads directory if not exists
+    uploads_dir = os.path.join(app.static_folder, 'uploads')
+    os.makedirs(uploads_dir, exist_ok=True)
+    
+    # Generate unique filename
+    import uuid
+    safe_filename = file.filename.replace(' ', '_')[:50]  # Limit filename length
+    unique_filename = f"{uuid.uuid4().hex[:12]}_{safe_filename}"
+    filepath = os.path.join(uploads_dir, unique_filename)
+    
+    try:
+        file.save(filepath)
+        
+        # Determine file type
+        file_type = 'image' if ext in {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'} else 'file'
+        
+        # Return file metadata
+        file_url = f"/static/uploads/{unique_filename}"
+        return jsonify({
+            'success': True,
+            'file': {
+                'filename': file.filename,
+                'path': file_url,
+                'type': file_type,
+                'size': file_size,
+                'extension': ext
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 
 @app.before_request
 def check_auth():

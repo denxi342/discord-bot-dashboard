@@ -554,7 +554,9 @@
             <!-- Global Input -->
             <div class="chat-input-area">
                 <div class="chat-input-wrapper">
-                    <button class="input-btn"><i class="fa-solid fa-circle-plus"></i></button>
+                    <button class="input-btn" id="attach-file-btn" title="Прикрепить файл" onclick="document.getElementById('file-input-hidden').click()"><i class="fa-solid fa-paperclip"></i></button>
+                    <input type="file" id="file-input-hidden" multiple style="display:none;" onchange="DiscordModule.handleFileSelect(this)">
+                    <div id="file-preview-container" style="display:none;"></div>
                     <input id="global-input" placeholder="Message #general"
                         onkeydown="if(event.key==='Enter') DiscordModule.handleInput()">
                     <div class="right-icons">
@@ -982,6 +984,8 @@
 
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=29"></script>
+    <script src="{{ url_for('static', filename='js/attachments.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/attachments.js') }}"></script>
 
     <!-- 🎨 LOADING SCREEN SCRIPT -->
     <script>

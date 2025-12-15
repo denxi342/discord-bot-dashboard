@@ -983,24 +983,28 @@ const DiscordModule = {
         const text = input.value.trim();
         console.log('[handleInput] text:', text, 'currentChannel:', DiscordModule.currentChannel, 'activeDM:', DiscordModule.activeDM);
 
-        if (!text) return;
+        // Upload files first if any
+        const attachments = await DiscordModule.uploadFiles();
+        
+        // Require either text or attachments  
+        if (!text && attachments.length === 0) return;
         input.value = '';
 
         // Check if virtual channel
         const virtuals = ['helper', 'news', 'community', 'admin', 'profile', 'biography', 'search-rules', 'ad-editor'];
         if (virtuals.includes(DiscordModule.currentChannel)) {
             DiscordModule.addMessage(DiscordModule.currentChannel, {
-                author: 'You', avatar: DEFAULT_AVATAR, text: text
+                author: 'You', avatar: DEFAULT_AVATAR, text: text, attachments: attachments
             });
             if (DiscordModule.currentChannel === 'helper') await DiscordModule.askAI(text);
         } else if (DiscordModule.activeDM) {
             // Direct Message
             console.log('[handleInput] Sending DM to:', DiscordModule.activeDM);
-            DiscordModule.sendDMMessage(DiscordModule.activeDM, text);
+            DiscordModule.sendDMMessage(DiscordModule.activeDM, text, attachments);
         } else {
             // Real Persistent Channel
             console.log('[handleInput] Sending message to channel:', DiscordModule.currentChannel);
-            DiscordModule.sendMessage(DiscordModule.currentChannel, text);
+            DiscordModule.sendMessage(DiscordModule.currentChannel, text, attachments);
         }
     },
 
