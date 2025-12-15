@@ -2398,7 +2398,7 @@ def api_dm_messages_by_id(dm_id):
     for r in rows or []:
         msg_id = r[0]
         # Get reactions for this message
-        reactions = get_message_reactions(msg_id) if 'get_message_reactions' in dir() else {}
+        reactions = {}  # TODO: Implement get_message_reactions function
         
         # Get reply preview if exists
         reply_preview = None
