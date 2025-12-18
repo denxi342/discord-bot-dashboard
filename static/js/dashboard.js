@@ -3,21 +3,38 @@
  * Pure Discord Logic + Dynamic Server Management
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-    if (typeof DiscordModule !== 'undefined') DiscordModule.init();
-    if (typeof WebSocketModule !== 'undefined') WebSocketModule.init();
-
-    // Set current user as online immediately
-    const userBarAvatar = document.getElementById('user-bar-avatar');
-    if (userBarAvatar) {
-        userBarAvatar.classList.add('is-online');
-    }
-});
+// Main initialization is at the bottom of the file
 
 const Utils = {
     showToast: (msg) => console.log('Toast:', msg),
     escapeHtml: (text) => text ? text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : '',
-    copyToClipboard: (text) => navigator.clipboard.writeText(text)
+    copyToClipboard: (text) => navigator.clipboard.writeText(text),
+
+    formatMessageTime: (timestamp) => {
+        if (!timestamp) return '';
+
+        const date = new Date(timestamp * 1000);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+        if (messageDate.getTime() === today.getTime()) {
+            // Today - show time HH:MM
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+        } else if (messageDate.getTime() === yesterday.getTime()) {
+            // Yesterday
+            return 'Вчера';
+        } else {
+            // Older - show DD.MM
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            return `${day}.${month}`;
+        }
+    }
 };
 
 const DEFAULT_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzU4NjVmMiIvPjwvc3ZnPg==";
@@ -35,6 +52,9 @@ const DiscordModule = {
     currentServer: 'home',
     currentChannel: null,
     serverData: {}, // Now loaded from API
+    typingTimeout: null,
+    isTyping: false,
+    recentOwnMessages: new Set(), // Set of "content" to prevent duplicates
     // --- SERVER & DROPDOWN HEADER ---
     toggleServerDropdown: () => {
         const dd = document.getElementById('server-dropdown-menu');
@@ -186,9 +206,10 @@ const DiscordModule = {
     },
 
     init: async () => {
-        await DiscordModule.loadServers();
-        // Preload user statuses for accurate online/offline display
+        // For messenger mode, load DMs instead of servers
+        await DiscordModule.refreshDMs();
         await DiscordModule.loadUserStatuses();
+
         // Fetch Me for context
         try {
             const res = await fetch('/api/user/me');
@@ -196,10 +217,8 @@ const DiscordModule = {
             if (d.success) DiscordModule.me = d.user;
         } catch (e) { }
 
-        // Initial Bot Message if empty
-        if (!DiscordModule.currentChannel) {
-            DiscordModule.selectServer('home');
-        }
+        // Load servers in background for backward compatibility
+        await DiscordModule.loadServers();
     },
 
     loadServers: async () => {
@@ -342,6 +361,9 @@ const DiscordModule = {
     },
 
     renderHomeSidebar: (container) => {
+        // Clear container first to prevent duplicates
+        container.innerHTML = '';
+
         // 1. Search Bar
         container.innerHTML += `
         <div style="padding: 10px 10px 0 10px;">
@@ -461,12 +483,27 @@ const DiscordModule = {
                 container.innerHTML = '';
                 data.dms.forEach(dm => {
                     const u = dm.other_user;
+                    const timeStr = Utils.formatMessageTime(dm.last_message_timestamp);
+                    const preview = dm.last_message_text || 'Начните беседу';
+                    const unreadBadge = dm.unread_count > 0 ? `<div class="unread-badge">${dm.unread_count}</div>` : '';
+
+                    // Check if user is online
+                    const isOnline = DiscordModule.userStatuses && DiscordModule.userStatuses[u.id] === 'online';
+                    const onlineClass = isOnline ? 'is-online' : '';
+
                     container.innerHTML += `
-                    <div class="channel-item" id="btn-ch-dm-${dm.id}" onclick="DiscordModule.selectChannel('dm-${dm.id}', 'dm')">
-                        <div class="member-avatar" style="width:32px; height:32px; margin-right:8px;">
-                            <img src="${u.avatar}" style="width:100%; height:100%; border-radius:50%;">
+                    <div class="chat-list-item" id="btn-ch-dm-${dm.id}" onclick="DiscordModule.selectChannel('dm-${dm.id}', 'dm')">
+                        <div class="member-avatar ${onlineClass}" style="width:48px; height:48px; position:relative;">
+                            <img src="${u.avatar}" class="chat-avatar" onerror="this.src=DEFAULT_AVATAR">
                         </div>
-                        <span style="color:#949BA4; font-weight:500;">${u.username}</span>
+                        <div class="chat-info">
+                            <div class="chat-info-header">
+                                <span class="chat-name">${Utils.escapeHtml(u.username)}</span>
+                                <span class="chat-time">${timeStr}</span>
+                            </div>
+                            <div class="chat-preview">${Utils.escapeHtml(preview)}</div>
+                        </div>
+                        ${unreadBadge}
                     </div>`;
                 });
             } else {
@@ -940,6 +977,12 @@ const DiscordModule = {
         if (!container) return;
 
         const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Determine if message is sent by current user
+        const isSent = msgData.author === 'You' || msgData.author === window.currentUsername;
+        let messageClass = isSent ? 'sent' : 'received';
+        if (msgData.sending) messageClass += ' sending';
+
         let embedHtml = '';
         if (msgData.embed) {
             embedHtml = `
@@ -957,16 +1000,16 @@ const DiscordModule = {
         }
 
         const html = `
-        <div class="message-group">
-            <img src="${msgData.avatar || DEFAULT_AVATAR}" class="message-avatar">
+        <div class="message-group ${messageClass}" ${msgData.tempId ? `id="${msgData.tempId}"` : ''}>
+            ${!isSent ? `<img src="${msgData.avatar || DEFAULT_AVATAR}" class="message-avatar">` : ''}
             <div class="message-content">
-                <div class="message-header">
-                    <span class="msg-author" style="color:${msgData.color || 'white'}">${msgData.author}</span>
-                    ${msgData.bot ? '<span class="msg-tag">BOT</span>' : ''}
-                    <span class="msg-timestamp">${time}</span>
+                ${!isSent ? `<span class="msg-author">${msgData.author}</span>` : ''}
+                <div class="message-bubble">
+                    <div class="message-text">${Utils.escapeHtml(msgData.text)}</div>
+                    ${embedHtml}
+                    ${msgData.sending ? '<div class="msg-status"><i class="fa-solid fa-circle-notch fa-spin"></i></div>' : ''}
                 </div>
-                <div class="message-text">${Utils.escapeHtml(msgData.text)}</div>
-                ${embedHtml}
+                <span class="msg-timestamp">${time}</span>
             </div>
         </div>
         `;
@@ -1225,9 +1268,122 @@ const DiscordModule = {
                 document.getElementById('field-username').innerText = u.username;
                 document.getElementById('field-email').innerText = u.email || "********@gmail.com"; // privacy
                 document.getElementById('field-phone').innerText = u.phone || "Not set";
+                document.getElementById('field-custom-status').innerText = u.custom_status || "Not set";
             }
         } catch (e) { console.error(e); }
     },
+
+    editField: (fieldName) => {
+        const fieldLabels = {
+            'display_name': 'DISPLAY NAME',
+            'username': 'USERNAME',
+            'email': 'EMAIL',
+            'phone': 'PHONE NUMBER',
+            'custom_status': 'CUSTOM STATUS'
+        };
+
+        const currentValue = document.getElementById(`field-${fieldName.replace('_', '-')}`).innerText;
+        const actualValue = currentValue === 'Not set' ? '' : currentValue;
+
+        const placeholder = fieldName === 'custom_status' ? '🎮 Playing games' : '';
+        const newValue = prompt(`Введите ${fieldLabels[fieldName]}:`, actualValue);
+
+        if (newValue !== null) {
+            DiscordModule.updateUserField(fieldName, newValue.trim());
+        }
+    },
+
+    updateUserField: async (fieldName, value) => {
+        try {
+            const res = await fetch('/api/user/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [fieldName]: value })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                Utils.showToast('✅ Обновлено!');
+                // Refresh settings
+                DiscordModule.openSettings();
+            } else {
+                Utils.showToast('❌ Ошибка: ' + (data.error || 'Unknown'));
+            }
+        } catch (e) {
+            console.error('Update field error:', e);
+            Utils.showToast('❌ Ошибка обновления');
+        }
+    },
+
+
+    uiEditProfile: () => {
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.style.display = 'flex';
+        modal.innerHTML = `
+            <div class="discord-modal" style="max-width: 500px;">
+                <button class="close-modal" onclick="this.closest('.modal-backdrop').remove()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h2 style="margin-bottom: 20px;">Редактировать профиль</h2>
+                
+                <div class="input-group" style="margin-bottom: 16px;">
+                    <label>CUSTOM STATUS</label>
+                    <input id="edit-custom-status" type="text" placeholder="🎮 Playing games" maxlength="128">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        Добавьте эмодзи в начале для красоты!
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button class="footer-btn secondary" onclick="this.closest('.modal-backdrop').remove()">
+                        Отмена
+                    </button>
+                    <button class="footer-btn primary" onclick="DiscordModule.saveProfileChanges()">
+                        Сохранить
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        // Load current status
+        fetch('/api/user/me')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.user.custom_status) {
+                    document.getElementById('edit-custom-status').value = data.user.custom_status;
+                }
+            });
+    },
+
+    saveProfileChanges: async () => {
+        const customStatus = document.getElementById('edit-custom-status').value.trim();
+
+        try {
+            const res = await fetch('/api/user/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ custom_status: customStatus })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                Utils.showToast('✅ Профиль обновлён!');
+                document.querySelector('.modal-backdrop')?.remove();
+                // Refresh settings if open
+                if (document.getElementById('settings-modal').style.display === 'flex') {
+                    DiscordModule.openSettings();
+                }
+            } else {
+                Utils.showToast('❌ Ошибка: ' + (data.error || 'Unknown'));
+            }
+        } catch (e) {
+            console.error('Save profile error:', e);
+            Utils.showToast('❌ Ошибка сохранения');
+        }
+    },
+
 
     closeSettings: () => {
         const m = document.getElementById('settings-modal');
@@ -1677,6 +1833,20 @@ const DiscordModule = {
     },
 
     sendMessage: async (cid, text) => {
+        const tempId = 'msg-sending-' + Date.now();
+
+        // Optimistic UI
+        DiscordModule.addMessage(cid, {
+            author: window.currentUsername || 'You',
+            avatar: DiscordModule.me ? DiscordModule.me.avatar : DEFAULT_AVATAR,
+            text: text,
+            tempId: tempId,
+            sending: true
+        });
+
+        const stream = document.querySelector('#stream-general');
+        if (stream) stream.scrollTop = stream.scrollHeight;
+
         try {
             const res = await fetch(`/api/channels/${cid}/messages`, {
                 method: 'POST',
@@ -1684,18 +1854,32 @@ const DiscordModule = {
                 body: JSON.stringify({ content: text })
             });
             const d = await res.json();
+
+            // Add to recent cache to prevent socket double-add
             if (d.success) {
-                // Optimistic update done by socket?? Or manual add?
-                // Add message locally
-                DiscordModule.addMessage(cid, {
-                    author: d.message.author,
-                    avatar: d.message.avatar,
-                    text: d.message.content
-                });
-                const stream = document.querySelector('#stream-general');
-                if (stream) stream.scrollTop = stream.scrollHeight;
+                const cacheKey = `${text.trim()}`;
+                DiscordModule.recentOwnMessages.add(cacheKey);
+                setTimeout(() => DiscordModule.recentOwnMessages.delete(cacheKey), 5000);
             }
-        } catch (e) { console.error(e); }
+
+            // Remove sent indicator once confirmed (relying on Socket.IO for the final message usually, 
+            // but we can remove the 'sending' class here)
+            const sendingEl = document.getElementById(tempId);
+            if (sendingEl) {
+                sendingEl.classList.remove('sending');
+                const timeEl = sendingEl.querySelector('.msg-timestamp');
+                if (timeEl) timeEl.innerHTML = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+
+            if (!d.success) {
+                console.error('Failed to send message:', d.error);
+                if (sendingEl) sendingEl.style.opacity = '0.5';
+            }
+        } catch (e) {
+            console.error(e);
+            const sendingEl = document.getElementById(tempId);
+            if (sendingEl) sendingEl.style.opacity = '0.5';
+        }
     },
 
     // --- FRIEND LOGIC ---
@@ -1840,53 +2024,47 @@ const DiscordModule = {
         const globalInput = document.getElementById('global-input');
         if (globalInput) globalInput.placeholder = `Message @${name}`;
         DiscordModule.activeDM = dmId;
-
         DiscordModule.fetchDMMessages(dmId);
-
-        // Start polling fallback for real-time updates (every 3 seconds)
-        if (DiscordModule.dmPollingInterval) {
-            clearInterval(DiscordModule.dmPollingInterval);
-        }
-        DiscordModule.dmPollingInterval = setInterval(() => {
-            if (DiscordModule.activeDM === dmId) {
-                DiscordModule.fetchDMMessages(dmId);
-            } else {
-                clearInterval(DiscordModule.dmPollingInterval);
-            }
-        }, 3000);
     },
 
     fetchDMMessages: async (dmId) => {
+        console.log('[DEBUG fetchDMMessages] dmId:', dmId);
+        const lockKey = `fetching_${dmId}`;
+        if (DiscordModule[lockKey]) return;
+        DiscordModule[lockKey] = true;
+
         try {
             const res = await fetch(`/api/dms/by_id/${dmId}/messages`);
             const data = await res.json();
 
             const box = document.getElementById(`dm-messages-${dmId}`);
-            if (!box) return;
-
-            // Check if we should skip update
-            const newCount = data.messages ? data.messages.length : 0;
-            const currentCount = box.querySelectorAll('.dm-bubble:not(.sending)').length;
-
-            // Skip update if count is same (prevents jitter during polling)
-            if (currentCount > 0 && newCount === currentCount && !DiscordModule.forceRefresh) {
+            if (!box) {
+                DiscordModule[lockKey] = false;
                 return;
             }
-            DiscordModule.forceRefresh = false;
 
-            box.innerHTML = '';
+            // Only clear if container is empty (first load)
+            const isFirstLoad = box.children.length === 0;
+            if (isFirstLoad) {
+                box.innerHTML = '';
+            }
             box.classList.add('dm-bubbles-container');
 
             const myUsername = window.currentUsername || '';
 
             if (!data.messages || data.messages.length === 0) {
-                box.innerHTML = '<div class="dm-empty">Начните беседу!</div>';
+                if (isFirstLoad) box.innerHTML = '<div class="dm-empty">Начните беседу!</div>';
+                DiscordModule[lockKey] = false;
                 return;
             }
 
-            data.messages.forEach((m, index) => {
+            // Get existing message IDs to prevent duplicates
+            const existingIds = new Set(Array.from(box.querySelectorAll('.dm-bubble[data-id]')).map(el => el.getAttribute('data-id')));
+
+            data.messages.forEach((m) => {
+                if (existingIds.has(String(m.id))) return;
+
                 const isOwn = m.username === myUsername;
-                const isNew = index === data.messages.length - 1;
 
                 // Build reply preview HTML
                 let replyHtml = '';
@@ -1912,48 +2090,166 @@ const DiscordModule = {
                     const reactItems = Object.entries(m.reactions)
                         .map(([emoji, count]) => `<div class="reaction-item" onclick="DiscordModule.toggleReaction(${m.id}, '${emoji}')">${emoji} ${count}</div>`)
                         .join('');
-                    reactionsHtml = `<div class="dm-bubble-reactions">${reactItems}</div>`;
+                    reactionsHtml = `<div class="message-reactions">${reactItems}</div>`;
                 }
 
-                // Status indicators
-                let statusHtml = '';
-                if (m.is_pinned) statusHtml += '<i class="fa-solid fa-thumbtack pinned-icon" title="Закреплено"></i>';
-                if (m.edited_at) statusHtml += '<span class="edited-label">(ред.)</span>';
+                const bubbleClass = isOwn ? 'own' : 'other';
+                const avatarImg = `<img src="${m.avatar || DEFAULT_AVATAR}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">`;
+
+                // If own, avatar is usually hidden in modern messenger style, but let's follow the app style
+                // The current style seems to use avatar for 'other' and none or different for 'own'
+
+                const timeStr = new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 box.innerHTML += `
-                <div class="dm-bubble ${isOwn ? 'own' : 'other'} ${isNew ? 'new-message' : ''} ${m.is_pinned ? 'pinned' : ''}" 
-                     data-message-id="${m.id}" 
-                     data-author-id="${m.author_id}"
-                     oncontextmenu="DiscordModule.showMessageMenu(event, ${m.id}, ${isOwn})">
-                    ${!isOwn ? `<img src="${m.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">` : ''}
-                    <div class="dm-bubble-content">
-                        ${replyHtml}
-                        ${m.content ? `<div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>` : ''}
-                        ${attachmentHTML}
-                        ${reactionsHtml}
-                        <div class="dm-bubble-time">
-                            ${statusHtml}
-                            ${new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <div class="dm-bubble ${bubbleClass}" data-id="${m.id}" oncontextmenu="DiscordModule.showMessageMenu(event, ${m.id}, ${isOwn})">
+                        ${!isOwn ? avatarImg : ''}
+                        <div class="dm-bubble-content">
+                            ${replyHtml}
+                            ${m.content ? `<div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>` : ''}
+                            ${attachmentHTML}
+                            ${reactionsHtml}
+                            <div class="dm-bubble-time">${timeStr}</div>
                         </div>
-                    </div>
-                    ${isOwn ? `<img src="${m.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">` : ''}
-                </div>`;
+                    </div>`;
             });
+
 
             box.scrollTop = box.scrollHeight;
         } catch (e) {
             console.error(`[DM] Fetch error:`, e);
+        } finally {
+            // Release lock
+            DiscordModule[lockKey] = false;
         }
     },
 
     forceRefresh: false,
 
+    handleTypingInput: () => {
+        // Only for DMs
+        if (!DiscordModule.activeDM) return;
+
+        // Emit typing_start if not already typing
+        if (!DiscordModule.isTyping && typeof WebSocketModule !== 'undefined' && WebSocketModule.socket) {
+            DiscordModule.isTyping = true;
+
+            // Get recipient ID from current DM
+            const dm = DiscordModule.dmList?.find(d => d.id == DiscordModule.activeDM);
+            if (dm && dm.other_user) {
+                WebSocketModule.socket.emit('typing_start', {
+                    dm_id: DiscordModule.activeDM,
+                    recipient_id: dm.other_user.id
+                });
+            }
+        }
+
+        // Reset timeout
+        clearTimeout(DiscordModule.typingTimeout);
+        DiscordModule.typingTimeout = setTimeout(() => {
+            // Stop typing after 3 seconds
+            DiscordModule.isTyping = false;
+            if (typeof WebSocketModule !== 'undefined' && WebSocketModule.socket) {
+                const dm = DiscordModule.dmList?.find(d => d.id == DiscordModule.activeDM);
+                if (dm && dm.other_user) {
+                    WebSocketModule.socket.emit('typing_stop', {
+                        dm_id: DiscordModule.activeDM,
+                        recipient_id: dm.other_user.id
+                    });
+                }
+            }
+        }, 3000);
+    },
+
+    detectAndRenderLinkPreview: async (messageText) => {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const urls = messageText.match(urlRegex);
+
+        if (!urls || urls.length === 0) return '';
+
+        try {
+            const url = urls[0]; // Preview first link only
+            const res = await fetch('/api/messages/preview-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+
+            const data = await res.json();
+
+            if (data.success && data.preview) {
+                return DiscordModule.renderLinkPreview(data.preview);
+            }
+        } catch (error) {
+            console.error('Link preview error:', error);
+        }
+
+        return '';
+    },
+
+    renderLinkPreview: (preview) => {
+        if (preview.type === 'youtube') {
+            return `
+                <div class="youtube-embed">
+                    <iframe 
+                        src="https://www.youtube.com/embed/${preview.video_id}" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                    </iframe>
+                </div>`;
+        }
+
+        if (preview.type === 'image') {
+            return `
+                <div class="link-preview-card">
+                    <img src="${preview.url}" alt="Image preview">
+                </div>`;
+        }
+
+        if (preview.type === 'website') {
+            return `
+                <div class="link-preview-card">
+                    ${preview.image ? `<img src="${preview.image}" alt="${preview.title}">` : ''}
+                    <div class="link-preview-title">${Utils.escapeHtml(preview.title)}</div>
+                    ${preview.description ? `<div class="link-preview-description">${Utils.escapeHtml(preview.description)}</div>` : ''}
+                    <div class="link-preview-url">${preview.url}</div>
+                </div>`;
+        }
+
+        return '';
+    },
+
+    renderUserProfile: (user) => {
+        let profileHTML = '';
+
+        if (user.custom_status || user.status_emoji) {
+            profileHTML += `
+                <div class="user-status-badge">
+                    ${user.status_emoji ? `<span class="user-status-emoji">${user.status_emoji}</span>` : ''}
+                    ${user.custom_status || ''}
+                </div>`;
+        }
+
+        if (user.bio) {
+            profileHTML += `
+                <div class="user-bio-section">
+                    <div class="user-bio-label">О себе</div>
+                    <div class="user-bio-text">${Utils.escapeHtml(user.bio)}</div>
+                </div>`;
+        }
+
+        return profileHTML;
+    },
+
     sendDMMessage: async (dmId, text, attachments = []) => {
+        console.log('[DEBUG sendDMMessage] dmId:', dmId, 'text:', text);
         if (!text && (!attachments || attachments.length === 0)) return;
 
-        // Optimistic UI: add message immediately with sending state
         const box = document.getElementById(`dm-messages-${dmId}`);
         const tempId = 'sending-' + Date.now();
+        console.log('[DEBUG sendDMMessage] tempId:', tempId);
+
         if (box) {
             // Render attachments for optimistic UI
             let attachmentHTML = '';
@@ -1973,7 +2269,6 @@ const DiscordModule = {
         }
 
         try {
-            // Include reply_to_id if replying
             const payload = { content: text };
             if (attachments && attachments.length > 0) {
                 payload.attachments = JSON.stringify(attachments);
@@ -1995,20 +2290,21 @@ const DiscordModule = {
                 throw new Error(d.error || `Server error ${res.status}`);
             }
 
-            // Update the optimistic message to show success
-            const tempEl = document.getElementById(tempId);
-            if (tempEl) {
-                tempEl.classList.remove('sending');
-                const timeEl = tempEl.querySelector('.dm-bubble-time');
-                if (timeEl) {
-                    const now = new Date();
-                    timeEl.innerHTML = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                }
+            // Add to recent cache to prevent socket double-add
+            const cacheKey = `${text.trim()}`;
+            DiscordModule.recentOwnMessages.add(cacheKey);
+            setTimeout(() => DiscordModule.recentOwnMessages.delete(cacheKey), 5000);
+
+            // Immediately clear "sending" status
+            const sendingEl = document.getElementById(tempId);
+            if (sendingEl) {
+                sendingEl.classList.remove('sending');
+                const timeEl = sendingEl.querySelector('.dm-bubble-time');
+                if (timeEl) timeEl.innerHTML = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
 
-            // Force refresh after send (to ensure sync)
-            DiscordModule.forceRefresh = true;
-            setTimeout(() => DiscordModule.fetchDMMessages(dmId), 500);
+            // No need for 1s delay, WebSocket or the next manual fetch will update the UI properly if needed,
+            // but for now we rely on the optimistic bubble.
 
         } catch (e) {
             console.error("[DM] Send error:", e);
@@ -2256,7 +2552,6 @@ const WebSocketModule = {
     socket: null,
     init: () => {
         if (typeof io === 'undefined') return;
-        // Force WebSocket transport to avoid 400 errors with Polling on Render/Cloud platforms
         WebSocketModule.socket = io({
             transports: ['websocket', 'polling']
         });
@@ -2265,60 +2560,87 @@ const WebSocketModule = {
 
         socket.on('connect', () => {
             console.log("Connected to Socket.IO");
-            // Set current user's status to online (green) in the user bar
             const userBarAvatar = document.getElementById('user-bar-avatar');
-            if (userBarAvatar) {
-                userBarAvatar.classList.add('is-online');
-            }
+            if (userBarAvatar) userBarAvatar.classList.add('is-online');
         });
 
         socket.on('disconnect', () => {
             console.log("Disconnected from Socket.IO");
-            // Set current user's status to offline (gray) in the user bar
             const userBarAvatar = document.getElementById('user-bar-avatar');
-            if (userBarAvatar) {
-                userBarAvatar.classList.remove('is-online');
-            }
+            if (userBarAvatar) userBarAvatar.classList.remove('is-online');
         });
 
         // Channel Messages
         socket.on('new_channel_message', (data) => {
+            console.log('[DEBUG WS] Received new_channel_message:', data);
             if (DiscordModule.currentServer === data.sid && DiscordModule.currentChannel === data.cid) {
+                const myUsername = window.currentUsername || '';
+                const isOwn = data.message.author === myUsername;
+
+                if (isOwn) {
+                    const cacheKey = `${data.message.text || data.message.content}`.trim();
+                    if (DiscordModule.recentOwnMessages.has(cacheKey)) {
+                        console.log('[DEBUG] Skipping own message from socket (already added)');
+                        const placeholders = document.querySelectorAll('.message-group.sending');
+                        placeholders.forEach(p => {
+                            p.classList.remove('sending');
+                            const status = p.querySelector('.msg-status');
+                            if (status) status.remove();
+                        });
+                        return;
+                    }
+                }
+
                 DiscordModule.addMessage(data.cid, data.message);
-                const stream = document.getElementById('stream-general'); // simplifiction for generic channel
+                const stream = document.getElementById('stream-general');
                 if (stream) stream.scrollTop = stream.scrollHeight;
             }
         });
 
         // DM Messages
         socket.on('new_dm_message', (data) => {
-            // 1. Refresh DM Sidebar (to show new convos or reorder)
+            console.log('[DEBUG WS] Received new_dm_message:', data);
             if (DiscordModule.currentServer === 'home') {
                 DiscordModule.loadDMList();
             }
 
-            // 2. If we are currently viewing this DM, append message with bubble style
             if (DiscordModule.activeDM && String(DiscordModule.activeDM) === String(data.dm_id)) {
                 const myUsername = window.currentUsername || '';
                 const isOwn = data.author === myUsername;
 
-                // Skip own messages (already added optimistically)
-                if (isOwn) return;
+                if (isOwn) {
+                    const cacheKey = `${data.content}`.trim();
+                    if (DiscordModule.recentOwnMessages.has(cacheKey)) {
+                        console.log('[DEBUG] Skipping own DM from socket (already added)');
+                        const placeholders = document.querySelectorAll('.dm-bubble.sending');
+                        placeholders.forEach(p => {
+                            p.classList.remove('sending');
+                            const status = p.querySelector('.dm-bubble-time i.fa-spin');
+                            if (status) status.parentElement.innerHTML = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        });
+                        return;
+                    }
+                }
 
+                // If message already in DOM (from fetchDMMessages polling or something), skip
                 const box = document.getElementById(`dm-messages-${data.dm_id}`);
                 if (box) {
-                    // Render attachments if present
+                    if (box.querySelector(`[data-id="${data.id}"]`)) return;
+
                     let attachmentHTML = '';
                     if (data.attachments) {
                         const attachments = typeof data.attachments === 'string' ? JSON.parse(data.attachments) : data.attachments;
                         attachmentHTML = DiscordModule.renderAttachments(attachments);
                     }
 
+                    const bubbleClass = isOwn ? 'own' : 'other';
+                    const avatarImg = `<img src="${data.avatar || DEFAULT_AVATAR}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">`;
+
                     box.innerHTML += `
-                        <div class="dm-bubble other">
-                            <img src="${data.avatar}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">
+                        <div class="dm-bubble ${bubbleClass}" data-id="${data.id}">
+                            ${!isOwn ? avatarImg : ''}
                             <div class="dm-bubble-content">
-                                <div class="dm-bubble-text">${Utils.escapeHtml(data.content)}</div>
+                                ${data.content ? `<div class="dm-bubble-text">${Utils.escapeHtml(data.content)}</div>` : ''}
                                 ${attachmentHTML}
                                 <div class="dm-bubble-time">${new Date(data.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                             </div>
@@ -2328,27 +2650,142 @@ const WebSocketModule = {
             }
         });
 
-        // User Status Updates (online/offline)
         socket.on('user_status', (data) => {
-            console.log('[WS] User status:', data.username, data.status);
-            // Update status in memory
             if (!DiscordModule.userStatuses) DiscordModule.userStatuses = {};
             DiscordModule.userStatuses[data.user_id] = data.status;
-
-            // Update UI - member list
             DiscordModule.updateMemberStatus(data.user_id, data.status);
-
-            // Update friend list if visible
             DiscordModule.updateFriendStatus(data.user_id, data.status);
+        });
+
+        socket.on('typing_start', (data) => {
+            const indicator = document.getElementById('typing-indicator');
+            const usersEl = document.getElementById('typing-users');
+            if (indicator && usersEl && data.dm_id == DiscordModule.activeDM) {
+                usersEl.textContent = `${data.username} печатает`;
+                indicator.style.display = 'flex';
+            }
+        });
+
+        socket.on('typing_stop', (data) => {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator && data.dm_id == DiscordModule.activeDM) {
+                indicator.style.display = 'none';
+            }
         });
     }
 };
 
 
-document.addEventListener('DOMContentLoaded', () => { DiscordModule.init(); WebSocketModule.init(); });
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('[App] Initializing modules...');
+    if (typeof DiscordModule !== 'undefined') DiscordModule.init();
+    if (typeof WebSocketModule !== 'undefined') WebSocketModule.init();
+
+    // Set current user as online immediately (fallback)
+    const userBarAvatar = document.getElementById('user-bar-avatar');
+    if (userBarAvatar) userBarAvatar.classList.add('is-online');
+
+    const globalInput = document.getElementById('global-input');
+    if (globalInput) {
+        globalInput.addEventListener('input', () => {
+            if (DiscordModule && typeof DiscordModule.handleTypingInput === 'function') {
+                DiscordModule.handleTypingInput();
+            }
+        });
+    }
+});
+
+// === GIF MODULE ===
+const GifModule = {
+    isOpen: false,
+
+    toggleGifPanel: () => {
+        const panel = document.getElementById('gif-panel');
+        if (!panel) return;
+
+        GifModule.isOpen = !GifModule.isOpen;
+        panel.style.display = GifModule.isOpen ? 'flex' : 'none';
+
+        // Close emoji picker if open
+        const emojiPicker = document.getElementById('emoji-picker-panel');
+        if (emojiPicker) emojiPicker.style.display = 'none';
+
+        // Auto-search trending if opening
+        if (GifModule.isOpen) {
+            GifModule.searchGifs('trending');
+        }
+    },
+
+    closeGifPanel: () => {
+        const panel = document.getElementById('gif-panel');
+        if (panel) panel.style.display = 'none';
+        GifModule.isOpen = false;
+    },
+
+    searchGifs: async (query) => {
+        const resultsContainer = document.getElementById('gif-results');
+        if (!resultsContainer) return;
+
+        if (!query || query.trim() === '') {
+            resultsContainer.innerHTML = `
+                <div class="gif-loading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    Введите запрос для поиска GIF
+                </div>`;
+            return;
+        }
+
+        // Show loading
+        resultsContainer.innerHTML = `
+            <div class="gif-loading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px;"></i>
+                <p>Поиск GIF...</p>
+            </div>`;
+
+        try {
+            const res = await fetch(`/api/giphy/search?q=${encodeURIComponent(query)}`);
+            const data = await res.json();
+
+            if (!data.success || !data.gifs || data.gifs.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="gif-loading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        Нет результатов
+                    </div>`;
+                return;
+            }
+
+            // Render GIF grid
+            resultsContainer.innerHTML = data.gifs.map(gif => `
+                <div class="gif-item" onclick="GifModule.selectGif('${gif.url}')">
+                    <img src="${gif.preview || gif.url}" alt="${gif.title || 'GIF'}">
+                </div>
+            `).join('');
+
+        } catch (error) {
+            console.error('GIF search error:', error);
+            resultsContainer.innerHTML = `
+                <div class="gif-loading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    Ошибка поиска
+                </div>`;
+        }
+    },
+
+    selectGif: (gifUrl) => {
+        // Close panel
+        GifModule.closeGifPanel();
+
+        // Insert GIF into message
+        const input = document.getElementById('global-input');
+        if (input) {
+            // Add GIF URL to message
+            input.value = (input.value + ' ' + gifUrl).trim();
+            input.focus();
+        }
+    }
+};
 
 // Explicitly export for HTML inline handlers
 window.DiscordModule = DiscordModule;
 window.Utils = Utils;
 window.DEFAULT_AVATAR = DEFAULT_AVATAR;
+window.GifModule = GifModule;
 

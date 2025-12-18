@@ -18,8 +18,12 @@
         crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=31">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=37">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/features.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/telegram-input.css') }}?v=18">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}?v=3"> -->
+
+
 
     <!-- Required Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"
@@ -27,6 +31,9 @@
 
     <!-- Notification System -->
     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+
+    <!-- Animations Module -->
+    <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
 
     <!-- Emoji Data -->
     <script src="{{ url_for('static', filename='js/emoji-data.js') }}"></script>
@@ -357,47 +364,22 @@
     </div>
 
     <div class="discord-app">
-        <!-- 1. SERVER LIST -->
-        <nav class="server-list">
-            <div class="server-icon active" id="server-home" onclick="DiscordModule.selectServer('home')"
-                data-tooltip="Главная">
-                <i class="fa-brands fa-discord"></i>
-            </div>
-            <div class="server-sep"></div>
-
-            <div class="server-icon" id="server-ai" onclick="DiscordModule.selectServer('ai')"
-                data-tooltip="Arizona AI">
-                <i class="fa-solid fa-robot"></i>
-            </div>
-
-            {% if user.role in ['developer', 'tester'] %}
-            <div class="server-icon" id="server-admin" onclick="DiscordModule.selectServer('admin')"
-                data-tooltip="Админ-панель">
-                <i class="fa-solid fa-shield-halved"></i>
-            </div>
-            {% endif %}
-
-            <div class="server-icon" id="server-smi" onclick="DiscordModule.selectServer('smi')"
-                data-tooltip="СМИ Тулс">
-                <i class="fa-solid fa-newspaper"></i>
-            </div>
-
-            <div class="server-sep"></div>
-
-            <div class="server-icon add-server" onclick="DiscordModule.uiCreateServer()" data-tooltip="Создать сервер">
-                <i class="fa-solid fa-plus" style="color:#22c55e;"></i>
-            </div>
-
-            <div class="server-icon" id="server-profile" onclick="DiscordModule.selectServer('profile')"
-                style="margin-top:auto; margin-bottom:12px;">
-                <img src="{{ user.avatar }}" style="width:100%; height:100%; border-radius:50%;">
-            </div>
-        </nav>
+        <!-- Server list removed - pure messenger mode -->
 
         <!-- 2. CHANNEL SIDEBAR -->
         <div class="channel-sidebar">
-            <div class="server-header" onclick="DiscordModule.toggleServerDropdown()" id="server-header-click">
-                <h3 id="current-server-name">Arizona RP (Home)</h3>
+            <!-- Search Header -->
+            <div class="search-header">
+                <div class="search-container">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" class="search-input" placeholder="Поиск" id="chat-search-input">
+                </div>
+            </div>
+
+            <!-- Hidden Server Header (for JS compatibility) -->
+            <div class="server-header" onclick="DiscordModule.toggleServerDropdown()" id="server-header-click"
+                style="display: none;">
+                <h3 id="current-server-name">Chats</h3>
                 <i class="fa-solid fa-xmark" id="server-header-icon-close" style="display:none;"></i>
                 <i class="fa-solid fa-chevron-down" id="server-header-icon-open"></i>
             </div>
@@ -457,20 +439,15 @@
         <main class="chat-area">
             <!-- Header -->
             <header class="chat-header">
-                <i class="fa-solid fa-hashtag" style="color:var(--text-muted); margin-right:10px;"></i>
-                <h3 id="current-channel-name">general</h3>
-                <div class="topic-divider"></div>
+                <div class="chat-header-info">
+                    <h3 id="current-channel-name">Чаты</h3>
+                    <span class="chat-header-status" id="chat-header-status">в сети</span>
+                </div>
                 <div class="header-toolbar">
                     <i class="fa-solid fa-phone" onclick="DiscordModule.fakeCall()" data-tooltip="Start Voice Call"></i>
                     <i class="fa-solid fa-video" onclick="DiscordModule.fakeCall()" data-tooltip="Start Video Call"></i>
-                    <i class="fa-solid fa-thumbtack" onclick="DiscordModule.showPinned()"
-                        data-tooltip="Pinned Messages"></i>
-                    <i class="fa-solid fa-user-group" onclick="DiscordModule.toggleMemberList()"
-                        data-tooltip="Toggle Member List" style="margin-left:8px; color:white;"></i>
-                    <div class="search-bar">
-                        <input placeholder="Поиск">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </div>
+                    <i class="fa-solid fa-circle-info" onclick="DiscordModule.toggleMemberList()"
+                        data-tooltip="Toggle Member List"></i>
                 </div>
             </header>
 
@@ -795,6 +772,14 @@
                                     </div>
                                     <button class="btn-edit" onclick="DiscordModule.editField('phone')">Edit</button>
                                 </div>
+                                <div class="field-row">
+                                    <div class="field-info">
+                                        <div class="field-label">CUSTOM STATUS</div>
+                                        <div class="field-value" id="field-custom-status">Not set</div>
+                                    </div>
+                                    <button class="btn-edit"
+                                        onclick="DiscordModule.editField('custom_status')">Edit</button>
+                                </div>
                             </div>
                         </div>
 
@@ -1028,8 +1013,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=29"></script>
-    <script src="{{ url_for('static', filename='js/attachments.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=100"></script>
     <script src="{{ url_for('static', filename='js/attachments.js') }}"></script>
 
     <!-- 🎨 LOADING SCREEN SCRIPT -->
@@ -1079,6 +1063,9 @@
     <!-- Feature Modules -->
     <script src="{{ url_for('static', filename='js/emoji-module.js') }}"></script>
     <script src="{{ url_for('static', filename='js/gif-module.js') }}"></script>
+
+    <!-- Edit Field Fix - Override prompt with modal -->
+    <script src="{{ url_for('static', filename='js/edit_field_fix.js') }}"></script>
 </body>
 
 </html>

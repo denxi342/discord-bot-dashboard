@@ -1,0 +1,266 @@
+/* ============================================
+   ANIMATIONS.CSS - Visual Effects & Animations
+   ============================================ */
+
+/* === KEYFRAME DEFINITIONS === */
+
+/* Fade In + Slide Up - for new messages */
+@keyframes fadeSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Fade In - smooth appearance */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Slide In from Right - for own messages */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Slide In from Left - for received messages */
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Bounce - for new message notification */
+@keyframes bounce {
+
+    0%,
+    20%,
+    50%,
+    80%,
+    100% {
+        transform: translateY(0);
+    }
+
+    40% {
+        transform: translateY(-10px);
+    }
+
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Pulse - for active elements */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* === MESSAGE ANIMATIONS === */
+
+/* DISABLED: Animations cause flashing on page load
+   Keep hover effects but remove transitions from bubbles */
+
+/* Messages */
+.dm-bubble {
+    /* No transition - prevents flash */
+}
+
+.dm-bubble:hover {
+    /* Static hover state without animation */
+}
+
+/* Buttons and Icons */
+.input-btn,
+.right-icons i,
+.header-toolbar i {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-btn:hover,
+.right-icons i:hover,
+.header-toolbar i:hover {
+    transform: scale(1.1);
+}
+
+.input-btn:active,
+.right-icons i:active,
+.header-toolbar i:active {
+    transform: scale(0.95);
+}
+
+/* User Bar Elements */
+.user-bar {
+    transition: all 0.3s ease;
+}
+
+.user-bar:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* === CHAT TRANSITION EFFECTS === */
+
+/* Chat switching */
+.channel-view {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.channel-view.switching {
+    animation: fadeOut 0.2s ease-out;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+/* DM Messages Container */
+.dm-bubbles-container {
+    animation: fadeIn 0.4s ease-out;
+}
+
+/* Chat Header Transition */
+.chat-header {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chat-header-info h3,
+.chat-header-status {
+    transition: all 0.3s ease;
+}
+
+/* === SCROLL ANIMATIONS === */
+
+.dm-bubble.in-view {
+    animation: fadeSlideUp 0.4s ease-out;
+}
+
+/* === LOADING STATES === */
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.loading-shimmer {
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.05) 0%,
+            rgba(255, 255, 255, 0.1) 50%,
+            rgba(255, 255, 255, 0.05) 100%);
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+}
+
+/* === PERFORMANCE OPTIMIZATIONS === */
+
+/* Use GPU acceleration for smooth animations */
+.dm-bubble,
+.dm-item,
+.input-btn {
+    will-change: transform;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* === TYPING INDICATOR === */
+
+@keyframes typing {
+
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+    }
+
+    30% {
+        transform: translateY(-10px);
+    }
+}
+
+.typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px;
+}
+
+.typing-indicator span {
+    width: 8px;
+    height: 8px;
+    background: #65676b;
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+/* === SMOOTH SCROLLING === */
+
+.dm-bubbles-container,
+.chat-scroll-area {
+    scroll-behavior: smooth;
+}
+
+/* === NOTIFICATION BADGE PULSE === */
+
+.unread-badge {
+    animation: pulse 2s infinite;
+}

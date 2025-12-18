@@ -2642,6 +2642,29 @@ def api_get_dms():
         u_row = execute_query("SELECT username, avatar, display_name FROM users WHERE id = %s", (other_id,), fetch_one=True)
         if not u_row: continue
         
+        # Get last message for preview
+        last_msg_row = execute_query("""
+            SELECT content, timestamp, author_id 
+            FROM dm_messages 
+            WHERE dm_id = %s 
+            ORDER BY timestamp DESC 
+            LIMIT 1
+        """, (dm_id,), fetch_one=True)
+        
+        last_message_text = None
+        last_message_timestamp = ts
+        if last_msg_row:
+            # Truncate message content for preview
+            content = last_msg_row[0] or ""
+            if len(content) > 50:
+                content = content[:50] + "..."
+            last_message_text = content
+            last_message_timestamp = last_msg_row[1]
+        
+        # TODO: Calculate unread count (requires read_receipts table)
+        # For now, set to 0
+        unread_count = 0
+        
         dms.append({
             'id': str(dm_id),
             'other_user': {
@@ -2650,7 +2673,10 @@ def api_get_dms():
                 'avatar': u_row[1] if u_row[1] else DEFAULT_AVATAR,
                 'display_name': u_row[2]
             },
-            'last_message_at': ts
+            'last_message_at': ts,
+            'last_message_text': last_message_text,
+            'last_message_timestamp': last_message_timestamp,
+            'unread_count': unread_count
         })
         
     return jsonify({'success': True, 'dms': dms})
@@ -2799,9 +2825,10 @@ def api_dm_send_by_id(dm_id):
         'attachments': attachments
     }
     
-    # Send to sender and recipient
-    socketio.emit('new_dm_message', payload, room=str(dm_row[0]))
-    socketio.emit('new_dm_message', payload, room=str(dm_row[1]))
+    # Only send to the OTHER user (not the sender)
+    # Sender already gets message via HTTP response + optimistic UI
+    other_user_id = dm_row[1] if dm_row[0] == my_id else dm_row[0]
+    socketio.emit('new_dm_message', payload, room=str(other_user_id))
     
     # Return full message data for frontend optimistic update
     return jsonify({
@@ -2857,8 +2884,8 @@ def api_dm_send(target_id):
         'users': [my_id, target_id]  # IDs to filter on frontend
     }
     
-    # Emit real-time event SECURELY
-    socketio.emit('new_dm_message', msg_obj, room=str(my_id))
+    # Emit real-time event only to the RECIPIENT (not sender)
+    # Sender already gets message via HTTP response + optimistic UI
     socketio.emit('new_dm_message', msg_obj, room=str(target_id))
     
     # Return message data for frontend optimistic update

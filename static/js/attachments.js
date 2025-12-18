@@ -69,9 +69,7 @@ DiscordModule.removeFile = function (index) {
 DiscordModule.uploadFiles = async function () {
     if (DiscordModule.pendingFiles.length === 0) return [];
 
-    const uploadedFiles = [];
-
-    for (const file of DiscordModule.pendingFiles) {
+    const uploadPromises = DiscordModule.pendingFiles.map(async (file) => {
         const formData = new FormData();
         formData.append('file', file);
 
@@ -83,15 +81,21 @@ DiscordModule.uploadFiles = async function () {
             const data = await res.json();
 
             if (data.success) {
-                uploadedFiles.push(data.file);
+                return data.file;
             } else {
+                console.error(`Ошибка загрузки ${file.name}: ${data.error}`);
                 alert(`Ошибка загрузки ${file.name}: ${data.error}`);
+                return null;
             }
         } catch (e) {
             console.error('Upload error:', e);
             alert(`Ошибка загрузки ${file.name}`);
+            return null;
         }
-    }
+    });
+
+    const results = await Promise.all(uploadPromises);
+    const uploadedFiles = results.filter(f => f !== null);
 
     // Clear pending files
     DiscordModule.pendingFiles = [];
