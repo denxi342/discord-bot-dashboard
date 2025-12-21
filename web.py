@@ -291,6 +291,9 @@ def run_db_migration():
         is_sqlite = isinstance(conn, sqlite3.Connection)
         cursor = conn.cursor()
         
+        pk_type = "INTEGER PRIMARY KEY AUTOINCREMENT" if is_sqlite else "SERIAL PRIMARY KEY"
+        varchar_type = "TEXT" if is_sqlite else "VARCHAR(255)"
+        
         print("[*] Running database migration...")
         
         if is_sqlite:
@@ -330,6 +333,59 @@ def run_db_migration():
                                   UNIQUE(message_id, user_id, emoji))''')
                 print("  [+] Created message_reactions table")
             
+            # Check if file_uploads table exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='file_uploads'")
+            if not cursor.fetchone():
+                cursor.execute('''CREATE TABLE file_uploads
+                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  message_id INTEGER NOT NULL,
+                                  filename TEXT NOT NULL,
+                                  file_size INTEGER,
+                                  file_type TEXT,
+                                  mime_type TEXT,
+                                  storage_type TEXT DEFAULT 'data_uri',
+                                  cloud_url TEXT,
+                                  thumbnail_url TEXT,
+                                  upload_progress INTEGER DEFAULT 100,
+                                  created_at REAL)''')
+                print("  [+] Created file_uploads table")
+            
+            # Check if photo_albums table exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='photo_albums'")
+            if not cursor.fetchone():
+                cursor.execute('''CREATE TABLE photo_albums
+                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  message_id INTEGER NOT NULL,
+                                  title TEXT,
+                                  photo_count INTEGER DEFAULT 0,
+                                  created_at REAL)''')
+                print("  [+] Created photo_albums table")
+            
+            # Check if link_previews table exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='link_previews'")
+            if not cursor.fetchone():
+                cursor.execute('''CREATE TABLE link_previews
+                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  url TEXT UNIQUE NOT NULL,
+                                  title TEXT,
+                                  description TEXT,
+                                  image_url TEXT,
+                                  site_name TEXT,
+                                  cached_at REAL)''')
+                print("  [+] Created link_previews table")
+            
+            # Check if read_receipts table exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='read_receipts'")
+            if not cursor.fetchone():
+                cursor.execute('''CREATE TABLE read_receipts
+                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  dm_id INTEGER NOT NULL,
+                                  user_id INTEGER NOT NULL,
+                                  last_read_message_id INTEGER,
+                                  updated_at REAL,
+                                  UNIQUE(dm_id, user_id))''')
+                print("  [+] Created read_receipts table")
+            
             # Add new user profile fields
             cursor.execute("PRAGMA table_info(users)")
             user_existing_cols = {row[1] for row in cursor.fetchall()}
@@ -348,7 +404,7 @@ def run_db_migration():
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name='dm_messages' 
-                AND column_name IN ('reply_to_id', 'is_pinned', 'edited_at', 'attachments')
+                AND column_name IN ('reply_to_id', 'is_pinned', 'edited_at', 'attachments', 'expires_at')
             """)
             existing_cols = {row[0] for row in cursor.fetchall()}
             
@@ -387,6 +443,75 @@ def run_db_migration():
                                   created_at REAL,
                                   UNIQUE(message_id, user_id, emoji))""")
                 print("  [+] Created message_reactions table")
+            
+            # Check if file_uploads table exists
+            cursor.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_name='file_uploads'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("""CREATE TABLE file_uploads
+                                 (id SERIAL PRIMARY KEY,
+                                  message_id INTEGER NOT NULL,
+                                  filename VARCHAR(255) NOT NULL,
+                                  file_size INTEGER,
+                                  file_type VARCHAR(50),
+                                  mime_type VARCHAR(100),
+                                  storage_type VARCHAR(50) DEFAULT 'data_uri',
+                                  cloud_url TEXT,
+                                  thumbnail_url TEXT,
+                                  upload_progress INTEGER DEFAULT 100,
+                                  created_at REAL)""")
+                print("  [+] Created file_uploads table")
+            
+            # Check if photo_albums table exists
+            cursor.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_name='photo_albums'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("""CREATE TABLE photo_albums
+                                 (id SERIAL PRIMARY KEY,
+                                  message_id INTEGER NOT NULL,
+                                  title TEXT,
+                                  photo_count INTEGER DEFAULT 0,
+                                  created_at REAL)""")
+                print("  [+] Created photo_albums table")
+            
+            # Check if link_previews table exists
+            cursor.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_name='link_previews'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("""CREATE TABLE link_previews
+                                 (id SERIAL PRIMARY KEY,
+                                  url TEXT UNIQUE NOT NULL,
+                                  title TEXT,
+                                  description TEXT,
+                                  image_url TEXT,
+                                  site_name TEXT,
+                                  cached_at REAL)""")
+                print("  [+] Created link_previews table")
+            
+            # Check if read_receipts table exists
+            cursor.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_name='read_receipts'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("""CREATE TABLE read_receipts
+                                 (id SERIAL PRIMARY KEY,
+                                  dm_id INTEGER NOT NULL,
+                                  user_id INTEGER NOT NULL,
+                                  last_read_message_id INTEGER,
+                                  updated_at REAL,
+                                  UNIQUE(dm_id, user_id))""")
+                print("  [+] Created read_receipts table")
             
             # Add new user profile fields
             cursor.execute("""
@@ -988,6 +1113,348 @@ def api_gif_search():
     except Exception as e:
         print(f"GIF search error: {e}")
         return jsonify({'success': False, 'error': str(e)})
+
+
+# --- ADVANCED FEATURES API ---
+
+@app.route('/api/albums/create', methods=['POST'])
+def api_create_album():
+    """Create a photo album from multiple uploaded images"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    # Check if files were uploaded
+    if 'files[]' not in request.files:
+        return jsonify({'success': False, 'error': 'No files provided'})
+    
+    files = request.files.getlist('files[]')
+    if not files or len(files) == 0:
+        return jsonify({'success': False, 'error': 'No files selected'})
+    
+    # Limit album size
+    MAX_ALBUM_SIZE = 10
+    if len(files) > MAX_ALBUM_SIZE:
+        return jsonify({'success': False, 'error': f'Maximum {MAX_ALBUM_SIZE} photos per album'})
+    
+    try:
+        import base64
+        photos = []
+        total_size = 0
+        
+        for file in files:
+            # Check file type
+            ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+            if ext not in {'png', 'jpg', 'jpeg', 'gif', 'webp'}:
+                continue
+            
+            # Check file size
+            file.seek(0, os.SEEK_END)
+            file_size = file.tell()
+            file.seek(0)
+            
+            total_size += file_size
+            if total_size > 20 * 1024 * 1024:  # 20MB total limit
+                return jsonify({'success': False, 'error': 'Total album size too large (max 20MB)'})
+            
+            # Convert to data URI
+            file_data = file.read()
+            mime_types = {
+                'png': 'image/png',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'gif': 'image/gif',
+                'webp': 'image/webp'
+            }
+            mime_type = mime_types.get(ext, 'image/jpeg')
+            base64_data = base64.b64encode(file_data).decode('utf-8')
+            file_url = f"data:{mime_type};base64,{base64_data}"
+            
+            photos.append({
+                'filename': file.filename,
+                'url': file_url,
+                'size': file_size,
+                'type': 'image'
+            })
+        
+        if not photos:
+            return jsonify({'success': False, 'error': 'No valid images found'})
+        
+        # Create album entry (will be associated with message later)
+        album_id = execute_query(
+            "INSERT INTO photo_albums (message_id, photo_count, created_at) VALUES (%s, %s, %s) RETURNING id" if 'postgres' in str(type(get_db_connection())) else "INSERT INTO photo_albums (message_id, photo_count, created_at) VALUES (?, ?, ?)",
+            (0, len(photos), time.time()),  # message_id will be updated when message is created
+            commit=True,
+            fetch_one=True
+        )
+        
+        return jsonify({
+            'success': True,
+            'album': {
+                'id': album_id if album_id else execute_query("SELECT last_insert_rowid()", fetch_one=True)[0],
+                'photos': photos,
+                'photo_count': len(photos)
+            }
+        })
+    
+    except Exception as e:
+        print(f"Album creation error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/albums/<int:album_id>', methods=['GET'])
+def api_get_album(album_id):
+    """Get album photos"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    try:
+        album = execute_query(
+            "SELECT id, message_id, photo_count, created_at FROM photo_albums WHERE id = %s",
+            (album_id,),
+            fetch_one=True
+        )
+        
+        if not album:
+            return jsonify({'success': False, 'error': 'Album not found'})
+        
+        # For now, return album metadata (photos are stored in message attachments)
+        return jsonify({
+            'success': True,
+            'album': {
+                'id': album[0],
+                'message_id': album[1],
+                'photo_count': album[2],
+                'created_at': album[3]
+            }
+        })
+    
+    except Exception as e:
+        print(f"Get album error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/preview-link-enhanced', methods=['POST'])
+def api_preview_link_enhanced():
+    """Enhanced link preview with database caching"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.json
+    url = data.get('url', '').strip()
+    
+    if not url:
+        return jsonify({'success': False, 'error': 'No URL provided'})
+    
+    # Validate URL scheme
+    if not url.startswith(('http://', 'https://')):
+        return jsonify({'success': False, 'error': 'Invalid URL scheme'})
+    
+    try:
+        # Check cache first (24 hour expiry)
+        cache_expiry = time.time() - (24 * 3600)
+        cached = execute_query(
+            "SELECT title, description, image_url, site_name, cached_at FROM link_previews WHERE url = %s AND cached_at > %s",
+            (url, cache_expiry),
+            fetch_one=True
+        )
+        
+        if cached:
+            return jsonify({
+                'success': True,
+                'preview': {
+                    'url': url,
+                    'title': cached[0],
+                    'description': cached[1],
+                    'image': cached[2],
+                    'site_name': cached[3],
+                    'cached': True
+                }
+            })
+        
+        # Fetch fresh preview
+        from bs4 import BeautifulSoup
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        
+        response = requests.get(url, headers=headers, timeout=5, stream=True)
+        
+        # Limit response size to 1MB
+        max_size = 1024 * 1024
+        content = b''
+        for chunk in response.iter_content(chunk_size=8192):
+            content += chunk
+            if len(content) > max_size:
+                break
+        
+        soup = BeautifulSoup(content, 'html.parser')
+        
+        # Extract Open Graph metadata
+        og_title = soup.find('meta', property='og:title')
+        og_description = soup.find('meta', property='og:description')
+        og_image = soup.find('meta', property='og:image')
+        og_site_name = soup.find('meta', property='og:site_name')
+        
+        # Fallback to Twitter Card
+        tw_title = soup.find('meta', attrs={'name': 'twitter:title'})
+        tw_description = soup.find('meta', attrs={'name': 'twitter:description'})
+        tw_image = soup.find('meta', attrs={'name': 'twitter:image'})
+        
+        # Extract metadata
+        title = (og_title or tw_title)['content'] if (og_title or tw_title) else (soup.find('title').text if soup.find('title') else url)
+        description = (og_description or tw_description)['content'] if (og_description or tw_description) else ''
+        image = (og_image or tw_image)['content'] if (og_image or tw_image) else ''
+        site_name = og_site_name['content'] if og_site_name else url.split('/')[2]
+        
+        # Trim to reasonable lengths
+        title = title[:200]
+        description = description[:300]
+        
+        # Cache the result
+        execute_query(
+            """INSERT INTO link_previews (url, title, description, image_url, site_name, cached_at) 
+               VALUES (%s, %s, %s, %s, %s, %s)
+               ON CONFLICT(url) DO UPDATE SET 
+               title = EXCLUDED.title, 
+               description = EXCLUDED.description, 
+               image_url = EXCLUDED.image_url, 
+               site_name = EXCLUDED.site_name, 
+               cached_at = EXCLUDED.cached_at""",
+            (url, title, description, image, site_name, time.time()),
+            commit=True
+        )
+        
+        return jsonify({
+            'success': True,
+            'preview': {
+                'url': url,
+                'title': title,
+                'description': description,
+                'image': image,
+                'site_name': site_name,
+                'cached': False
+            }
+        })
+    
+    except Exception as e:
+        print(f"Enhanced link preview error: {e}")
+        # Return basic preview on error
+        return jsonify({
+            'success': True,
+            'preview': {
+                'url': url,
+                'title': url,
+                'description': '',
+                'image': '',
+                'site_name': url.split('/')[2] if len(url.split('/')) > 2 else url
+            }
+        })
+
+
+@app.route('/api/dms/<int:dm_id>/mark-read', methods=['POST'])
+def api_mark_read(dm_id):
+    """Mark messages as read up to a specific message ID"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    user_id = session['user']['id']
+    data = request.json
+    message_id = data.get('message_id')
+    
+    if not message_id:
+        return jsonify({'success': False, 'error': 'No message_id provided'})
+    
+    try:
+        # Update or insert read receipt
+        execute_query(
+            """INSERT INTO read_receipts (dm_id, user_id, last_read_message_id, updated_at) 
+               VALUES (%s, %s, %s, %s)
+               ON CONFLICT(dm_id, user_id) DO UPDATE SET 
+               last_read_message_id = EXCLUDED.last_read_message_id, 
+               updated_at = EXCLUDED.updated_at""",
+            (dm_id, user_id, message_id, time.time()),
+            commit=True
+        )
+        
+        return jsonify({'success': True})
+    
+    except Exception as e:
+        print(f"Mark read error: {e}")
+        # Fallback for SQLite (no native UPSERT in old versions)
+        try:
+            existing = execute_query(
+                "SELECT id FROM read_receipts WHERE dm_id = %s AND user_id = %s",
+                (dm_id, user_id),
+                fetch_one=True
+            )
+            
+            if existing:
+                execute_query(
+                    "UPDATE read_receipts SET last_read_message_id = %s, updated_at = %s WHERE dm_id = %s AND user_id = %s",
+                    (message_id, time.time(), dm_id, user_id),
+                    commit=True
+                )
+            else:
+                execute_query(
+                    "INSERT INTO read_receipts (dm_id, user_id, last_read_message_id, updated_at) VALUES (%s, %s, %s, %s)",
+                    (dm_id, user_id, message_id, time.time()),
+                    commit=True
+                )
+            
+            return jsonify({'success': True})
+        except Exception as e2:
+            print(f"Mark read fallback error: {e2}")
+            return jsonify({'success': False, 'error': str(e2)})
+
+
+@app.route('/api/dms/<int:dm_id>/unread-position', methods=['GET'])
+def api_get_unread_position(dm_id):
+    """Get the first unread message ID for a DM"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    user_id = session['user']['id']
+    
+    try:
+        # Get last read message ID
+        receipt = execute_query(
+            "SELECT last_read_message_id FROM read_receipts WHERE dm_id = %s AND user_id = %s",
+            (dm_id, user_id),
+            fetch_one=True
+        )
+        
+        if not receipt or not receipt[0]:
+            # No read receipt, all messages are unread - get first message
+            first_msg = execute_query(
+                "SELECT id FROM dm_messages WHERE dm_id = %s ORDER BY id ASC LIMIT 1",
+                (dm_id,),
+                fetch_one=True
+            )
+            
+            return jsonify({
+                'success': True,
+                'first_unread_id': first_msg[0] if first_msg else None,
+                'has_unread': bool(first_msg)
+            })
+        
+        last_read_id = receipt[0]
+        
+        # Get first message after last read
+        first_unread = execute_query(
+            "SELECT id FROM dm_messages WHERE dm_id = %s AND id > %s ORDER BY id ASC LIMIT 1",
+            (dm_id, last_read_id),
+            fetch_one=True
+        )
+        
+        return jsonify({
+            'success': True,
+            'first_unread_id': first_unread[0] if first_unread else None,
+            'last_read_id': last_read_id,
+            'has_unread': bool(first_unread)
+        })
+    
+    except Exception as e:
+        print(f"Get unread position error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
 
 @app.before_request
 def check_auth():
