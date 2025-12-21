@@ -249,7 +249,8 @@ def init_db():
                   reply_to_id INTEGER,
                   is_pinned INTEGER DEFAULT 0,
                   edited_at REAL,
-                  attachments TEXT)''')
+                  attachments TEXT,
+                  expires_at REAL)''')
     print("  [+] DM messages table ready")
 
     # Message Reactions Table - CRITICAL for reactions feature
@@ -313,6 +314,10 @@ def run_db_migration():
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN attachments TEXT")
                 print("  [+] Added attachments to dm_messages")
             
+            if 'expires_at' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN expires_at REAL")
+                print("  [+] Added expires_at to dm_messages (disappearing messages)")
+            
             # Check if message_reactions table exists
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='message_reactions'")
             if not cursor.fetchone():
@@ -363,6 +368,10 @@ def run_db_migration():
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN attachments TEXT")
                 print("  [+] Added attachments to dm_messages")
             
+            if 'expires_at' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN expires_at REAL")
+                print("  [+] Added expires_at to dm_messages (disappearing messages)")
+            
             # Check if message_reactions table exists
             cursor.execute("""
                 SELECT table_name 
@@ -407,6 +416,38 @@ def run_db_migration():
 # Run migration to add missing columns to existing databases
 run_db_migration()
 
+# --- DISAPPEARING MESSAGES CLEANUP THREAD ---
+def cleanup_expired_messages():
+    """Background thread to delete expired messages and notify clients"""
+    while True:
+        try:
+            eventlet.sleep(10)  # Check every 10 seconds
+            current_time = time.time()
+            
+            # Find expired messages
+            expired = execute_query('''
+                SELECT id, dm_id FROM dm_messages 
+                WHERE expires_at IS NOT NULL AND expires_at <= %s
+            ''', (current_time,), fetch_all=True)
+            
+            if expired:
+                for msg_id, dm_id in expired:
+                    # Delete reactions first
+                    execute_query('DELETE FROM message_reactions WHERE message_id = %s', (msg_id,), commit=True)
+                    # Delete message
+                    execute_query('DELETE FROM dm_messages WHERE id = %s', (msg_id,), commit=True)
+                    # Emit socket event to remove from UI
+                    socketio.emit('message_expired', {
+                        'message_id': msg_id,
+                        'dm_id': dm_id
+                    })
+                print(f"[Cleanup] Deleted {len(expired)} expired messages")
+        except Exception as e:
+            print(f"[Cleanup Error] {e}")
+
+# Start cleanup thread
+eventlet.spawn(cleanup_expired_messages)
+print("[*] Disappearing messages cleanup thread started")
 
 def fix_existing_avatars():
     """Helper to replace broken CDN avatars with local default"""
@@ -2789,6 +2830,7 @@ def api_dm_send_by_id(dm_id):
     content = data.get('content', '').strip()
     reply_to_id = data.get('reply_to_id')  # ID сообщения на которое отвечаем
     attachments = data.get('attachments')  # JSON string of file metadata
+    expires_in = data.get('expires_in')  # Seconds until message expires (disappearing messages)
     
     # Require either content or attachments
     if not content and not attachments:
@@ -2796,12 +2838,17 @@ def api_dm_send_by_id(dm_id):
     
     timestamp = time.time()
     
+    # Calculate expiration time if set
+    expires_at = None
+    if expires_in and isinstance(expires_in, (int, float)) and expires_in > 0:
+        expires_at = timestamp + expires_in
+    
     try:
-        # Insert message with reply support
-        execute_query('''
-            INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id, attachments)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        ''', (dm_id, my_id, content, timestamp, reply_to_id, attachments), commit=True)
+        # Insert message with reply support and expiration
+        message_id = execute_query('''
+            INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id, attachments, expires_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''', (dm_id, my_id, content, timestamp, reply_to_id, attachments, expires_at), commit=True)
         
         # Update last_message_at
         execute_query('UPDATE direct_messages SET last_message_at = %s WHERE id = %s',
@@ -2817,12 +2864,14 @@ def api_dm_send_by_id(dm_id):
     
     # Emit via Socket.IO using Rooms
     payload = {
+        'id': message_id,  # Include message ID for expiration tracking
         'dm_id': dm_id,
         'author': username,
         'avatar': avatar,
         'content': content,
         'timestamp': timestamp,
-        'attachments': attachments
+        'attachments': attachments,
+        'expires_at': expires_at
     }
     
     # Only send to the OTHER user (not the sender)
@@ -2834,12 +2883,14 @@ def api_dm_send_by_id(dm_id):
     return jsonify({
         'success': True, 
         'message': {
+            'id': message_id,  # Include message ID for expiration tracking
             'dm_id': dm_id,
             'author': username,
             'avatar': avatar,
             'content': content,
             'timestamp': timestamp,
-            'attachments': attachments
+            'attachments': attachments,
+            'expires_at': expires_at
         }
     })
 
@@ -2851,6 +2902,7 @@ def api_dm_send(target_id):
     content = data.get('content', '').strip()
     reply_to_id = data.get('reply_to_id')  # Support replies
     attachments = data.get('attachments')  # Support attachments (JSON string)
+    expires_in = data.get('expires_in')  # Seconds until message expires
     
     # Require either content or attachments
     if not content and not attachments:
@@ -2859,10 +2911,15 @@ def api_dm_send(target_id):
     dm_id = get_or_create_dm(my_id, target_id)
     timestamp = time.time()
     
-    # Insert Message with attachments and reply support
-    execute_query("""INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id, attachments) 
-                     VALUES (%s, %s, %s, %s, %s, %s)""",
-                  (dm_id, my_id, content, timestamp, reply_to_id, attachments), commit=True)
+    # Calculate expiration time if set
+    expires_at = None
+    if expires_in and isinstance(expires_in, (int, float)) and expires_in > 0:
+        expires_at = timestamp + expires_in
+    
+    # Insert Message with attachments, reply support and expiration
+    message_id = execute_query("""INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id, attachments, expires_at) 
+                     VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                  (dm_id, my_id, content, timestamp, reply_to_id, attachments, expires_at), commit=True)
                   
     # Update timestamp for sorting
     execute_query("UPDATE direct_messages SET last_message_at = %s WHERE id = %s", (timestamp, dm_id), commit=True)
@@ -2873,6 +2930,7 @@ def api_dm_send(target_id):
     avatar = get_valid_avatar(u[1]) if u else session['user']['avatar']
     
     msg_obj = {
+        'id': message_id,  # Include message ID for expiration tracking
         'dm_id': str(dm_id),
         'author_id': my_id,
         'author': username,
@@ -2881,7 +2939,8 @@ def api_dm_send(target_id):
         'timestamp': timestamp,
         'attachments': attachments,  # Include attachments in response
         'reply_to_id': reply_to_id,  # Include reply info
-        'users': [my_id, target_id]  # IDs to filter on frontend
+        'users': [my_id, target_id],  # IDs to filter on frontend
+        'expires_at': expires_at  # Disappearing message timer
     }
     
     # Emit real-time event only to the RECIPIENT (not sender)

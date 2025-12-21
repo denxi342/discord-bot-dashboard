@@ -55,6 +55,10 @@ const DiscordModule = {
     typingTimeout: null,
     isTyping: false,
     recentOwnMessages: new Set(), // Set of "content" to prevent duplicates
+
+    // Disappearing messages timer (seconds until message expires)
+    disappearingTimer: null, // null = off, or number of seconds (30, 60, 300, 3600, 86400)
+
     // --- SERVER & DROPDOWN HEADER ---
     toggleServerDropdown: () => {
         const dd = document.getElementById('server-dropdown-menu');
@@ -2257,12 +2261,16 @@ const DiscordModule = {
                 attachmentHTML = DiscordModule.renderAttachments(attachments);
             }
 
+            // Show timer icon if disappearing message
+            const timerIcon = DiscordModule.disappearingTimer ?
+                `<i class="fa-solid fa-clock disappearing-icon" title="Исчезнет через ${DiscordModule.formatDisappearingTime(DiscordModule.disappearingTimer)}"></i>` : '';
+
             box.innerHTML += `
-            <div class="dm-bubble own sending" id="${tempId}">
+            <div class="dm-bubble own sending ${DiscordModule.disappearingTimer ? 'disappearing' : ''}" id="${tempId}">
                 <div class="dm-bubble-content">
                     ${text ? `<div class="dm-bubble-text">${Utils.escapeHtml(text)}</div>` : ''}
                     ${attachmentHTML}
-                    <div class="dm-bubble-time"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+                    <div class="dm-bubble-time">${timerIcon}<i class="fa-solid fa-circle-notch fa-spin"></i></div>
                 </div>
             </div>`;
             box.scrollTop = box.scrollHeight;
@@ -2276,6 +2284,10 @@ const DiscordModule = {
             if (DiscordModule.replyingTo) {
                 payload.reply_to_id = DiscordModule.replyingTo.id;
                 DiscordModule.cancelReply(); // Clear reply state
+            }
+            // Add expires_in for disappearing messages
+            if (DiscordModule.disappearingTimer) {
+                payload.expires_in = DiscordModule.disappearingTimer;
             }
 
             const res = await fetch(`/api/dms/by_id/${dmId}/send`, {
@@ -2295,12 +2307,19 @@ const DiscordModule = {
             DiscordModule.recentOwnMessages.add(cacheKey);
             setTimeout(() => DiscordModule.recentOwnMessages.delete(cacheKey), 5000);
 
-            // Immediately clear "sending" status
+            // Immediately clear "sending" status and add message ID for expiration tracking
             const sendingEl = document.getElementById(tempId);
             if (sendingEl) {
                 sendingEl.classList.remove('sending');
+                // Add data-message-id for expiration tracking
+                if (d.message && d.message.id) {
+                    sendingEl.setAttribute('data-message-id', d.message.id);
+                }
                 const timeEl = sendingEl.querySelector('.dm-bubble-time');
-                if (timeEl) timeEl.innerHTML = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                // Keep timer icon if disappearing message
+                const timerIcon = d.message && d.message.expires_at ?
+                    `<i class="fa-solid fa-clock disappearing-icon"></i>` : '';
+                if (timeEl) timeEl.innerHTML = timerIcon + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
 
             // No need for 1s delay, WebSocket or the next manual fetch will update the UI properly if needed,
@@ -2544,6 +2563,137 @@ const DiscordModule = {
         } catch (e) {
             console.error('Pinned error:', e);
         }
+    },
+
+    // --- DISAPPEARING MESSAGES UI ---
+    formatDisappearingTime: (seconds) => {
+        if (seconds < 60) return `${seconds} сек`;
+        if (seconds < 3600) return `${Math.floor(seconds / 60)} мин`;
+        if (seconds < 86400) return `${Math.floor(seconds / 3600)} ч`;
+        return `${Math.floor(seconds / 86400)} д`;
+    },
+
+    toggleDisappearingTimer: () => {
+        let dropdown = document.getElementById('disappearing-timer-dropdown');
+        if (dropdown) {
+            dropdown.remove();
+            return;
+        }
+
+        const btn = document.getElementById('disappearing-timer-btn');
+        if (!btn) return;
+
+        dropdown = document.createElement('div');
+        dropdown.id = 'disappearing-timer-dropdown';
+        dropdown.className = 'disappearing-dropdown';
+        dropdown.innerHTML = `
+            <div class="dropdown-header">⏱️ Исчезающие сообщения</div>
+            <div class="dropdown-item ${!DiscordModule.disappearingTimer ? 'active' : ''}" onclick="DiscordModule.setDisappearingTimer(null)">
+                <i class="fa-solid fa-xmark"></i> Выкл
+            </div>
+            <div class="dropdown-item ${DiscordModule.disappearingTimer === 30 ? 'active' : ''}" onclick="DiscordModule.setDisappearingTimer(30)">
+                <i class="fa-solid fa-clock"></i> 30 секунд
+            </div>
+            <div class="dropdown-item ${DiscordModule.disappearingTimer === 60 ? 'active' : ''}" onclick="DiscordModule.setDisappearingTimer(60)">
+                <i class="fa-solid fa-clock"></i> 1 минута
+            </div>
+            <div class="dropdown-item ${DiscordModule.disappearingTimer === 300 ? 'active' : ''}" onclick="DiscordModule.setDisappearingTimer(300)">
+                <i class="fa-solid fa-clock"></i> 5 минут
+            </div>
+            <div class="dropdown-item ${DiscordModule.disappearingTimer === 3600 ? 'active' : ''}" onclick="DiscordModule.setDisappearingTimer(3600)">
+                <i class="fa-solid fa-clock"></i> 1 час
+            </div>
+            <div class="dropdown-item ${DiscordModule.disappearingTimer === 86400 ? 'active' : ''}" onclick="DiscordModule.setDisappearingTimer(86400)">
+                <i class="fa-solid fa-clock"></i> 24 часа
+            </div>
+        `;
+        btn.parentElement.appendChild(dropdown);
+
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', function closeDropdown(e) {
+                if (!dropdown.contains(e.target) && e.target !== btn) {
+                    dropdown.remove();
+                    document.removeEventListener('click', closeDropdown);
+                }
+            });
+        }, 10);
+    },
+
+    setDisappearingTimer: (seconds) => {
+        DiscordModule.disappearingTimer = seconds;
+        const btn = document.getElementById('disappearing-timer-btn');
+        if (btn) {
+            if (seconds) {
+                btn.classList.add('active');
+                btn.title = `Таймер: ${DiscordModule.formatDisappearingTime(seconds)}`;
+            } else {
+                btn.classList.remove('active');
+                btn.title = 'Исчезающие сообщения';
+            }
+        }
+        document.getElementById('disappearing-timer-dropdown')?.remove();
+        Utils.showToast(seconds ? `⏱️ Таймер: ${DiscordModule.formatDisappearingTime(seconds)}` : '⏱️ Таймер выключен');
+    },
+
+    // --- CONTEXT MENU FOR MESSAGES ---
+    showMessageContextMenu: (event, messageId) => {
+        event.preventDefault();
+
+        // Remove existing menu
+        document.getElementById('message-context-menu')?.remove();
+
+        const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!msgEl) return;
+
+        const isOwnMessage = msgEl.classList.contains('own');
+
+        // Create menu
+        const menu = document.createElement('div');
+        menu.id = 'message-context-menu';
+        menu.className = 'context-menu';
+        menu.style.left = event.pageX + 'px';
+        menu.style.top = event.pageY + 'px';
+
+        let menuItems = `
+            <div class="context-menu-item" onclick="DiscordModule.copyMessageText(${messageId})">
+                <i class="fa-solid fa-copy"></i> Копировать текст
+            </div>
+            <div class="context-menu-item" onclick="DiscordModule.startReply(${messageId})">
+                <i class="fa-solid fa-reply"></i> Ответить
+            </div>
+        `;
+
+        if (isOwnMessage) {
+            menuItems += `
+                <div class="context-menu-item" onclick="DiscordModule.editMessage(${messageId})">
+                    <i class="fa-solid fa-pen"></i> Редактировать
+                </div>
+                <div class="context-menu-item danger" onclick="DiscordModule.deleteMessage(${messageId})">
+                    <i class="fa-solid fa-trash"></i> Удалить
+                </div>
+            `;
+        }
+
+        menu.innerHTML = menuItems;
+        document.body.appendChild(menu);
+
+        // Close on click outside
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu() {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            });
+        }, 10);
+    },
+
+    copyMessageText: (messageId) => {
+        const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
+        const textEl = msgEl?.querySelector('.dm-bubble-text');
+        if (textEl) {
+            Utils.copyToClipboard(textEl.textContent);
+            Utils.showToast('Текст скопирован');
+        }
     }
 
 };
@@ -2672,6 +2822,16 @@ const WebSocketModule = {
                 indicator.style.display = 'none';
             }
         });
+
+        // Handle expired (disappearing) messages
+        socket.on('message_expired', (data) => {
+            console.log('[WS] Message expired:', data);
+            const msgEl = document.querySelector(`[data-message-id="${data.message_id}"]`);
+            if (msgEl) {
+                msgEl.classList.add('fade-out');
+                setTimeout(() => msgEl.remove(), 500);
+            }
+        });
     }
 };
 
@@ -2693,6 +2853,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Add context menu handler for messages (event delegation)
+    document.addEventListener('contextmenu', (e) => {
+        const bubble = e.target.closest('.dm-bubble[data-message-id]');
+        if (bubble) {
+            const messageId = bubble.getAttribute('data-message-id');
+            if (messageId) {
+                DiscordModule.showMessageContextMenu(e, messageId);
+            }
+        }
+    });
 });
 
 // === GIF MODULE ===

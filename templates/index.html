@@ -544,6 +544,9 @@
                     <input id="global-input" placeholder="Message #general"
                         onkeydown="if(event.key==='Enter') DiscordModule.handleInput()">
                     <div class="right-icons">
+                        <i class="fa-solid fa-clock" id="disappearing-timer-btn" 
+                            onclick="DiscordModule.toggleDisappearingTimer()" 
+                            title="Исчезающие сообщения"></i>
                         <i class="fa-solid fa-gift"></i>
                         <i class="fa-solid fa-sticky-note"></i>
                         <i class="fa-solid fa-face-smile" id="emoji-picker-btn"

@@ -1,4 +1,4 @@
-@echo off
+    @echo off
 echo Stopping old processes...
 taskkill /F /IM python.exe /T 2>nul
 taskkill /F /IM py.exe /T 2>nul

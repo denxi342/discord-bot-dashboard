@@ -791,6 +791,8 @@ body::before {
     display: flex;
     gap: 8px;
     color: var(--text-secondary);
+    position: relative;
+    /* For dropdown positioning */
 }
 
 .right-icons i {
@@ -801,6 +803,179 @@ body::before {
 
 .right-icons i:hover {
     color: var(--primary);
+}
+
+/* --- DISAPPEARING MESSAGES --- */
+#disappearing-timer-btn {
+    transition: all 0.2s ease;
+}
+
+#disappearing-timer-btn.active {
+    color: #fbbf24 !important;
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.disappearing-dropdown {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 8px;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 8px 0;
+    min-width: 180px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    animation: dropdown-slide 0.15s ease;
+}
+
+@keyframes dropdown-slide {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.disappearing-dropdown .dropdown-header {
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 4px;
+}
+
+.disappearing-dropdown .dropdown-item {
+    padding: 10px 16px;
+    font-size: 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.15s;
+}
+
+.disappearing-dropdown .dropdown-item:hover {
+    background: var(--chat-hover);
+}
+
+.disappearing-dropdown .dropdown-item.active {
+    background: rgba(88, 101, 242, 0.2);
+    color: var(--primary);
+}
+
+.disappearing-dropdown .dropdown-item i {
+    width: 18px;
+    text-align: center;
+    color: #fbbf24;
+}
+
+.disappearing-dropdown .dropdown-item:first-of-type i {
+    color: var(--text-muted);
+}
+
+/* Disappearing message indicator */
+.dm-bubble.disappearing {
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.disappearing-icon {
+    color: #fbbf24 !important;
+    font-size: 10px;
+    margin-right: 4px;
+}
+
+/* Fade-out animation for expired messages */
+.dm-bubble.fade-out {
+    animation: message-fade-out 0.5s ease forwards;
+}
+
+@keyframes message-fade-out {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(0.95);
+        height: 0;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+    }
+}
+
+/* --- CONTEXT MENU --- */
+.context-menu {
+    position: fixed;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 0;
+    min-width: 180px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    animation: context-menu-appear 0.1s ease;
+}
+
+@keyframes context-menu-appear {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.context-menu-item {
+    padding: 8px 12px;
+    font-size: 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.15s;
+}
+
+.context-menu-item:hover {
+    background: var(--chat-hover);
+}
+
+.context-menu-item.danger {
+    color: var(--danger);
+}
+
+.context-menu-item.danger:hover {
+    background: rgba(242, 63, 67, 0.15);
+}
+
+.context-menu-item i {
+    width: 16px;
+    text-align: center;
 }
 
 /* SCROLLBARS - Light Theme */
