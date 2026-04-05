@@ -905,63 +905,64 @@ body::before {
     font-size: 13px;
 }
 
-/* INPUT AREA */
-/* --- GLASSMORPHIC CHAT INPUT (Beautified) --- */
-/* --- GLASSMORPHIC CHAT INPUT (Beautified) --- */
+/* INPUT AREA — PREMIUM GLASSMORPHIC DESIGN */
 .chat-input-area {
-    padding: 10px 20px 24px;
+    padding: 12px 20px 20px;
     flex-shrink: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: transparent;
+    background: linear-gradient(to top, rgba(20, 21, 28, 0.95) 0%, transparent 100%);
     position: relative;
     z-index: 10;
 }
 
 .chat-input-wrapper {
-    background: rgba(49, 51, 56, 0.4);
+    background: rgba(40, 43, 54, 0.75);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 18px;
     display: flex;
-    align-items: flex-end;
-    padding: 8px 12px;
-    min-height: 48px;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    align-items: center;
+    padding: 0 8px 0 8px;
+    min-height: 54px;
+    gap: 4px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .chat-input-wrapper:focus-within {
-    background: rgba(49, 51, 56, 0.6);
-    border-color: var(--primary);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    background: rgba(45, 48, 62, 0.9);
+    border-color: rgba(88, 101, 242, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(88, 101, 242, 0.2), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .input-btn {
     background: transparent;
     border: none;
     color: var(--text-muted);
-    font-size: 20px;
+    font-size: 18px;
     cursor: pointer;
-    padding: 8px;
+    padding: 0;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .input-btn:hover {
-    color: var(--text-normal);
-    background: rgba(255, 255, 255, 0.05);
+    color: var(--primary);
+    background: rgba(88, 101, 242, 0.1);
 }
 
 .input-field-container {
     flex: 1;
     position: relative;
-    margin: 0 10px;
     display: flex;
     align-items: center;
+    min-width: 0;
 }
 
 #global-input {
@@ -971,82 +972,109 @@ body::before {
     outline: none;
     color: var(--text-normal);
     font-size: 15px;
-    padding: 8px 35px 8px 4px;
+    padding: 16px 40px 16px 4px;
     resize: none;
-    height: 36px;
-    min-height: 24px;
+    height: 54px;
+    min-height: 54px;
     max-height: 200px;
-    line-height: 20px;
+    line-height: 22px;
     font-family: inherit;
+    overflow-y: hidden;
+}
+
+#global-input::placeholder {
+    color: rgba(148, 155, 164, 0.6);
+    font-style: normal;
 }
 
 .input-actions-overlay {
     position: absolute;
-    right: 5px;
-    bottom: 5px;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 6px;
 }
 
 .input-actions-overlay i {
     color: var(--text-muted);
     cursor: pointer;
-    font-size: 18px;
-    padding: 4px;
-    transition: color 0.2s;
+    font-size: 17px;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .input-actions-overlay i:hover {
     color: #ffcc4d;
+    background: rgba(255, 204, 77, 0.1);
 }
 
 .right-controls {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 4px;
+    flex-shrink: 0;
 }
 
 .extra-icons {
     display: flex;
-    gap: 12px;
-    color: var(--text-muted);
+    align-items: center;
+    gap: 2px;
 }
 
 .extra-icons i {
     cursor: pointer;
-    font-size: 18px;
-    transition: all 0.2s;
+    font-size: 17px;
+    color: var(--text-muted);
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .extra-icons i:hover {
     color: var(--text-normal);
+    background: rgba(255, 255, 255, 0.07);
     transform: scale(1.1);
 }
 
 .send-btn {
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #5865F2, #4752C4);
+    background: linear-gradient(135deg, #5865F2 0%, #4752C4 100%);
     border: none;
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 4px 10px rgba(88, 101, 242, 0.3);
+    transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+    flex-shrink: 0;
+    margin-left: 4px;
 }
 
 .send-btn:hover {
-    transform: scale(1.1) rotate(-10deg);
-    box-shadow: 0 6px 15px rgba(88, 101, 242, 0.4);
-    background: linear-gradient(135deg, #6c79f5, #5865f2);
+    transform: scale(1.12) rotate(-8deg);
+    box-shadow: 0 6px 20px rgba(88, 101, 242, 0.55);
+    background: linear-gradient(135deg, #6c79f5 0%, #5865f2 100%);
+}
+
+.send-btn:active {
+    transform: scale(0.95);
 }
 
 .send-btn i {
     font-size: 14px;
-    margin-left: 2px;
+    margin-left: 1px;
 }
 
 
