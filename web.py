@@ -287,7 +287,14 @@ def init_db():
 
 # Removed file-based users_db logic since we now have columns for role/reputation in DB.
 
-init_db()
+def safe_init_db():
+    try:
+        init_db()
+    except Exception as e:
+        print(f"[!] CRITICAL: Database initialization failed: {e}")
+        print("[!] The application will attempt to start, but database features will be broken.")
+
+safe_init_db()
 
 def run_db_migration():
     """
@@ -658,7 +665,10 @@ def run_db_migration():
         print(f"[!] Migration error (this may be safe to ignore if columns already exist): {e}")
 
 # Run migration to add missing columns to existing databases
-run_db_migration()
+try:
+    run_db_migration()
+except Exception as e:
+    print(f"[!] CRITICAL: Global migration failed: {e}")
 
 # --- DISAPPEARING MESSAGES CLEANUP THREAD ---
 def cleanup_expired_messages():
