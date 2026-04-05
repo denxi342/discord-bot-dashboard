@@ -26,38 +26,14 @@
         crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=37">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/features.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-premium.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/telegram-input.css') }}?v=18">
-    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}?v=3"> -->
-
-
-
-    <!-- Required Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"
-        crossorigin="anonymous"></script>
-
-    <!-- Notification System -->
-    <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
-
-    <!-- Animations Module -->
-    <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
-
-    <!-- Emoji Data -->
-    <script src="{{ url_for('static', filename='js/emoji-data.js') }}"></script>
-
-    <!-- Advanced Features Module -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/advanced-features.css') }}">
-    <script src="{{ url_for('static', filename='js/advanced-features.js') }}"></script>
-
-    <!-- Voice Messages Module -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/voice-messages.css') }}">
-    <script src="{{ url_for('static', filename='js/voice-recorder.js') }}"></script>
-
-    <!-- End-to-End Encryption Module -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/encryption.css') }}">
-    <script src="{{ url_for('static', filename='js/encryption.js') }}"></script>
+    <!-- Asset Versions Bumped to v=100 for Cache Refresh -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=100">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/features.css') }}?v=100">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-premium.css') }}?v=100">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/telegram-input.css') }}?v=100">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/advanced-features.css') }}?v=100">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/voice-messages.css') }}?v=100">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/encryption.css') }}?v=100">
 
     <!-- Current User Data -->
     <script>
@@ -853,10 +829,10 @@
                             </div>
                         </div>
                     </div>
+                        </div>
+                    </div>
                 </div>
             </div> <!-- End Views Content -->
-        </div> <!-- End Main Content -->
-    </div> <!-- End Discord Layout -->
 
     <!-- 🔒 Admin 2FA Modal -->
     <div id="admin-2fa-modal" class="modal-overlay" style="display: none;">
@@ -1505,11 +1481,20 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/legal-consent.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/attachments.js') }}"></script>
+    <!-- Scripts (Consolidated & Versions Bumped) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='js/notifications.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/animations.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/emoji-data.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/advanced-features.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/voice-recorder.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/encryption.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/legal-consent.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/attachments.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/emoji-module.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/edit_field_fix.js') }}?v=100"></script>
 
     <!-- 🎨 LOADING SCREEN SCRIPT -->
     <script>
@@ -1555,11 +1540,6 @@
         });
     </script>
 
-    <!-- Feature Modules (Duplicates removed to prevent SyntaxErrors) -->
-    <script src="{{ url_for('static', filename='js/emoji-module.js') }}"></script>
-
-    <!-- Edit Field Fix - Override prompt with modal -->
-    <script src="{{ url_for('static', filename='js/edit_field_fix.js') }}"></script>
     <!-- Encryption Setup Wizard -->
     <div id="encryption-wizard" class="encryption-wizard" style="display: none;">
         <div class="encryption-wizard-content">

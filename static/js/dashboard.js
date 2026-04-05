@@ -558,8 +558,10 @@ const DiscordModule = {
             // Hide input for special UI-only views
             if (noInputViews.includes(chanId)) {
                 chatInput.style.display = 'none';
+                console.log(`[UI] Hiding chat input for view: ${chanId}`);
             } else {
                 chatInput.style.display = 'flex';
+                console.log(`[UI] Showing chat input for view: ${chanId}`);
             }
         }
 
@@ -2005,8 +2007,10 @@ const DiscordModule = {
             // dmId 0 is "Команда Octave", which is read-only announcement channel
             if (String(dmId) === '0') {
                 chatInput.style.display = 'none';
+                console.log('[UI] Read-only channel (ID 0). Hiding input.');
             } else {
                 chatInput.style.display = 'flex';
+                console.log(`[UI] DM channel (ID ${dmId}). Showing input.`);
             }
         }
 
