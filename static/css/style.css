@@ -425,8 +425,8 @@ body::before {
     /* Hidden by default */
     flex-direction: column;
     justify-content: flex-end;
-    /* Chat starts at bottom usually, but for tools maybe top? Let's stick to natural flow */
-    min-height: 100%;
+    /* Chat starts at bottom */
+    flex-grow: 1;
     padding-bottom: 24px;
 }
 

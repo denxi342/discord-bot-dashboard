@@ -827,35 +827,9 @@
                                     </table>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                        </div>
-                    </div>
-                </div>
-            </div> <!-- End Views Content -->
-
-    <!-- 🔒 Admin 2FA Modal -->
-    <div id="admin-2fa-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content glass" style="max-width: 400px; text-align: center; border-radius: 20px; padding: 30px;">
-            <div class="modal-header" style="justify-content: center; border: none; margin-bottom: 20px;">
-                <div style="width: 60px; height: 60px; background: rgba(88, 101, 242, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
-                    <i class="fa-solid fa-shield-lock" style="font-size: 30px; color: #5865f2;"></i>
-                </div>
-            </div>
-            <h2 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 10px;">Подтверждение доступа</h2>
-            <p style="color: #949ba4; font-size: 14px; margin-bottom: 24px;">Введите секретный PIN-код для входа в панель управления.</p>
-            
-            <div class="form-group">
-                <input type="password" id="admin-2fa-pin" class="admin-input" maxlength="6" 
-                       placeholder="••••••" style="text-align: center; font-size: 24px; letter-spacing: 15px; font-family: monospace;">
-            </div>
-            
-            <div style="display: flex; gap: 12px; margin-top: 24px;">
-                <button class="admin-btn secondary" style="flex: 1;" onclick="AdminModule.close2FA()">Отмена</button>
-                <button class="admin-btn" style="flex: 2;" onclick="AdminModule.verify2FA()">Войти</button>
-            </div>
-        </div>
-    </div>
+                        </div> <!-- End Logs -->
+                    </div> <!-- End Admin Dashboard -->
+                </div> <!-- End Channel View Admin -->
 
                 <!-- SMI -->
                 <div id="channel-view-smi" class="channel-view">
@@ -875,9 +849,9 @@
                     <div id="stream-profile"></div>
                 </div>
 
-            </div>
+            </div> <!-- End Chat Scroll Area (main-scroll-area) -->
 
-            <!-- Global Input -->
+            <!-- Global Input (Inside Chat Area, after Scroll Area) -->
             <div class="chat-input-area">
                 <div class="chat-input-wrapper">
                     <button class="input-btn" id="attach-file-btn" title="Прикрепить файл"
