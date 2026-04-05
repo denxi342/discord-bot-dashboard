@@ -283,14 +283,12 @@ def init_db():
                   UNIQUE(server_id, user_id))''')
     print("  [+] Server members table ready")
     
-    # Admin Logs Table
-    c.execute(f'''CREATE TABLE IF NOT EXISTS admin_logs
-                 (id {pk_type},
-                  admin_id INTEGER NOT NULL,
-                  ip_address TEXT,
-                  action TEXT,
-                  timestamp REAL)''')
-    print("  [+] Admin logs table ready")
+    # --- Performance Indexes ---
+    c.execute('CREATE INDEX IF NOT EXISTS idx_dm_messages_dm_id ON dm_messages(dm_id)')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_dm_messages_timestamp ON dm_messages(timestamp)')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_message_reactions_message_id ON message_reactions(message_id)')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_direct_messages_last_message_at ON direct_messages(last_message_at)')
+    print("  [+] Performance indexes ready")
                   
     conn.commit()
     conn.close()
@@ -3432,75 +3430,52 @@ def api_get_dms():
     if 'user' not in session: return jsonify({'success': False}), 401
     my_id = int(session['user']['id'])
     
-    # 1. Get DMs where I am involved
+    # Combined query to fetch DMs, other user info, and last message in one go
+    # Using a CASE for other_id to handle both normal and self-DMs correctly
     rows = execute_query("""
-        SELECT dm.id, dm.user_id_1, dm.user_id_2, dm.last_message_at
+        SELECT 
+            dm.id, dm.user_id_1, dm.user_id_2, dm.last_message_at,
+            u.id as other_id, u.username, u.avatar, u.display_name,
+            m.content as last_content, m.timestamp as last_timestamp
         FROM direct_messages dm
+        JOIN users u ON u.id = (CASE WHEN dm.user_id_1 = %s AND dm.user_id_2 != %s THEN dm.user_id_2 ELSE dm.user_id_1 END)
+        LEFT JOIN (
+            SELECT dm_id, content, timestamp
+            FROM dm_messages
+            WHERE id IN (SELECT MAX(id) FROM dm_messages GROUP BY dm_id)
+        ) m ON m.dm_id = dm.id
         WHERE dm.user_id_1 = %s OR dm.user_id_2 = %s
         ORDER BY dm.last_message_at DESC
-    """, (my_id, my_id), fetch_all=True)
+    """, (my_id, my_id, my_id, my_id), fetch_all=True)
     
     dms = []
-    for r in rows:
-        dm_id = r[0]
-        u1 = r[1]
-        u2 = r[2]
-        ts = r[3]
+    for r in rows or []:
+        dm_id, u1, u2, ts, other_id, other_username, other_avatar, other_display_name, last_content, last_ts = r
         
-        # Determine who the other is
-        # If u1 == u2 (self-DM), other_id is still my_id
-        other_id = u2 if u1 == my_id else u1
-        
-        # Get other user info
-        u_row = execute_query("SELECT username, avatar, display_name FROM users WHERE id = %s", (other_id,), fetch_one=True)
-        if not u_row: continue
-        
-        username = u_row[0]
-        avatar = u_row[1] if u_row[1] else DEFAULT_AVATAR
-        display_name = u_row[2] or username
-        
-        # Special rename for self-DMs
-        if other_id == my_id:
+        display_name = other_display_name or other_username
+        if int(other_id) == my_id:
             display_name = "Saved Messages"
             
-        # Get last message for preview
-        last_msg_row = execute_query("""
-            SELECT content, timestamp, author_id 
-            FROM dm_messages 
-            WHERE dm_id = %s 
-            ORDER BY timestamp DESC 
-            LIMIT 1
-        """, (dm_id,), fetch_one=True)
-        
-        last_message_text = None
-        last_message_timestamp = ts
-        if last_msg_row:
-            # Truncate message content for preview
-            content = last_msg_row[0] or ""
-            if len(content) > 50:
-                content = content[:50] + "..."
-            last_message_text = content
-            last_message_timestamp = last_msg_row[1]
-        
-        # TODO: Calculate unread count (requires read_receipts table)
-        # For now, set to 0
-        unread_count = 0
-        
+        last_message_text = last_content
+        if last_message_text and len(last_message_text) > 50:
+            last_message_text = last_message_text[:50] + "..."
+            
         dms.append({
             'id': str(dm_id),
             'other_user': {
                 'id': str(other_id),
-                'username': username,
-                'avatar': avatar,
+                'username': other_username,
+                'avatar': other_avatar if other_avatar else DEFAULT_AVATAR,
                 'display_name': display_name
             },
             'last_message_at': ts,
             'last_message_text': last_message_text,
-            'last_message_timestamp': last_message_timestamp,
-            'unread_count': unread_count
+            'last_message_timestamp': last_ts or ts,
+            'unread_count': 0  # Placeholder as before
         })
         
     return jsonify({'success': True, 'dms': dms})
+
 
 @app.route('/api/dms/by_id/<int:dm_id>/messages', methods=['GET'])
 def api_dm_messages_by_id(dm_id):
@@ -3528,24 +3503,52 @@ def api_dm_messages_by_id(dm_id):
         ORDER BY dm.timestamp ASC
     """, (dm_id,), fetch_all=True)
     
-    messages = []
-    for r in rows or []:
-        msg_id = r[0]
-        # Get reactions for this message
-        reactions = get_message_reactions(msg_id)
+    if not rows:
+        return jsonify({'success': True, 'messages': []})
+
+    msg_ids = [r[0] for r in rows]
+    reply_ids = list(set([r[7] for r in rows if r[7]]))
+    
+    # Bulk fetch reactions
+    reactions_map = {}
+    if msg_ids:
+        placeholders = ','.join(['%s'] * len(msg_ids))
+        reaction_rows = execute_query(f'''
+            SELECT message_id, emoji, COUNT(*) as count
+            FROM message_reactions
+            WHERE message_id IN ({placeholders})
+            GROUP BY message_id, emoji
+        ''', tuple(msg_ids), fetch_all=True)
         
-        # Get reply preview if exists
-        reply_preview = None
-        if r[7]:  # reply_to_id
-            reply_row = execute_query(
-                'SELECT content, u.username FROM dm_messages dm JOIN users u ON u.id = dm.author_id WHERE dm.id = %s',
-                (r[7],), fetch_one=True
-            )
-            if reply_row:
-                reply_preview = {
-                    'content': reply_row[0][:100] + '...' if len(reply_row[0]) > 100 else reply_row[0],
-                    'username': reply_row[1]
-                }
+        for r_row in reaction_rows or []:
+            mid, emoji, count = r_row
+            if mid not in reactions_map:
+                reactions_map[mid] = {}
+            reactions_map[mid][emoji] = count
+
+    # Bulk fetch reply previews
+    replies_map = {}
+    if reply_ids:
+        placeholders = ','.join(['%s'] * len(reply_ids))
+        reply_rows = execute_query(f'''
+            SELECT dm.id, dm.content, u.username 
+            FROM dm_messages dm 
+            JOIN users u ON u.id = dm.author_id 
+            WHERE dm.id IN ({placeholders})
+        ''', tuple(reply_ids), fetch_all=True)
+        
+        for rep in reply_rows or []:
+            rid, content, uname = rep
+            replies_map[rid] = {
+                'content': content[:100] + '...' if len(content) > 100 else content,
+                'username': uname
+            }
+
+    messages = []
+    for r in rows:
+        msg_id = r[0]
+        reactions = reactions_map.get(msg_id, {})
+        reply_preview = replies_map.get(r[7]) if r[7] else None
         
         messages.append({
             'id': msg_id,
@@ -3558,8 +3561,7 @@ def api_dm_messages_by_id(dm_id):
             'reply_to': reply_preview,
             'author_id': r[8],
             'reactions': reactions,
-            'reactions': reactions,
-            'attachments': json.loads(r[9]) if r[9] else None,  # Parse JSON string to object
+            'attachments': json.loads(r[9]) if r[9] else None,
             'is_encrypted': bool(r[10]),
             'encryption_metadata': r[11],
             'cloud_folder_id': r[12],
@@ -3567,6 +3569,7 @@ def api_dm_messages_by_id(dm_id):
         })
     
     return jsonify({'success': True, 'messages': messages})
+
 
 @app.route('/api/dms/<int:target_id>/messages', methods=['GET'])
 def api_dm_messages(target_id):
