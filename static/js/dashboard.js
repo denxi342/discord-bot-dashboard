@@ -1823,22 +1823,7 @@ const DiscordModule = {
         } catch (e) { console.error(e); }
     },
 
-    startDM: async (uid) => {
-        try {
-            const res = await fetch('/api/dms/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target_id: uid })
-            });
-            const d = await res.json();
-            if (d.success) {
-                // Open DM view
-                DiscordModule.activeDM = d.dm_id;
-                DiscordModule.selectChannel('dm-' + d.dm_id, 'dm');
-                DiscordModule.refreshDMs();
-            }
-        } catch (e) { console.error(e); }
-    },
+    // --- DM Logic moves to consolidated startDM below ---
 
     // Override generic selectChannel to handle 'dm' type
     // We'll modify selectChannel logic or handle it via ID 'dm-X'
@@ -1984,8 +1969,8 @@ const DiscordModule = {
             if (data.success && data.dm_id) {
                 // Refresh DM List to ensure it appears in sidebar
                 await DiscordModule.loadDMList();
-                // Load the DM view
-                DiscordModule.loadDM(data.dm_id);
+                // Load and SWITCH to the DM view
+                DiscordModule.selectChannel('dm-' + data.dm_id, 'dm');
             } else {
                 Utils.showToast('Failed to start DM');
             }
