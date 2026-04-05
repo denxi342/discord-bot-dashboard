@@ -552,7 +552,10 @@ const DiscordModule = {
 
         // Show chat input when selecting a channel (hide only on friends)
         const chatInput = document.querySelector('.chat-input-area');
-        if (chatInput && chanId !== 'friends') {
+        const specialViews = ['friends', 'admin', 'cloud', 'news', 'leaderboard', 'my-profile'];
+        if (chatInput && specialViews.includes(chanId)) {
+            chatInput.style.display = 'none';
+        } else if (chatInput) {
             chatInput.style.display = 'flex';
         }
 
@@ -588,7 +591,8 @@ const DiscordModule = {
 
         const mappedViews = {
             'news': 'news', 'leaderboard': 'community', 'video-feed': 'general',
-            'chat-gpt': 'helper', 'search-rules': 'search', 'ad-editor': 'smi', 'users': 'admin', 'my-profile': 'profile'
+            'chat-gpt': 'helper', 'search-rules': 'search', 'ad-editor': 'smi', 'users': 'admin', 'my-profile': 'profile',
+            'admin': 'admin'
         };
 
         let viewKey = 'general';
