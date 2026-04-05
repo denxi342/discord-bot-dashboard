@@ -218,7 +218,9 @@ def init_db():
                   email TEXT,
                   phone TEXT,
                   role TEXT DEFAULT 'user',
-                  reputation INTEGER DEFAULT 0)''')
+                  reputation INTEGER DEFAULT 0,
+                  last_seen REAL,
+                  admin_pin TEXT)''')
     print("  [+] Users table ready")
 
     # Friends Table
@@ -280,6 +282,15 @@ def init_db():
                   joined_at REAL,
                   UNIQUE(server_id, user_id))''')
     print("  [+] Server members table ready")
+    
+    # Admin Logs Table
+    c.execute(f'''CREATE TABLE IF NOT EXISTS admin_logs
+                 (id {pk_type},
+                  admin_id INTEGER NOT NULL,
+                  ip_address TEXT,
+                  action TEXT,
+                  timestamp REAL)''')
+    print("  [+] Admin logs table ready")
                   
     conn.commit()
     conn.close()
@@ -310,6 +321,34 @@ def run_db_migration():
         varchar_type = "TEXT" if is_sqlite else "VARCHAR(255)"
         
         print("[*] Running database migration...")
+        
+        # Add columns to users table
+        if is_sqlite:
+            cursor.execute("PRAGMA table_info(users)")
+            user_cols = {row[1] for row in cursor.fetchall()}
+            if 'last_seen' not in user_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN last_seen REAL")
+                print("  [+] Added last_seen to users")
+            if 'admin_pin' not in user_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN admin_pin TEXT")
+                print("  [+] Added admin_pin to users")
+        else:
+            cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
+            user_cols = {row[0] for row in cursor.fetchall()}
+            if 'last_seen' not in user_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN last_seen DOUBLE PRECISION")
+                print("  [+] Added last_seen to users")
+            if 'admin_pin' not in user_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN admin_pin TEXT")
+                print("  [+] Added admin_pin to users")
+                
+        # Create admin_logs if not exists
+        cursor.execute(f'''CREATE TABLE IF NOT EXISTS admin_logs
+                     (id {pk_type},
+                      admin_id INTEGER NOT NULL,
+                      ip_address TEXT,
+                      action TEXT,
+                      timestamp REAL)''')
         
         if is_sqlite:
             # SQLite: Check columns via PRAGMA
@@ -1736,6 +1775,9 @@ def check_auth():
             if current_username in FOUNDERS:
                 execute_query("UPDATE users SET role = 'developer' WHERE id = %s", (current_uid,), commit=True)
             
+            # Update last_seen
+            execute_query("UPDATE users SET last_seen = %s WHERE id = %s", (time.time(), current_uid), commit=True)
+            
             res = execute_query("SELECT role FROM users WHERE id = %s", (current_uid,), fetch_one=True)
             if res and res[0] != session['user'].get('role'):
                 session['user']['role'] = res[0]
@@ -1808,19 +1850,19 @@ def api_get_users():
     # Using execute_query to limit results (Pagination TODO)
     params = ()
     # Limit logic handled inside execute_query or via raw SQL
-    rows = execute_query("SELECT id, username, avatar, role FROM users LIMIT 100", fetch_all=True)
+    rows = execute_query("SELECT id, username, avatar, role, last_seen FROM users LIMIT 100", fetch_all=True)
     
     users_list = []
     if rows:
         for r in rows:
             user_id = str(r[0])
-            # Check real online status from online_users dict
             is_online = user_id in online_users
             users_list.append({
                 'id': user_id,
                 'username': r[1],
                 'avatar': get_valid_avatar(r[2]),
                 'role': r[3] if len(r) > 3 else 'user',
+                'last_seen': r[4] if len(r) > 4 else None,
                 'status': 'online' if is_online else 'offline'
             })
         
@@ -1933,6 +1975,12 @@ def api_admin_grant_admin():
     execute_query("UPDATE users SET role = 'admin' WHERE id = %s", (target_id,), commit=True)
     add_log('warning', f"User {target_username} ({target_id}) granted ADMIN status by {session['user']['username']}")
     
+    # Log Admin Action
+    admin_id = session['user']['id']
+    ip_addr = request.headers.get('X-Forwarded-For', request.remote_addr)
+    execute_query("INSERT INTO admin_logs (admin_id, ip_address, action, timestamp) VALUES (%s, %s, %s, %s)",
+                  (admin_id, ip_addr, f"Granted ADMIN to {target_username} ({target_id})", time.time()), commit=True)
+    
     return jsonify({'success': True, 'message': f'Admin status granted to {target_username}'})
 
 # --- REPORT SYSTEM API ---
@@ -2027,7 +2075,139 @@ def api_admin_resolve_report():
     # Remove the report after handling
     execute_query("DELETE FROM reports WHERE id = %s", (report_id,), commit=True)
     
+    # Log Admin Action
+    admin_id = session['user']['id']
+    ip_addr = request.headers.get('X-Forwarded-For', request.remote_addr)
+    execute_query("INSERT INTO admin_logs (admin_id, ip_address, action, timestamp) VALUES (%s, %s, %s, %s)",
+                  (admin_id, ip_addr, f"Resolved report {report_id} (Action: {action})", time.time()), commit=True)
+    
     return jsonify({'success': True, 'message': 'Report resolved'})
+
+# --- ADVANCED ADMIN SYSTEM ---
+
+@app.route('/api/admin/verify-2fa', methods=['POST'])
+def api_admin_verify_2fa():
+    if 'user' not in session or session['user'].get('role') not in ['admin', 'developer']:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    pin = data.get('pin')
+    admin_id = session['user']['id']
+    
+    # System PIN - default '123456' or from environment
+    MASTER_PIN = os.environ.get('ADMIN_PANEL_PIN', '123456')
+    
+    if pin == MASTER_PIN:
+        session['admin_verified'] = True
+        session.modified = True
+        
+        # Log Access
+        ip_addr = request.headers.get('X-Forwarded-For', request.remote_addr)
+        execute_query("INSERT INTO admin_logs (admin_id, ip_address, action, timestamp) VALUES (%s, %s, %s, %s)",
+                      (admin_id, ip_addr, "Admin Panel Access (2FA Verified)", time.time()), commit=True)
+        
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'Неверный PIN-код'})
+
+@app.route('/api/admin/broadcast', methods=['POST'])
+def api_admin_broadcast():
+    if 'user' not in session or session['user'].get('role') not in ['admin', 'developer']:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    if not session.get('admin_verified'):
+        return jsonify({'success': False, 'error': 'Требуется подтверждение 2FA'}), 401
+    
+    data = request.json
+    content = data.get('content')
+    if not content: return jsonify({'success': False, 'error': 'Пустое сообщение'}), 400
+    
+    admin_id = session['user']['id']
+    timestamp = time.time()
+    
+    try:
+        # Get all users (except system bot ID 0)
+        users = execute_query("SELECT id FROM users WHERE id != 0", fetch_all=True)
+        
+        # Create/Find System User "Команда Octave" (ID 0)
+        has_system = execute_query("SELECT id FROM users WHERE id = 0", fetch_one=True)
+        if not has_system:
+            execute_query("INSERT INTO users (id, username, password_hash, role) VALUES (0, 'Команда Octave', 'system_lock', 'bot')", commit=True)
+        
+        sent_count = 0
+        for uid_row in users:
+            uid = uid_row[0]
+            
+            # Find/Create DM
+            dm_id = None
+            existing_dm = execute_query("SELECT id FROM direct_messages WHERE (user_id_1 = 0 AND user_id_2 = %s) OR (user_id_1 = %s AND user_id_2 = 0)", 
+                                       (uid, uid), fetch_one=True)
+            
+            if existing_dm:
+                dm_id = existing_dm[0]
+            else:
+                dm_id = execute_query("INSERT INTO direct_messages (user_id_1, user_id_2, last_message_at) VALUES (0, %s, %s)",
+                                     (uid, timestamp), commit=True)
+            
+            # Insert message
+            execute_query("INSERT INTO dm_messages (dm_id, author_id, content, timestamp) VALUES (%s, 0, %s, %s)", 
+                          (dm_id, content, timestamp), commit=True)
+            
+            # Notify recipient
+            socketio.emit('new_dm_message', {
+                'dm_id': dm_id,
+                'author_id': 0,
+                'author_name': 'Команда Octave',
+                'content': content,
+                'timestamp': timestamp,
+                'is_system': True
+            }, room=str(uid))
+            
+            sent_count += 1
+            
+        # Log Action
+        ip_addr = request.headers.get('X-Forwarded-For', request.remote_addr)
+        execute_query("INSERT INTO admin_logs (admin_id, ip_address, action, timestamp) VALUES (%s, %s, %s, %s)",
+                      (admin_id, ip_addr, f"Sent broadcast to {sent_count} users", time.time()), commit=True)
+                      
+        return jsonify({'success': True, 'count': sent_count})
+    except Exception as e:
+        print(f"[Broadcast] Error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/admin/logs', methods=['GET'])
+def api_admin_logs():
+    if 'user' not in session or session['user'].get('role') not in ['admin', 'developer']:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    if not session.get('admin_verified'):
+        return jsonify({'success': False, 'error': 'Требуется подтверждение 2FA'}), 401
+    
+    try:
+        query = """
+            SELECT al.id, al.ip_address, al.action, al.timestamp, u.username as admin_name
+            FROM admin_logs al
+            JOIN users u ON al.admin_id = u.id
+            ORDER BY al.timestamp DESC
+            LIMIT 100
+        """
+        logs = execute_query(query, fetch_all=True)
+        
+        result = []
+        for l in logs:
+            result.append({
+                'id': l[0],
+                'ip': l[1],
+                'action': l[2],
+                'timestamp': l[3],
+                'admin': l[4]
+            })
+            
+        return jsonify({'success': True, 'logs': result})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# --- END ADVANCED ADMIN SYSTEM ---
 
 @app.route('/callback')
 def callback():

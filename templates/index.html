@@ -680,7 +680,9 @@
                                 <div class="admin-tab-btns" style="display: flex; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 4px;">
                                     <button class="tab-btn active" id="admin-tab-btn-overview" onclick="AdminModule.switchTab('overview')">Обзор</button>
                                     <button class="tab-btn" id="admin-tab-btn-users" onclick="AdminModule.switchTab('users')">Пользователи</button>
+                                    <button class="tab-btn" id="admin-tab-btn-broadcast" onclick="AdminModule.switchTab('broadcast')">Рассылка</button>
                                     <button class="tab-btn" id="admin-tab-btn-reports" onclick="AdminModule.switchTab('reports')">Жалобы</button>
+                                    <button class="tab-btn" id="admin-tab-btn-logs" onclick="AdminModule.switchTab('logs')">Логи</button>
                                 </div>
                                 <button class="admin-btn secondary" onclick="AdminModule.refreshCurrentTab()" style="width: auto; padding: 10px 15px;">
                                     <i class="fa-solid fa-rotate"></i>
@@ -775,7 +777,7 @@
                                     <h3>Жалобы на сообщения</h3>
                                     <span class="report-count-badge" id="admin-report-count">0 активных</span>
                                 </div>
-                                <div class="reports-container" id="admin-reports-list" style="padding: 20px;">
+                                <div class="reports-container" id="admin-reports-list" style="padding: 24px;">
                                     <!-- Reports will be injected here -->
                                     <div class="empty-reports" style="text-align: center; color: #949ba4; padding: 40px;">
                                         <i class="fa-solid fa-check-double" style="font-size: 48px; margin-bottom: 20px; opacity: 0.3;"></i>
@@ -784,8 +786,80 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Tab: Broadcast -->
+                        <div id="admin-view-broadcast" class="admin-tab-view" style="display: none;">
+                            <div class="admin-card">
+                                <div class="admin-card-header">
+                                    <h3>Глобальная рассылка</h3>
+                                </div>
+                                <div class="admin-form" style="padding: 24px;">
+                                    <p style="color: #949ba4; margin-bottom: 20px; font-size: 13px;">
+                                        <i class="fa-solid fa-triangle-exclamation" style="color: #faa61a;"></i>
+                                        Сообщение будет отправлено <strong>всем</strong> зарегистрированным пользователям от имени <strong>Команда Octave</strong>.
+                                    </p>
+                                    <div class="form-group">
+                                        <label>Текст объявления</label>
+                                        <textarea id="admin-broadcast-text" class="admin-input" rows="6" placeholder="Введите текст сообщения..."></textarea>
+                                    </div>
+                                    <button class="admin-btn" onclick="AdminModule.sendBroadcast()" id="admin-broadcast-btn">
+                                        <i class="fa-solid fa-paper-plane"></i> Запустить рассылку
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Logs -->
+                        <div id="admin-view-logs" class="admin-tab-view" style="display: none;">
+                            <div class="admin-card">
+                                <div class="admin-card-header">
+                                    <h3>Логи действий и безопасности</h3>
+                                </div>
+                                <div class="admin-table-container">
+                                    <table class="admin-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Администратор</th>
+                                                <th>IP-Адрес</th>
+                                                <th>Действие</th>
+                                                <th>Время</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-logs-table-body">
+                                            <!-- Logs rendered here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div> <!-- End Views Content -->
+        </div> <!-- End Main Content -->
+    </div> <!-- End Discord Layout -->
+
+    <!-- 🔒 Admin 2FA Modal -->
+    <div id="admin-2fa-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content glass" style="max-width: 400px; text-align: center; border-radius: 20px; padding: 30px;">
+            <div class="modal-header" style="justify-content: center; border: none; margin-bottom: 20px;">
+                <div style="width: 60px; height: 60px; background: rgba(88, 101, 242, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                    <i class="fa-solid fa-shield-lock" style="font-size: 30px; color: #5865f2;"></i>
+                </div>
+            </div>
+            <h2 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 10px;">Подтверждение доступа</h2>
+            <p style="color: #949ba4; font-size: 14px; margin-bottom: 24px;">Введите секретный PIN-код для входа в панель управления.</p>
+            
+            <div class="form-group">
+                <input type="password" id="admin-2fa-pin" class="admin-input" maxlength="6" 
+                       placeholder="••••••" style="text-align: center; font-size: 24px; letter-spacing: 15px; font-family: monospace;">
+            </div>
+            
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button class="admin-btn secondary" style="flex: 1;" onclick="AdminModule.close2FA()">Отмена</button>
+                <button class="admin-btn" style="flex: 2;" onclick="AdminModule.verify2FA()">Войти</button>
+            </div>
+        </div>
+    </div>
 
                 <!-- SMI -->
                 <div id="channel-view-smi" class="channel-view">

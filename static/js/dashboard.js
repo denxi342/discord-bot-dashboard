@@ -3808,9 +3808,48 @@ const AdminModule = {
     currentTab: 'overview',
     
     openAdminPanel: () => {
+        // 🔒 2FA Check
+        if (!AdminModule.isVerified) {
+            document.getElementById('admin-2fa-modal').style.display = 'flex';
+            document.getElementById('admin-2fa-pin').focus();
+            return;
+        }
+        
         // Switch to admin view
         DiscordModule.selectChannel('admin', 'channel');
         AdminModule.switchTab('overview');
+    },
+
+    isVerified: false,
+
+    verify2FA: async () => {
+        const pin = document.getElementById('admin-2fa-pin').value;
+        if (!pin) return;
+        
+        try {
+            const res = await fetch('/api/admin/verify-2fa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin: pin })
+            });
+            const data = await res.json();
+            if (data.success) {
+                AdminModule.isVerified = true;
+                document.getElementById('admin-2fa-modal').style.display = 'none';
+                Utils.showToast("Доступ разрешен");
+                AdminModule.openAdminPanel();
+            } else {
+                Utils.showToast(data.error || "Неверный PIN");
+            }
+        } catch (e) {
+            console.error(e);
+            Utils.showToast("Ошибка проверки");
+        }
+    },
+
+    close2FA: () => {
+        document.getElementById('admin-2fa-modal').style.display = 'none';
+        document.getElementById('admin-2fa-pin').value = '';
     },
 
     switchTab: (tab) => {
@@ -3830,6 +3869,7 @@ const AdminModule = {
         if (tab === 'overview') AdminModule.fetchStats();
         if (tab === 'users') AdminModule.fetchUsers();
         if (tab === 'reports') AdminModule.fetchReports();
+        if (tab === 'logs') AdminModule.fetchLogs();
     },
 
     refreshCurrentTab: () => {
@@ -3978,37 +4018,28 @@ const AdminModule = {
     // --- END REPORT SYSTEM ---
     
     renderUsers: (users) => {
-        const body = document.getElementById('admin-users-table-body');
-        if (!body) return;
-        body.innerHTML = '';
+        const tbody = document.getElementById('admin-users-table-body');
+        if (!tbody) return;
         
-        users.forEach(u => {
-            const tr = document.createElement('tr');
-            const roleClass = `role-${u.role}`;
-            const statusColor = u.status === 'online' ? '#23a559' : '#80848e';
-            
-            tr.innerHTML = `
+        tbody.innerHTML = users.map(u => `
+            <tr>
                 <td>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${u.avatar}" style="width: 32px; height: 32px; border-radius: 50%;">
+                        <img src="${u.avatar}" style="width: 28px; height: 28px; border-radius: 50%;">
                         <span>${Utils.escapeHtml(u.username)}</span>
                     </div>
                 </td>
+                <td style="font-size: 12px; color: #949ba4;">#${u.id}</td>
+                <td><span class="role-badge ${u.role}">${u.role.toUpperCase()}</span></td>
+                <td style="font-size: 13px;">${AdminModule.formatLastSeen(u.last_seen)}</td>
                 <td>
-                    <span style="color: #949ba4; font-family: monospace;">#${u.id} / Tag#${u.id.toString().slice(-4)}</span>
-                </td>
-                <td>
-                    <span class="role-badge ${roleClass}">${u.role}</span>
-                </td>
-                <td>
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <div style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor}"></div>
-                        <span style="font-size: 12px; color: #949ba4;">${u.status}</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="admin-btn sm" onclick="DiscordModule.startDM(${u.id})" title="Написать"><i class="fa-solid fa-message"></i></button>
+                        ${u.role === 'user' ? `<button class="admin-btn sm" onclick="AdminModule.grantAdminByRow(${u.id})" title="Сделать админом"><i class="fa-solid fa-shield"></i></button>` : ''}
                     </div>
                 </td>
-            `;
-            body.appendChild(tr);
-        });
+            </tr>
+        `).join('');
     },
     
     filterUsers: (query) => {
@@ -4019,6 +4050,73 @@ const AdminModule = {
         AdminModule.renderUsers(filtered);
     },
     
+    sendBroadcast: async () => {
+        const input = document.getElementById('admin-broadcast-text');
+        const text = input ? input.value : '';
+        if (!text || !text.trim()) { Utils.showToast("Введите текст"); return; }
+        if (!confirm("Отправить сообщение ВСЕМ?")) return;
+        const btn = document.getElementById('admin-broadcast-btn');
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/admin/broadcast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: text.trim() })
+            });
+            const data = await res.json();
+            if (data.success) {
+                Utils.showToast("Рассылка завершена!");
+                if (input) input.value = '';
+            }
+        } catch (e) { console.error(e); } finally { btn.disabled = false; }
+    },
+
+    fetchLogs: async () => {
+        try {
+            const res = await fetch('/api/admin/logs');
+            const data = await res.json();
+            if (data.success) AdminModule.renderLogs(data.logs);
+        } catch (e) { console.error(e); }
+    },
+
+    renderLogs: (logs) => {
+        const tbody = document.getElementById('admin-logs-table-body');
+        if (!tbody) return;
+        if (!logs || logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">Логов нет</td></tr>';
+            return;
+        }
+        tbody.innerHTML = logs.map(l => `
+            <tr>
+                <td style="color: #fff;">@${Utils.escapeHtml(l.admin)}</td>
+                <td><code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">${l.ip}</code></td>
+                <td>${Utils.escapeHtml(l.action)}</td>
+                <td style="color: #949ba4; font-size: 11px;">${Utils.formatMessageTime(l.timestamp)}</td>
+            </tr>`).join('');
+    },
+
+    formatLastSeen: (ts) => {
+        if (!ts) return '<span style="color: #ed4245;">Ни разу не был</span>';
+        const diff = Math.floor(Date.now() / 1000) - ts;
+        if (diff < 60) return '<span style="color: #23a559;">В сети</span>';
+        if (diff < 3600) return `${Math.floor(diff / 60)} мин. назад`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)} ч. назад`;
+        return new Date(ts * 1000).toLocaleDateString();
+    },
+
+    grantAdminByRow: async (id) => {
+        if (!confirm(`Выдать админку #${id}?`)) return;
+        try {
+            const res = await fetch('/api/admin/grant-admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifier: id.toString() })
+            });
+            const data = await res.json();
+            if (data.success) { Utils.showToast("Права выданы"); AdminModule.fetchUsers(); }
+        } catch (e) { console.error(e); }
+    },
+
     grantAdmin: async () => {
         const identifier = document.getElementById('admin-grant-id').value.trim();
         if (!identifier) {
