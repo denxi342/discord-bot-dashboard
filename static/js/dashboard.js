@@ -535,12 +535,7 @@ const DiscordModule = {
             const targetView = document.getElementById('channel-view-general');
             if (targetView) targetView.classList.add('active');
 
-            DiscordModule.currentChannel = chanId; // Set currentChannel even for DMs
-            DiscordModule.loadDM(realId);
-            // Hide welcome screen
-            const welcome = document.getElementById('personal-welcome-view');
-            if (welcome) welcome.classList.remove('active');
-            return;
+            // DiscordModule.loadDM(realId); // This will be handled after the common view logic below
         }
 
         DiscordModule.currentChannel = chanId;
@@ -568,6 +563,12 @@ const DiscordModule = {
             document.getElementById('current-channel-name').innerText = btn.innerText.trim();
         }
 
+        if (chanId.startsWith('dm-')) {
+            const realId = chanId.split('-')[1];
+            DiscordModule.loadDM(realId);
+            // Ensure input is shown (loadDM handles ID 0 internally)
+        }
+        
         if (chanId === 'friends') {
             document.querySelectorAll('.channel-view').forEach(el => el.classList.remove('active'));
             const targetView = document.getElementById('channel-view-general');
@@ -2003,9 +2004,12 @@ const DiscordModule = {
         let name = otherUser ? (otherUser.display_name || otherUser.username) : 'Chat';
         const avatar = otherUser ? (otherUser.avatar || DEFAULT_AVATAR) : DEFAULT_AVATAR;
 
-        // Show chat input for DM
+        // Show chat input for DM (except system team)
         const chatInput = document.querySelector('.chat-input-area');
-        if (chatInput) chatInput.style.display = 'flex';
+        if (chatInput) {
+            if (dmId == 0) chatInput.style.display = 'none';
+            else chatInput.style.display = 'flex';
+        }
 
         // Update main header for DM view
         const channelName = document.getElementById('current-channel-name');
