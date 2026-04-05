@@ -4071,6 +4071,20 @@ const AdminModule = {
             const data = await res.json();
             if (data.success) { Utils.showToast(data.message); AdminModule.fetchUsers(); }
         } catch (e) { console.error(e); }
+    },
+
+    runMigration: async () => {
+        if (!confirm("Запустить обновление базы данных? Это может занять несколько секунд.")) return;
+        try {
+            const res = await fetch('/api/admin/migrate-now', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert("Ошибка: " + data.error);
+            }
+        } catch (e) { console.error(e); alert("Ошибка соединения"); }
     }
 };
 

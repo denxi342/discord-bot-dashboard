@@ -715,6 +715,21 @@
                                     <i class="fa-solid fa-clock stat-icon"></i>
                                 </div>
                             </div>
+                            
+                            <!-- Maintenance -->
+                            <div class="admin-sections" style="margin-top: 20px;">
+                                <div class="admin-card">
+                                    <div class="admin-card-header">
+                                        <h3>Техническое обслуживание</h3>
+                                    </div>
+                                    <div style="padding: 15px;">
+                                        <p style="color: #949ba4; font-size: 13px; margin-bottom: 15px;">Если в админ-панели возникают ошибки БД, запустите обновление вручную.</p>
+                                        <button class="admin-btn" onclick="AdminModule.runMigration()" style="width: auto; padding: 10px 20px; background: #faa61a; color: white;">
+                                            <i class="fa-solid fa-screwdriver-wrench"></i> Запустить миграцию БД
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Tab: Users -->

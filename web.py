@@ -318,390 +318,55 @@ def run_db_migration():
         cursor = conn.cursor()
         
         pk_type = "INTEGER PRIMARY KEY AUTOINCREMENT" if is_sqlite else "SERIAL PRIMARY KEY"
-        varchar_type = "TEXT" if is_sqlite else "VARCHAR(255)"
         
         print("[*] Running database migration...")
         
-        # Add columns to users table
-        if is_sqlite:
-            cursor.execute("PRAGMA table_info(users)")
-            user_cols = {row[1] for row in cursor.fetchall()}
-            if 'last_seen' not in user_cols:
-                cursor.execute("ALTER TABLE users ADD COLUMN last_seen REAL")
-                print("  [+] Added last_seen to users")
-            if 'admin_pin' not in user_cols:
-                cursor.execute("ALTER TABLE users ADD COLUMN admin_pin TEXT")
-                print("  [+] Added admin_pin to users")
-        else:
-            cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
-            user_cols = {row[0] for row in cursor.fetchall()}
-            if 'last_seen' not in user_cols:
-                cursor.execute("ALTER TABLE users ADD COLUMN last_seen DOUBLE PRECISION")
-                print("  [+] Added last_seen to users")
-            if 'admin_pin' not in user_cols:
-                cursor.execute("ALTER TABLE users ADD COLUMN admin_pin TEXT")
-                print("  [+] Added admin_pin to users")
-                
-        # Create admin_logs if not exists
-        cursor.execute(f'''CREATE TABLE IF NOT EXISTS admin_logs
-                     (id {pk_type},
-                      admin_id INTEGER NOT NULL,
-                      ip_address TEXT,
-                      action TEXT,
-                      timestamp REAL)''')
-        
-        if is_sqlite:
-            # SQLite: Check columns via PRAGMA
-            cursor.execute("PRAGMA table_info(dm_messages)")
-            existing_cols = {row[1] for row in cursor.fetchall()}
-            
-            if 'reply_to_id' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN reply_to_id INTEGER")
-                print("  [+] Added reply_to_id to dm_messages")
-            
-            if 'is_pinned' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN is_pinned INTEGER DEFAULT 0")
-                print("  [+] Added is_pinned to dm_messages")
-            
-            if 'edited_at' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN edited_at REAL")
-                print("  [+] Added edited_at to dm_messages")
-            
-            if 'attachments' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN attachments TEXT")
-                print("  [+] Added attachments to dm_messages")
-            
-            if 'expires_at' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN expires_at REAL")
-                print("  [+] Added expires_at to dm_messages (disappearing messages)")
-            
-            if 'voice_duration' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN voice_duration INTEGER")
-                print("  [+] Added voice_duration to dm_messages (voice messages)")
-            
-            # Check if message_reactions table exists
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='message_reactions'")
-            if not cursor.fetchone():
-                cursor.execute('''CREATE TABLE message_reactions
-                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                  message_id INTEGER NOT NULL,
-                                  user_id INTEGER NOT NULL,
-                                  emoji TEXT NOT NULL,
-                                  created_at REAL,
-                                  UNIQUE(message_id, user_id, emoji))''')
-                print("  [+] Created message_reactions table")
-            
-            # Check if file_uploads table exists
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='file_uploads'")
-            if not cursor.fetchone():
-                cursor.execute('''CREATE TABLE file_uploads
-                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                  message_id INTEGER NOT NULL,
-                                  filename TEXT NOT NULL,
-                                  file_size INTEGER,
-                                  file_type TEXT,
-                                  mime_type TEXT,
-                                  storage_type TEXT DEFAULT 'data_uri',
-                                  cloud_url TEXT,
-                                  thumbnail_url TEXT,
-                                  upload_progress INTEGER DEFAULT 100,
-                                  created_at REAL)''')
-                print("  [+] Created file_uploads table")
-            
-            # Check if photo_albums table exists
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='photo_albums'")
-            if not cursor.fetchone():
-                cursor.execute('''CREATE TABLE photo_albums
-                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                  message_id INTEGER NOT NULL,
-                                  title TEXT,
-                                  photo_count INTEGER DEFAULT 0,
-                                  created_at REAL)''')
-                print("  [+] Created photo_albums table")
-            
-            # Check if link_previews table exists
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='link_previews'")
-            if not cursor.fetchone():
-                cursor.execute('''CREATE TABLE link_previews
-                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                  url TEXT UNIQUE NOT NULL,
-                                  title TEXT,
-                                  description TEXT,
-                                  image_url TEXT,
-                                  site_name TEXT,
-                                  cached_at REAL)''')
-                print("  [+] Created link_previews table")
-            
-            # Check if read_receipts table exists
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='read_receipts'")
-            if not cursor.fetchone():
-                cursor.execute('''CREATE TABLE read_receipts
-                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                  dm_id INTEGER NOT NULL,
-                                  user_id INTEGER NOT NULL,
-                                  last_read_message_id INTEGER,
-                                  updated_at REAL,
-                                  UNIQUE(dm_id, user_id))''')
-                print("  [+] Created read_receipts table")
-            
-            # Add new user profile fields
-            cursor.execute("PRAGMA table_info(users)")
-            user_existing_cols = {row[1] for row in cursor.fetchall()}
-            
-            if 'custom_status' not in user_existing_cols:
-                cursor.execute("ALTER TABLE users ADD COLUMN custom_status TEXT")
-                print("  [+] Added custom_status to users")
-            
-            if 'status_emoji' not in user_existing_cols:
-                cursor.execute("ALTER TABLE users ADD COLUMN status_emoji TEXT")
-                print("  [+] Added status_emoji to users")
-            
-            # Add encryption columns
-            if 'public_key' not in user_existing_cols:
-                cursor.execute("ALTER TABLE users ADD COLUMN public_key TEXT")
-                print("  [+] Added public_key to users (E2EE)")
-            
-            # Add encryption columns to messages
-            if 'is_encrypted' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN is_encrypted INTEGER DEFAULT 0")
-                print("  [+] Added is_encrypted to dm_messages (E2EE)")
-            
-            if 'encryption_metadata' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN encryption_metadata TEXT")
-                print("  [+] Added encryption_metadata to dm_messages (E2EE)")
-            
-            if 'cloud_folder_id' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN cloud_folder_id INTEGER")
-                print("  [+] Added cloud_folder_id to dm_messages")
-                
-            if 'tags' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN tags TEXT")
-                print("  [+] Added tags to dm_messages")
-                
-            # Check if cloud_folders table exists
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='cloud_folders'")
-            if not cursor.fetchone():
-                cursor.execute('''CREATE TABLE IF NOT EXISTS cloud_folders
-                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                  user_id INTEGER NOT NULL,
-                                  name TEXT NOT NULL,
-                                  color TEXT,
-                                  icon TEXT,
-                                  created_at REAL)''')
-                
-                cursor.execute('''CREATE TABLE IF NOT EXISTS reports
-                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                  message_id INTEGER NOT NULL,
-                                  reporter_id INTEGER NOT NULL,
-                                  reason TEXT NOT NULL,
-                                  timestamp REAL)''')
-                print("  [+] Created cloud_folders table")
-                
-        else:
-            # PostgreSQL: Check via information_schema
-            cursor.execute("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name='dm_messages' 
-                AND column_name IN ('reply_to_id', 'is_pinned', 'edited_at', 'attachments', 'expires_at', 'voice_duration')
-            """)
-            existing_cols = {row[0] for row in cursor.fetchall()}
-            
-            if 'reply_to_id' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN reply_to_id INTEGER")
-                print("  [+] Added reply_to_id to dm_messages")
-            
-            if 'is_pinned' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN is_pinned INTEGER DEFAULT 0")
-                print("  [+] Added is_pinned to dm_messages")
-            
-            if 'edited_at' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN edited_at REAL")
-                print("  [+] Added edited_at to dm_messages")
-            
-            if 'attachments' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN attachments TEXT")
-                print("  [+] Added attachments to dm_messages")
-            
-            if 'expires_at' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN expires_at REAL")
-                print("  [+] Added expires_at to dm_messages (disappearing messages)")
-            
-            if 'voice_duration' not in existing_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN voice_duration INTEGER")
-                print("  [+] Added voice_duration to dm_messages (voice messages)")
-            
-            # Check if message_reactions table exists
-            cursor.execute("""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_name='message_reactions'
-            """)
-            if not cursor.fetchone():
-                cursor.execute("""CREATE TABLE message_reactions
-                                 (id SERIAL PRIMARY KEY,
-                                  message_id INTEGER NOT NULL,
-                                  user_id INTEGER NOT NULL,
-                                  emoji VARCHAR(50) NOT NULL,
-                                  created_at REAL,
-                                  UNIQUE(message_id, user_id, emoji))""")
-                print("  [+] Created message_reactions table")
-            
-            # Check if file_uploads table exists
-            cursor.execute("""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_name='file_uploads'
-            """)
-            if not cursor.fetchone():
-                cursor.execute("""CREATE TABLE file_uploads
-                                 (id SERIAL PRIMARY KEY,
-                                  message_id INTEGER NOT NULL,
-                                  filename VARCHAR(255) NOT NULL,
-                                  file_size INTEGER,
-                                  file_type VARCHAR(50),
-                                  mime_type VARCHAR(100),
-                                  storage_type VARCHAR(50) DEFAULT 'data_uri',
-                                  cloud_url TEXT,
-                                  thumbnail_url TEXT,
-                                  upload_progress INTEGER DEFAULT 100,
-                                  created_at REAL)""")
-                print("  [+] Created file_uploads table")
-            
-            # Check if photo_albums table exists
-            cursor.execute("""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_name='photo_albums'
-            """)
-            if not cursor.fetchone():
-                cursor.execute("""CREATE TABLE photo_albums
-                                 (id SERIAL PRIMARY KEY,
-                                  message_id INTEGER NOT NULL,
-                                  title TEXT,
-                                  photo_count INTEGER DEFAULT 0,
-                                  created_at REAL)""")
-                print("  [+] Created photo_albums table")
-            
-            # Check if link_previews table exists
-            cursor.execute("""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_name='link_previews'
-            """)
-            if not cursor.fetchone():
-                cursor.execute("""CREATE TABLE link_previews
-                                 (id SERIAL PRIMARY KEY,
-                                  url TEXT UNIQUE NOT NULL,
-                                  title TEXT,
-                                  description TEXT,
-                                  image_url TEXT,
-                                  site_name TEXT,
-                                  cached_at REAL)""")
-                print("  [+] Created link_previews table")
-            
-            # Check if read_receipts table exists
-            cursor.execute("""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_name='read_receipts'
-            """)
-            if not cursor.fetchone():
-                cursor.execute("""CREATE TABLE read_receipts
-                                 (id SERIAL PRIMARY KEY,
-                                  dm_id INTEGER NOT NULL,
-                                  user_id INTEGER NOT NULL,
-                                  last_read_message_id INTEGER,
-                                  updated_at REAL,
-                                  UNIQUE(dm_id, user_id))""")
-                print("  [+] Created read_receipts table")
-            
-            # Add new user profile fields
-            cursor.execute("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name='users' 
-                AND column_name IN ('custom_status', 'status_emoji')
-            """)
-            user_existing_cols = {row[0] for row in cursor.fetchall()}
-            
-            if 'custom_status' not in user_existing_cols:
-                cursor.execute("ALTER TABLE users ADD COLUMN custom_status TEXT")
-                print("  [+] Added custom_status to users")
-            
-            if 'status_emoji' not in user_existing_cols:
-                cursor.execute("ALTER TABLE users ADD COLUMN status_emoji TEXT")
-                print("  [+] Added status_emoji to users")
-            
-            # Add encryption columns
-            if 'public_key' not in user_existing_cols:
-                cursor.execute("ALTER TABLE users ADD COLUMN public_key TEXT")
-                print("  [+] Added public_key to users (E2EE)")
-            
-            # Add encryption columns to messages (check separately for PostgreSQL)
-            cursor.execute("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name='dm_messages' 
-                AND column_name IN ('is_encrypted', 'encryption_metadata')
-            """)
-            encryption_cols = {row[0] for row in cursor.fetchall()}
-            
-            if 'is_encrypted' not in encryption_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN is_encrypted INTEGER DEFAULT 0")
-                print("  [+] Added is_encrypted to dm_messages (E2EE)")
-            
-            if 'encryption_metadata' not in encryption_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN encryption_metadata TEXT")
-                print("  [+] Added encryption_metadata to dm_messages (E2EE)")
+        # Helper for adding columns safely
+        def add_col(table, column, col_type):
+            try:
+                if is_sqlite:
+                    cursor.execute(f"PRAGMA table_info({table})")
+                    cols = {row[1] for row in cursor.fetchall()}
+                    if column not in cols:
+                        cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+                        print(f"  [+] Added {column} to {table}")
+                else:
+                    cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table}' AND column_name='{column}'")
+                    if not cursor.fetchone():
+                        cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+                        print(f"  [+] Added {column} to {table}")
+                conn.commit()
+            except Exception as e:
+                print(f"  [!] Skip {column} on {table}: {e}")
+                conn.rollback()
 
-            # Cloud drive columns for PG
-            cursor.execute("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name='dm_messages' 
-                AND column_name IN ('cloud_folder_id', 'tags')
-            """)
-            cloud_cols = {row[0] for row in cursor.fetchall()}
-            
-            if 'cloud_folder_id' not in cloud_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN cloud_folder_id INTEGER")
-                print("  [+] Added cloud_folder_id to dm_messages")
-            
-            if 'tags' not in cloud_cols:
-                cursor.execute("ALTER TABLE dm_messages ADD COLUMN tags TEXT")
-                print("  [+] Added tags to dm_messages")
+        # Users updates
+        add_col("users", "last_seen", "DOUBLE PRECISION" if not is_sqlite else "REAL")
+        add_col("users", "admin_pin", "TEXT")
+        add_col("users", "custom_status", "TEXT")
+        add_col("users", "status_emoji", "TEXT")
+        add_col("users", "public_key", "TEXT")
+        add_col("users", "private_key_enc", "TEXT")
 
-            # Check if cloud_folders table exists for PG
-            cursor.execute("""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_name='cloud_folders'
-            """)
-            if not cursor.fetchone():
-                cursor.execute("""CREATE TABLE IF NOT EXISTS cloud_folders
-                                 (id SERIAL PRIMARY KEY,
-                                  user_id INTEGER NOT NULL,
-                                  name VARCHAR(255) NOT NULL,
-                                  color VARCHAR(50),
-                                  icon VARCHAR(50),
-                                  created_at REAL)""")
+        # DM messages updates
+        add_col("dm_messages", "reply_to_id", "INTEGER")
+        add_col("dm_messages", "is_pinned", "INTEGER DEFAULT 0")
+        add_col("dm_messages", "edited_at", "REAL")
+        add_col("dm_messages", "attachments", "TEXT")
+        add_col("dm_messages", "expires_at", "REAL")
+        add_col("dm_messages", "voice_duration", "INTEGER")
 
-                cursor.execute("""CREATE TABLE IF NOT EXISTS reports
-                                 (id SERIAL PRIMARY KEY,
-                                  message_id INTEGER NOT NULL,
-                                  reporter_id INTEGER NOT NULL,
-                                  reason VARCHAR(255) NOT NULL,
-                                  timestamp REAL)""")
-                print("  [+] Created cloud_folders table")
-        
+        # Tables
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS admin_logs (id {pk_type}, admin_id INTEGER, ip_address TEXT, action TEXT, timestamp REAL)")
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS message_reactions (id {pk_type}, message_id INTEGER, user_id INTEGER, emoji TEXT, created_at REAL, UNIQUE(message_id, user_id, emoji))")
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS read_receipts (id {pk_type}, dm_id INTEGER, user_id INTEGER, last_read_message_id INTEGER, updated_at REAL, UNIQUE(dm_id, user_id))")
+
         conn.commit()
         cursor.close()
         conn.close()
         print("[OK] Database migration completed successfully!")
-        
     except Exception as e:
-        print(f"[!] Migration error (this may be safe to ignore if columns already exist): {e}")
+        print(f"[!] Migration error: {e}")
 
 # Run migration to add missing columns to existing databases
 try:
@@ -2113,6 +1778,18 @@ def api_admin_verify_2fa():
         return jsonify({'success': True})
     else:
         return jsonify({'success': False, 'error': 'Неверный PIN-код'})
+
+@app.route('/api/admin/migrate-now', methods=['POST'])
+def api_admin_migrate_now():
+    if 'user' not in session or session['user'].get('role') not in ['admin', 'developer']:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    if not session.get('admin_verified'):
+        return jsonify({'success': False, 'error': '2FA needed'}), 401
+    try:
+        run_db_migration()
+        return jsonify({'success': True, 'message': 'Migration finished. Refresh the page.'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/admin/broadcast', methods=['POST'])
 def api_admin_broadcast():
