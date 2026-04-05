@@ -1721,6 +1721,18 @@ def check_auth():
     
     if 'user' not in session:
         return redirect('/login')
+    
+    # 🔄 SYNC ROLE WITH DB (Special fix for immediate admin panel visibility)
+    # This ensures that if the DB role was updated (e.g. by assistant), the session catches up.
+    try:
+        current_uid = session['user'].get('id')
+        if current_uid:
+            res = execute_query("SELECT role FROM users WHERE id = %s", (current_uid,), fetch_one=True)
+            if res and res[0] != session['user'].get('role'):
+                session['user']['role'] = res[0]
+                session.modified = True
+    except Exception as e:
+        print(f"[Sync] Role sync error: {e}")
 
 @app.route('/')
 def index():
@@ -1823,7 +1835,7 @@ def api_set_role():
     
     if not target_id: return jsonify({'success': False, 'error': 'User ID needed'})
     
-    if new_role not in ['developer', 'tester', 'user']:
+    if new_role not in ['developer', 'tester', 'admin', 'user']:
         return jsonify({'success': False, 'error': 'Invalid role'})
         
     # Prevent demoting founders
@@ -1840,6 +1852,79 @@ def api_set_role():
     add_log('warning', f"Role changed for {target_username} to {new_role} by {session['user']['username']}")
     
     return jsonify({'success': True})
+
+@app.route('/api/admin/dashboard-stats')
+def api_admin_dashboard_stats():
+    if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
+    
+    # Check permissions
+    uid = session['user']['id']
+    row = execute_query("SELECT role FROM users WHERE id = %s", (uid,), fetch_one=True)
+    role = row[0] if row else 'user'
+    if role not in ['developer', 'admin']: return jsonify({'error': 'Forbidden'}), 403
+    
+    # Get stats
+    user_count = execute_query("SELECT COUNT(*) FROM users", fetch_one=True)[0]
+    dm_count = execute_query("SELECT COUNT(*) FROM dm_messages", fetch_one=True)[0]
+    online_count = len(online_users)
+    
+    uptime = int(time.time() - bot_status['start_time'])
+    
+    return jsonify({
+        'success': True,
+        'stats': {
+            'total_users': user_count,
+            'total_messages': dm_count,
+            'online_users': online_count,
+            'uptime': uptime,
+            'cpu': psutil.cpu_percent(),
+            'memory': psutil.virtual_memory().percent
+        }
+    })
+
+@app.route('/api/admin/grant-admin', methods=['POST'])
+def api_admin_grant_admin():
+    if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
+    
+    # Only developers (Founders) can grant admin role
+    uid = session['user']['id']
+    row = execute_query("SELECT role FROM users WHERE id = %s", (uid,), fetch_one=True)
+    role = row[0] if row else 'user'
+    if role != 'developer': return jsonify({'error': 'Forbidden - Only Developers can grant Admin'}), 403
+    
+    data = request.json
+    target_identifier = data.get('identifier', '').strip() # Can be full ID or #XXXX tag
+    
+    if not target_identifier:
+        return jsonify({'success': False, 'error': 'Identifier required'})
+        
+    target_user = None
+    
+    if target_identifier.isdigit():
+        # Search by full ID
+        target_user = execute_query("SELECT id, username FROM users WHERE id = %s", (target_identifier,), fetch_one=True)
+    elif target_identifier.startswith('#'):
+        # Search by tag (last 4 digits of ID)
+        tag = target_identifier[1:]
+        if len(tag) <= 4:
+            # We search for users whose ID ends with this tag
+            # For SQLite/Postgres compatibility, we use LIKE
+            users = execute_query("SELECT id, username FROM users WHERE CAST(id AS TEXT) LIKE %s", (f"%{tag}",), fetch_all=True)
+            if len(users) > 1:
+                return jsonify({'success': False, 'error': 'Multiple users found with this tag. Use full ID.'})
+            if users:
+                target_user = users[0]
+    
+    if not target_user:
+        return jsonify({'success': False, 'error': 'User not found'})
+        
+    target_id, target_username = target_user
+    
+    # Update to admin
+    execute_query("UPDATE users SET role = 'admin' WHERE id = %s", (target_id,), commit=True)
+    add_log('warning', f"User {target_username} ({target_id}) granted ADMIN status by {session['user']['username']}")
+    
+    return jsonify({'success': True, 'message': f'Admin status granted to {target_username}'})
 
 @app.route('/callback')
 def callback():

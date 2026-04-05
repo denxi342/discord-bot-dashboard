@@ -3803,3 +3803,116 @@ const CloudModule = {
 
 window.CloudModule = CloudModule;
 
+const AdminModule = {
+    users: [],
+    
+    openAdminPanel: () => {
+        // Switch to admin view
+        DiscordModule.selectChannel('admin', 'channel');
+        AdminModule.fetchStats();
+        AdminModule.fetchUsers();
+    },
+    
+    fetchStats: async () => {
+        try {
+            const res = await fetch('/api/admin/dashboard-stats');
+            const data = await res.json();
+            if (data.success) {
+                const s = data.stats;
+                document.getElementById('admin-stat-users').textContent = s.total_users;
+                document.getElementById('admin-stat-online').textContent = s.online_users;
+                document.getElementById('admin-stat-messages').textContent = s.total_messages;
+                
+                // Format uptime
+                const h = Math.floor(s.uptime / 3600);
+                const m = Math.floor((s.uptime % 3600) / 60);
+                const sec = s.uptime % 60;
+                document.getElementById('admin-stat-uptime').textContent = 
+                    `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+            }
+        } catch (e) { console.error(e); }
+    },
+    
+    fetchUsers: async () => {
+        try {
+            const res = await fetch('/api/admin/users');
+            const data = await res.json();
+            if (data.success) {
+                AdminModule.users = data.users;
+                AdminModule.renderUsers(data.users);
+            }
+        } catch (e) { console.error(e); }
+    },
+    
+    renderUsers: (users) => {
+        const body = document.getElementById('admin-users-table-body');
+        if (!body) return;
+        body.innerHTML = '';
+        
+        users.forEach(u => {
+            const tr = document.createElement('tr');
+            const roleClass = `role-${u.role}`;
+            const statusColor = u.status === 'online' ? '#23a559' : '#80848e';
+            
+            tr.innerHTML = `
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${u.avatar}" style="width: 32px; height: 32px; border-radius: 50%;">
+                        <span>${Utils.escapeHtml(u.username)}</span>
+                    </div>
+                </td>
+                <td>
+                    <span style="color: #949ba4; font-family: monospace;">#${u.id} / Tag#${u.id.toString().slice(-4)}</span>
+                </td>
+                <td>
+                    <span class="role-badge ${roleClass}">${u.role}</span>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor}"></div>
+                        <span style="font-size: 12px; color: #949ba4;">${u.status}</span>
+                    </div>
+                </td>
+            `;
+            body.appendChild(tr);
+        });
+    },
+    
+    filterUsers: (query) => {
+        const q = query.toLowerCase();
+        const filtered = AdminModule.users.filter(u => 
+            u.username.toLowerCase().includes(q) || u.id.toString().includes(q)
+        );
+        AdminModule.renderUsers(filtered);
+    },
+    
+    grantAdmin: async () => {
+        const identifier = document.getElementById('admin-grant-id').value.trim();
+        if (!identifier) {
+            Utils.showToast("Введите ID или тег");
+            return;
+        }
+        
+        try {
+            const res = await fetch('/api/admin/grant-admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifier })
+            });
+            const data = await res.json();
+            if (data.success) {
+                Utils.showToast(data.message);
+                document.getElementById('admin-grant-id').value = '';
+                AdminModule.fetchUsers(); // Refresh list to see new role
+            } else {
+                Utils.showToast(data.error);
+            }
+        } catch (e) {
+            console.error(e);
+            Utils.showToast("Ошибка при выполнении запроса");
+        }
+    }
+};
+
+window.AdminModule = AdminModule;
+
