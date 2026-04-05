@@ -1850,23 +1850,27 @@ def api_get_users():
     # Using execute_query to limit results (Pagination TODO)
     params = ()
     # Limit logic handled inside execute_query or via raw SQL
-    rows = execute_query("SELECT id, username, avatar, role, last_seen FROM users LIMIT 100", fetch_all=True)
-    
-    users_list = []
-    if rows:
-        for r in rows:
-            user_id = str(r[0])
-            is_online = user_id in online_users
-            users_list.append({
-                'id': user_id,
-                'username': r[1],
-                'avatar': get_valid_avatar(r[2]),
-                'role': r[3] if len(r) > 3 else 'user',
-                'last_seen': r[4] if len(r) > 4 else None,
-                'status': 'online' if is_online else 'offline'
-            })
+    try:
+        rows = execute_query("SELECT id, username, avatar, role, last_seen FROM users LIMIT 100", fetch_all=True)
         
-    return jsonify({'success': True, 'users': users_list})
+        users_list = []
+        if rows:
+            for r in rows:
+                user_id = str(r[0])
+                is_online = user_id in online_users
+                users_list.append({
+                    'id': user_id,
+                    'username': r[1],
+                    'avatar': get_valid_avatar(r[2]),
+                    'role': r[3] if len(r) > 3 else 'user',
+                    'last_seen': r[4] if len(r) > 4 else None,
+                    'status': 'online' if is_online else 'offline'
+                })
+            
+        return jsonify({'success': True, 'users': users_list})
+    except Exception as e:
+        print(f"[!] API Error (get_users): {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/admin/role', methods=['POST'])
 def api_set_role():

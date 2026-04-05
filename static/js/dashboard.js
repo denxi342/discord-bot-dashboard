@@ -3900,21 +3900,25 @@ const AdminModule = {
     },
     
     fetchUsers: async () => {
+        const tbody = document.getElementById('admin-users-table-body');
         try {
             const res = await fetch('/api/admin/users');
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                const msg = errData.error || `HTTP ${res.status}`;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: #ed4245;">Ошибка сервера: ${msg}</td></tr>`;
+                return;
+            }
             const data = await res.json();
             if (data.success && Array.isArray(data.users)) {
                 AdminModule.users = data.users;
                 AdminModule.renderUsers(data.users);
             } else {
-                console.error("Failed to fetch users or data.users is not an array", data);
-                const tbody = document.getElementById('admin-users-table-body');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #ed4245;">Ошибка загрузки данных</td></tr>';
+                if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #ed4245;">Некорректный ответ от сервера</td></tr>';
             }
         } catch (e) {
             console.error("Error in fetchUsers:", e);
-            const tbody = document.getElementById('admin-users-table-body');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #ed4245;">Ошибка соединения с сервером</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #ed4245;">Ошибка соединения или парсинга</td></tr>';
         }
     },
 
