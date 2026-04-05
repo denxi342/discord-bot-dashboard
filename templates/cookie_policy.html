@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Политика Cookie | Octave</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --bg: #0a0b0e;
+            --card-bg: #1a1b26;
+            --text: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.6);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 32px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 20px;
+            margin-top: 30px;
+            border-left: 4px solid var(--secondary);
+            padding-left: 15px;
+        }
+
+        p, li {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover {
+            color: var(--primary);
+        }
+
+        .cookie-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .cookie-table th, .cookie-table td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .cookie-table th {
+            color: var(--primary);
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/login" class="back-link"><i class="fa-solid fa-arrow-left"></i> Вернуться к авторизации</a>
+        <h1>Политика использования Cookie</h1>
+        
+        <p>Для корректной работы Octave мы используем только самые необходимые файлы cookie. Мы ценим вашу приватность и не используем их для слежки.</p>
+
+        <h2>1. Что такое Cookie?</h2>
+        <p>Cookie — это небольшие текстовые файлы, которые сохраняются вашим браузером при посещении сайтов. Они помогают сайту "запоминать" вас и ваши настройки.</p>
+
+        <h2>2. Какие Cookie мы используем?</h2>
+        <p>Мы используем только <strong>строго необходимые (функциональные)</strong> cookie. Это файлы, без которых работа мессенджера невозможна.</p>
+        
+        <table class="cookie-table">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Назначение</th>
+                    <th>Срок</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>session</td>
+                    <td>Сохранение состояния авторизации</td>
+                    <td>30 дней</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>3. Мы НЕ используем:</h2>
+        <ul>
+            <li>Рекламные cookie (Marketing cookies)</li>
+            <li>Аналитические системы сторонних сервисов (Google Analytics и др.)</li>
+            <li>Cookie для отслеживания ваших действий за пределами приложения</li>
+        </ul>
+
+        <h2>4. Как управлять Cookie?</h2>
+        <p>Вы можете отключить cookie в настройках вашего браузера. Однако помните, что после этого вы не сможете войти в свой аккаунт Octave, так как система не сможет "узнать" вас при переходе между страницами.</p>
+
+        <div class="footer">
+            © 2026 Octave. Последнее обновление: 5 апреля 2026 г.
+        </div>
+    </div>
+</body>
+</html>

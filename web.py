@@ -1,4 +1,4 @@
-﻿import eventlet
+import eventlet
 eventlet.monkey_patch()
 import os
 import time
@@ -251,6 +251,14 @@ def init_db():
                   edited_at REAL,
                   attachments TEXT,
                   expires_at REAL)''')
+    
+    c.execute(f'''CREATE TABLE IF NOT EXISTS reports
+                 (id {pk_type},
+                  message_id INTEGER NOT NULL,
+                  reporter_id INTEGER NOT NULL,
+                  reason TEXT NOT NULL,
+                  timestamp REAL)''')
+    print("  [+] Reports table ready")
     print("  [+] DM messages table ready")
 
     # Message Reactions Table - CRITICAL for reactions feature
@@ -320,6 +328,10 @@ def run_db_migration():
             if 'expires_at' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN expires_at REAL")
                 print("  [+] Added expires_at to dm_messages (disappearing messages)")
+            
+            if 'voice_duration' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN voice_duration INTEGER")
+                print("  [+] Added voice_duration to dm_messages (voice messages)")
             
             # Check if message_reactions table exists
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='message_reactions'")
@@ -397,6 +409,47 @@ def run_db_migration():
             if 'status_emoji' not in user_existing_cols:
                 cursor.execute("ALTER TABLE users ADD COLUMN status_emoji TEXT")
                 print("  [+] Added status_emoji to users")
+            
+            # Add encryption columns
+            if 'public_key' not in user_existing_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN public_key TEXT")
+                print("  [+] Added public_key to users (E2EE)")
+            
+            # Add encryption columns to messages
+            if 'is_encrypted' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN is_encrypted INTEGER DEFAULT 0")
+                print("  [+] Added is_encrypted to dm_messages (E2EE)")
+            
+            if 'encryption_metadata' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN encryption_metadata TEXT")
+                print("  [+] Added encryption_metadata to dm_messages (E2EE)")
+            
+            if 'cloud_folder_id' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN cloud_folder_id INTEGER")
+                print("  [+] Added cloud_folder_id to dm_messages")
+                
+            if 'tags' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN tags TEXT")
+                print("  [+] Added tags to dm_messages")
+                
+            # Check if cloud_folders table exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='cloud_folders'")
+            if not cursor.fetchone():
+                cursor.execute('''CREATE TABLE IF NOT EXISTS cloud_folders
+                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  user_id INTEGER NOT NULL,
+                                  name TEXT NOT NULL,
+                                  color TEXT,
+                                  icon TEXT,
+                                  created_at REAL)''')
+                
+                cursor.execute('''CREATE TABLE IF NOT EXISTS reports
+                                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  message_id INTEGER NOT NULL,
+                                  reporter_id INTEGER NOT NULL,
+                                  reason TEXT NOT NULL,
+                                  timestamp REAL)''')
+                print("  [+] Created cloud_folders table")
                 
         else:
             # PostgreSQL: Check via information_schema
@@ -404,7 +457,7 @@ def run_db_migration():
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name='dm_messages' 
-                AND column_name IN ('reply_to_id', 'is_pinned', 'edited_at', 'attachments', 'expires_at')
+                AND column_name IN ('reply_to_id', 'is_pinned', 'edited_at', 'attachments', 'expires_at', 'voice_duration')
             """)
             existing_cols = {row[0] for row in cursor.fetchall()}
             
@@ -427,6 +480,10 @@ def run_db_migration():
             if 'expires_at' not in existing_cols:
                 cursor.execute("ALTER TABLE dm_messages ADD COLUMN expires_at REAL")
                 print("  [+] Added expires_at to dm_messages (disappearing messages)")
+            
+            if 'voice_duration' not in existing_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN voice_duration INTEGER")
+                print("  [+] Added voice_duration to dm_messages (voice messages)")
             
             # Check if message_reactions table exists
             cursor.execute("""
@@ -529,6 +586,68 @@ def run_db_migration():
             if 'status_emoji' not in user_existing_cols:
                 cursor.execute("ALTER TABLE users ADD COLUMN status_emoji TEXT")
                 print("  [+] Added status_emoji to users")
+            
+            # Add encryption columns
+            if 'public_key' not in user_existing_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN public_key TEXT")
+                print("  [+] Added public_key to users (E2EE)")
+            
+            # Add encryption columns to messages (check separately for PostgreSQL)
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='dm_messages' 
+                AND column_name IN ('is_encrypted', 'encryption_metadata')
+            """)
+            encryption_cols = {row[0] for row in cursor.fetchall()}
+            
+            if 'is_encrypted' not in encryption_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN is_encrypted INTEGER DEFAULT 0")
+                print("  [+] Added is_encrypted to dm_messages (E2EE)")
+            
+            if 'encryption_metadata' not in encryption_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN encryption_metadata TEXT")
+                print("  [+] Added encryption_metadata to dm_messages (E2EE)")
+
+            # Cloud drive columns for PG
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='dm_messages' 
+                AND column_name IN ('cloud_folder_id', 'tags')
+            """)
+            cloud_cols = {row[0] for row in cursor.fetchall()}
+            
+            if 'cloud_folder_id' not in cloud_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN cloud_folder_id INTEGER")
+                print("  [+] Added cloud_folder_id to dm_messages")
+            
+            if 'tags' not in cloud_cols:
+                cursor.execute("ALTER TABLE dm_messages ADD COLUMN tags TEXT")
+                print("  [+] Added tags to dm_messages")
+
+            # Check if cloud_folders table exists for PG
+            cursor.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_name='cloud_folders'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("""CREATE TABLE IF NOT EXISTS cloud_folders
+                                 (id SERIAL PRIMARY KEY,
+                                  user_id INTEGER NOT NULL,
+                                  name VARCHAR(255) NOT NULL,
+                                  color VARCHAR(50),
+                                  icon VARCHAR(50),
+                                  created_at REAL)""")
+
+                cursor.execute("""CREATE TABLE IF NOT EXISTS reports
+                                 (id SERIAL PRIMARY KEY,
+                                  message_id INTEGER NOT NULL,
+                                  reporter_id INTEGER NOT NULL,
+                                  reason VARCHAR(255) NOT NULL,
+                                  timestamp REAL)""")
+                print("  [+] Created cloud_folders table")
         
         conn.commit()
         cursor.close()
@@ -695,6 +814,18 @@ def register_page():
     if 'user' in session: return redirect('/')
     return render_template('auth.html', mode='register')
 
+@app.route('/terms')
+def terms_page():
+    return render_template('terms.html')
+
+@app.route('/privacy')
+def privacy_page():
+    return render_template('privacy.html')
+
+@app.route('/cookies')
+def cookies_page():
+    return render_template('cookie_policy.html')
+
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
@@ -859,6 +990,82 @@ def api_upload_avatar():
         return jsonify({'success': True, 'avatar_url': avatar_url})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+# --- ENCRYPTION API ---
+@app.route('/api/encryption/setup', methods=['POST'])
+def api_encryption_setup():
+    """Store user's public key for E2EE"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.json
+    public_key = data.get('public_key')
+    
+    if not public_key:
+        return jsonify({'success': False, 'error': 'Public key required'})
+    
+    try:
+        uid = session['user']['id']
+        execute_query(
+            "UPDATE users SET public_key = %s WHERE id = %s",
+            (public_key, uid),
+            commit=True
+        )
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[E2EE] Error storing public key: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/encryption/public-key/<user_id>', methods=['GET'])
+def api_get_encryption_key(user_id):
+    """Retrieve another user's public key for encryption"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    try:
+        row = execute_query(
+            "SELECT public_key FROM users WHERE id = %s",
+            (user_id,),
+            fetch_one=True
+        )
+        
+        if row and row[0]:
+            return jsonify({'success': True, 'public_key': row[0]})
+        else:
+            return jsonify({'success': False, 'error': 'User has not set up encryption'})
+    except Exception as e:
+        print(f"[E2EE] Error retrieving public key: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/encryption/verify-keys', methods=['POST'])
+def api_verify_keys():
+    """Get public keys for multiple users at once"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.json
+    user_ids = data.get('user_ids', [])
+    
+    if not user_ids:
+        return jsonify({'success': False, 'error': 'No user IDs provided'})
+    
+    try:
+        # Create placeholders for SQL IN clause
+        placeholders = ', '.join(['%s'] * len(user_ids))
+        query = f"SELECT id, public_key FROM users WHERE id IN ({placeholders})"
+        
+        rows = execute_query(query, tuple(user_ids), fetch_all=True)
+        
+        keys = {}
+        for row in rows:
+            if row[1]:  # Only include if public key exists
+                keys[str(row[0])] = row[1]
+        
+        return jsonify({'success': True, 'keys': keys})
+    except Exception as e:
+        print(f"[E2EE] Error verifying keys: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
 
 @app.route('/api/upload-file', methods=['POST'])
 def api_upload_file():
@@ -1349,6 +1556,46 @@ def api_preview_link_enhanced():
         })
 
 
+
+# ============================================================
+# END-TO-END ENCRYPTION API
+# ============================================================
+
+@app.route('/api/keys/upload', methods=['POST'])
+def api_upload_public_key():
+    """Upload user's public key (JWK format)"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+    
+    my_id = int(session['user']['id'])
+    data = request.json
+    public_key = data.get('public_key')
+    
+    if not public_key:
+        return jsonify({'success': False, 'error': 'No key provided'}), 400
+        
+    try:
+        # Update user's public key
+        execute_query('UPDATE users SET public_key = %s WHERE id = %s', (public_key, my_id), commit=True)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/keys/<int:user_id>', methods=['GET'])
+def api_get_public_key(user_id):
+    """Get a user's public key"""
+    if 'user' not in session:
+        return jsonify({'success': False}), 401
+        
+    # Get public key
+    row = execute_query('SELECT public_key FROM users WHERE id = %s', (user_id,), fetch_one=True)
+    
+    if not row or not row[0]:
+        return jsonify({'success': False, 'error': 'Key not found'}), 404
+        
+    return jsonify({'success': True, 'public_key': row[0]})
+
+
 @app.route('/api/dms/<int:dm_id>/mark-read', methods=['POST'])
 def api_mark_read(dm_id):
     """Mark messages as read up to a specific message ID"""
@@ -1460,7 +1707,7 @@ def api_get_unread_position(dm_id):
 def check_auth():
     if request.endpoint and request.endpoint.startswith('static'): return
     if request.endpoint in ['login_page', 'register_page', 'api_login', 'api_register', 'api_auth_register', 'api_auth_login', 'favicon', 
-                             'debug_check_tables', 'debug_run_migration', 'debug_friends_dump']: return
+                             'debug_check_tables', 'debug_run_migration', 'debug_friends_dump', 'terms_page', 'privacy_page', 'cookies_page']: return
     
     if 'user' not in session:
         return redirect('/login')
@@ -1491,7 +1738,7 @@ def dashboard():
 
 @app.route('/arizona')
 def arizona_page():
-    # Arizona AI Assistant Page
+    # Octave Assistant Page
     user = session.get('user', None)
     if not user:
         return redirect(url_for('index'))
@@ -1668,7 +1915,7 @@ def api_site_news():
     news = [
         {
             'id': 1,
-            'title': 'Добро пожаловать на Arizona AI!',
+            'title': 'Добро пожаловать на Octave!',
             'content': 'Это ваш личный мессенджер с AI-помощником для Arizona RP. Исследуйте все функции!',
             'date': 'Сегодня'
         },
@@ -1680,8 +1927,8 @@ def api_site_news():
         },
         {
             'id': 3,
-            'title': 'Arizona AI Помощник',
-            'content': 'Используйте вкладку Arizona AI для получения помощи по правилам сервера, генерации жалоб и многого другого.',
+            'title': 'Octave Помощник',
+            'content': 'Используйте вкладку Octave для получения помощи по правилам сервера, генерации жалоб и многого другого.',
             'date': 'Недавно'
         }
     ]
@@ -1698,8 +1945,8 @@ def api_stats():
         'monitors_offline': sum(1 for m in monitors if m.get('status') == 'offline')
     })
 
-@app.route('/api/bot/status')
-def api_bot_status():
+@app.route('/api/bot/status')  # Получить статус бота
+def get_bot_status():
     uptime = int(time.time() - bot_status['start_time'])
     try:
         cpu = psutil.cpu_percent(interval=None) or 0
@@ -1767,6 +2014,10 @@ def api_add_monitor():
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': msg}), 400
 
+@app.route('/api/monitor/list')  # Получить список мониторов
+def get_monitor_list():
+    return jsonify({"success": True, "monitors": utils.get_monitors()})
+
 @app.route('/api/monitors/remove/<id>', methods=['DELETE'])
 def api_remove_monitor(id):
     if 'user' not in session: return jsonify({'success': False}), 401
@@ -1775,28 +2026,26 @@ def api_remove_monitor(id):
         return jsonify({'success': True})
     return jsonify({'success': False})
 
-@app.route('/api/monitors/<id>/logs')
-def api_monitor_logs(id):
-    """РџРѕР»СѓС‡РёС‚СЊ Р»РѕРіРё РєРѕРЅРєСЂРµС‚РЅРѕРіРѕ РјРѕРЅРёС‚РѕСЂР°"""
+@app.route('/api/monitor/<int:monitor_id>/logs')  # Получить логи конкретного монитора
+def get_monitor_logs(monitor_id):
     if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
-    logs = utils.get_monitor_logs(id)
+    logs = utils.get_monitor_logs(monitor_id)
     return jsonify(logs)
 
-@app.route('/api/monitors/<id>/stats')
-def api_monitor_stats(id):
-    """РџРѕР»СѓС‡РёС‚СЊ СЃС‚Р°С‚РёСЃС‚РёРєСѓ РјРѕРЅРёС‚РѕСЂР°"""
+@app.route('/api/monitor/<int:monitor_id>/stats')  # Получить статистику монитора
+def get_monitor_stats(monitor_id):
     if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
-    stats = utils.get_monitor_stats(id)
+    stats = utils.get_monitor_stats(monitor_id)
     if stats:
         return jsonify(stats)
     return jsonify({'error': 'Monitor not found'}), 404
 
-@app.route('/api/monitors/<id>/clear-logs', methods=['POST'])
-def api_clear_monitor_logs(id):
-    """РћС‡РёСЃС‚РёС‚СЊ Р»РѕРіРё РјРѕРЅРёС‚РѕСЂР°"""
+@app.route('/api/monitor/<int:monitor_id>/clear', methods=['POST'])  # Очистить логи монитора
+def clear_monitor_logs(monitor_id):
+    """Очистить логи монитора"""
     if 'user' not in session: return jsonify({'success': False}), 401
-    if utils.clear_monitor_logs(id):
-        add_log('info', f"Monitor logs cleared: {id}")
+    if utils.clear_monitor_logs(monitor_id):
+        add_log('info', f"Monitor logs cleared: {monitor_id}")
         return jsonify({'success': True})
     return jsonify({'success': False})
 
@@ -1886,14 +2135,14 @@ def api_ai_chat():
     if not AI_MODEL:
         return jsonify({
             'success': False, 
-            'error': 'AI РЅРµ РЅР°СЃС‚СЂРѕРµРЅ. Р”РѕР±Р°РІСЊС‚Рµ GEMINI_API_KEY РІ РїРµСЂРµРјРµРЅРЅС‹Рµ РѕРєСЂСѓР¶РµРЅРёСЏ.'
+            'error': 'AI не настроен. Добавьте GEMINI_API_KEY в переменные окружения.'
         })
     
     data = request.json
     message = data.get('message', '').strip()
     
     if not message:
-        return jsonify({'success': False, 'error': 'РџСѓСЃС‚РѕРµ СЃРѕРѕР±С‰РµРЅРёРµ'})
+        return jsonify({'success': False, 'error': 'Пустое сообщение'})
     
     # Get or create session for user
     user_id = session.get('user', {}).get('id', 'anonymous')
@@ -1909,7 +2158,7 @@ def api_ai_chat():
         
         # Limit response length
         if len(answer) > 8000:
-            answer = answer[:8000] + "\n\n... (РѕС‚РІРµС‚ РѕР±СЂРµР·Р°РЅ)"
+            answer = answer[:8000] + "\n\n... (ответ обрезан)"
         
         add_log('info', f"AI Chat: {message[:50]}...")
         
@@ -1974,15 +2223,15 @@ except ImportError:
     PRO_TEXT = ""
     ETHER_TEMPLATES = {}
 
-ARIZONA_SYSTEM_PROMPT = f"""РўС‹ - СѓРјРЅС‹Р№ РїРѕРјРѕС‰РЅРёРє РїРѕ РёРіСЂРѕРІРѕРјСѓ СЃРµСЂРІРµСЂСѓ Arizona RP (SAMP).
-РўРІРѕСЏ Р·Р°РґР°С‡Р° - РѕС‚РІРµС‡Р°С‚СЊ РЅР° РІРѕРїСЂРѕСЃС‹ РёРіСЂРѕРєРѕРІ РїРѕ РїСЂР°РІРёР»Р°Рј, РєРѕРјР°РЅРґР°Рј Рё СЃРёСЃС‚РµРјР°Рј СЃРµСЂРІРµСЂР°.
-РЈ С‚РµР±СЏ РµСЃС‚СЊ РґРѕСЃС‚СѓРї Рє Р±Р°Р·Рµ РїСЂР°РІРёР» РЎРњР (РџРџР­ Рё РџР Рћ):
+ARIZONA_SYSTEM_PROMPT = f"""Ты - умный помощник по игровому серверу Arizona RP (SAMP).
+Твоя задача - отвечать на вопросы игроков по правилам, командам и системам сервера.
+У тебя есть доступ к базе правил СМИ (ППЭ и ПРО):
 {PPE_TEXT[:1000] if SMI_RULES_LOADED else ""}
 {PRO_TEXT[:1000] if SMI_RULES_LOADED else ""}
 
-РСЃРїРѕР»СЊР·СѓР№ СЃРІРѕРё Р·РЅР°РЅРёСЏ Рѕ SAMP Рё Arizona RP.
-Р•СЃР»Рё РІРѕРїСЂРѕСЃ РєР°СЃР°РµС‚СЃСЏ РЅР°СЂСѓС€РµРЅРёСЏ (DM, TK, SK Рё С‚.Рґ.) - РѕР±СЉСЏСЃРЅРё С‡С‚Рѕ СЌС‚Рѕ Рё РєР°РєРѕРµ РѕР±С‹С‡РЅРѕ РЅР°РєР°Р·Р°РЅРёРµ (Р”РµРјРѕСЂРіР°РЅ/Р’Р°СЂРЅ).
-РћС‚РІРµС‡Р°Р№ РІРµР¶Р»РёРІРѕ, РєСЂР°С‚РєРѕ Рё РїРѕР»РµР·РЅРѕ. РќРµ СЃРѕРІРµС‚СѓР№ РїСЂРѕСЃС‚Рѕ СЃРјРѕС‚СЂРµС‚СЊ /help, СЃС‚Р°СЂР°Р№СЃСЏ РґР°С‚СЊ РѕС‚РІРµС‚ СЃСЂР°Р·Сѓ."""
+Используй свои знания о SAMP и Arizona RP.
+Если вопрос касается нарушения (DM, TK, SK и т.д.) - объясни что это и какое обычно наказание (Деморган/Варн).
+Отвечай вежливо, кратко и полезно. Не советуй просто смотреть /help, старайся дать ответ сразу."""
 
 @app.route('/api/arizona/helper', methods=['POST'])
 def api_arizona_helper():
@@ -1991,7 +2240,7 @@ def api_arizona_helper():
     question = data.get('question', '').strip()
     
     if not question:
-        return jsonify({'success': False, 'error': 'РџСѓСЃС‚РѕР№ РІРѕРїСЂРѕСЃ'})
+        return jsonify({'success': False, 'error': 'Пустой вопрос'})
     
     # First try local rules database
     if RULES_DB_LOADED:
@@ -2008,15 +2257,15 @@ def api_arizona_helper():
         try:
             prompt = f"""{ARIZONA_SYSTEM_PROMPT}
 
-Р’РѕРїСЂРѕСЃ РёРіСЂРѕРєР° РїРѕ Arizona RP: {question}
+Вопрос игрока по Arizona RP: {question}
 
-Р’РђР–РќРћ: РРіСЂРѕРє СѓР¶Рµ РёСЃРєР°Р» РІ Р±Р°Р·Рµ РґР°РЅРЅС‹С… Рё РЅРµ РЅР°С€С‘Р» РѕС‚РІРµС‚Р°.
-РќР• РџРРЁР "РёСЃРїРѕР»СЊР·СѓР№С‚Рµ /help" РёР»Рё "РїРѕСЃРјРѕС‚СЂРёС‚Рµ РЅР° С„РѕСЂСѓРјРµ".
-Р”Р°Р№ РєРѕРЅРєСЂРµС‚РЅС‹Р№ РѕС‚РІРµС‚, РёСЃРїРѕР»СЊР·СѓСЏ СЃРІРѕРё РѕР±С‰РёРµ Р·РЅР°РЅРёСЏ Рѕ SA-MP Рё RP СЂРµР¶РёРјР°С….
-Р•СЃР»Рё СЌС‚Рѕ РІРѕРїСЂРѕСЃ РїСЂРѕ РЅР°РєР°Р·Р°РЅРёРµ (Р”Рњ, РЎРљ, РўРљ) - РЅР°Р·РѕРІРё СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ РЅР°РєР°Р·Р°РЅРёСЏ (Р”РµРјРѕСЂРіР°РЅ 60-120 РјРёРЅ / Р’Р°СЂРЅ).
-Р•СЃР»Рё РЅРµ СѓРІРµСЂРµРЅ - РїСЂРµРґРїРѕР»РѕР¶Рё, РЅРѕ РЅРµ РѕС‚РїСЂР°РІР»СЏР№ С‡РёС‚Р°С‚СЊ /help.
+ВАЖНО: Игрок уже искал в базе данных и не нашёл ответ.
+НЕ ПИШИ "используйте /help" или "посмотрите на форуме".
+Дай конкретный ответ, используя свои общие знания о SA-MP и RP режимах.
+Если это вопрос про наказание (ДМ, СК, ТК) - назови стандартные наказания (Деморган 60-120 мин / Варн).
+Если не уверен - предположи, но не отправляй читать /help.
 
-Р”Р°Р№ РїРѕР»РµР·РЅС‹Р№ Рё С‚РѕС‡РЅС‹Р№ РѕС‚РІРµС‚:"""
+Дай полезный и точный ответ:"""
             
             # Run AI with timeout to prevent eternal loading
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -2026,45 +2275,45 @@ def api_arizona_helper():
             return jsonify({'success': True, 'response': response.text, 'source': 'ai'})
             
         except concurrent.futures.TimeoutError:
-            return jsonify({'success': False, 'error': 'РЎРµСЂРІРµСЂ РїРµСЂРµРіСЂСѓР¶РµРЅ. РџРѕРїСЂРѕР±СѓР№С‚Рµ СЃС„РѕСЂРјСѓР»РёСЂРѕРІР°С‚СЊ РІРѕРїСЂРѕСЃ РєРѕСЂРѕС‡Рµ (Timeout).'})
+            return jsonify({'success': False, 'error': 'Сервер перегружен. Попробуйте сформулировать вопрос короче (Timeout).'})
         except Exception as e:
             error_msg = str(e)
             if '429' in error_msg:
-                return jsonify({'success': False, 'error': 'Р›РёРјРёС‚ Р·Р°РїСЂРѕСЃРѕРІ AI РїСЂРµРІС‹С€РµРЅ. РџРѕРїСЂРѕР±СѓР№С‚Рµ РїРѕР·Р¶Рµ РёР»Рё Р·Р°РґР°Р№С‚Рµ РІРѕРїСЂРѕСЃ РїРѕ РїСЂР°РІРёР»Р°Рј (DM, RK, PG, С‡РёС‚С‹ Рё С‚.d.)'})
+                return jsonify({'success': False, 'error': 'Лимит запросов AI превышен. Попробуйте позже или задайте вопрос по правилам (DM, RK, PG, читы и т.d.)'})
             return jsonify({'success': False, 'error': str(e)[:200]})
     
-    return jsonify({'success': False, 'error': 'РќРµ РЅР°Р№РґРµРЅРѕ РІ Р±Р°Р·Рµ. РџРѕРїСЂРѕР±СѓР№С‚Рµ: DM, RK, PG, С‡РёС‚С‹, РєР°РїС‚, РїРѕР»РёС†РёСЏ, Р¶Р°Р»РѕР±Р°'})
+    return jsonify({'success': False, 'error': 'Не найдено в базе. Попробуйте: DM, RK, PG, читы, капт, полиция, жалоба'})
 
 
 @app.route('/api/arizona/complaint', methods=['POST'])
 def api_arizona_complaint():
     """Generate complaint template"""
     if not AI_MODEL:
-        return jsonify({'success': False, 'error': 'AI РЅРµ РЅР°СЃС‚СЂРѕРµРЅ'})
+        return jsonify({'success': False, 'error': 'AI не настроен'})
     
     data = request.json
     nickname = data.get('nickname', '').strip()
     description = data.get('description', '').strip()
     
     if not nickname or not description:
-        return jsonify({'success': False, 'error': 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РїРѕР»СЏ'})
+        return jsonify({'success': False, 'error': 'Заполните все поля'})
     
     try:
-        prompt = f"""РўС‹ СЃРѕСЃС‚Р°РІР»СЏРµС€СЊ Р¶Р°Р»РѕР±Сѓ РЅР° РёРіСЂРѕРєР° Arizona RP РїРѕ С€Р°Р±Р»РѕРЅСѓ С„РѕСЂСѓРјР°.
+        prompt = f"""Ты составляешь жалобу на игрока Arizona RP по шаблону форума.
 
-РќРёРєРЅРµР№Рј РЅР°СЂСѓС€РёС‚РµР»СЏ: {nickname}
-РћРїРёСЃР°РЅРёРµ СЃРёС‚СѓР°С†РёРё: {description}
+Никнейм нарушителя: {nickname}
+Описание ситуации: {description}
 
-РЎРѕСЃС‚Р°РІСЊ РіСЂР°РјРѕС‚РЅСѓСЋ Р¶Р°Р»РѕР±Сѓ РІ С„РѕСЂРјР°С‚Рµ:
+Составь грамотную жалобу в формате:
 
-**РќРёРєРЅРµР№Рј РЅР°СЂСѓС€РёС‚РµР»СЏ:** [РЅРёРє]
-**Р”Р°С‚Р° Рё РІСЂРµРјСЏ:** [РїСЂРёР±Р»РёР·РёС‚РµР»СЊРЅРѕ]
-**РћРїРёСЃР°РЅРёРµ РЅР°СЂСѓС€РµРЅРёСЏ:** [РїРѕРґСЂРѕР±РЅРѕРµ РѕРїРёСЃР°РЅРёРµ]
-**РќР°СЂСѓС€РµРЅРЅРѕРµ РїСЂР°РІРёР»Рѕ:** [РєР°РєРѕРµ РїСЂР°РІРёР»Рѕ Р±С‹Р»Рѕ РЅР°СЂСѓС€РµРЅРѕ]
-**Р”РѕРєР°Р·Р°С‚РµР»СЊСЃС‚РІР°:** [С‡С‚Рѕ РЅСѓР¶РЅРѕ РїСЂРёР»РѕР¶РёС‚СЊ]
-**РўСЂРµР±СѓРµРјРѕРµ РЅР°РєР°Р·Р°РЅРёРµ:** [СЂРµРєРѕРјРµРЅРґР°С†РёСЏ]
+**Никнейм нарушителя:** [ник]
+**Дата и время:** [приблизительно]
+**Описание нарушения:** [подробное описание]
+**Нарушенное правило:** [какое правило было нарушено]
+**Доказательства:** [что нужно приложить]
+**Требуемое наказание:** [рекомендация]
 
-Р•СЃР»Рё РІ РѕРїРёСЃР°РЅРёРё СѓРїРѕРјРёРЅР°РµС‚СЃСЏ РєРѕРЅРєСЂРµС‚РЅРѕРµ РЅР°СЂСѓС€РµРЅРёРµ - РѕРїСЂРµРґРµР»Рё РєР°РєРѕРµ РїСЂР°РІРёР»Рѕ СЃРµСЂРІРµСЂР° РЅР°СЂСѓС€РµРЅРѕ."""
+Если в описании упоминается конкретное нарушение - определи какое правило сервера нарушено."""
         
         response = AI_MODEL.generate_content(prompt)
         return jsonify({'success': True, 'response': response.text})
@@ -2082,10 +2331,10 @@ def api_arizona_trainer():
 
     # System prompts for different scenarios
     prompts = {
-        'traffic_stop': "РўС‹ - РѕС„РёС†РµСЂ РїРѕР»РёС†РёРё LSPD РЅР° СЃРµСЂРІРµСЂРµ Arizona RP. РўРІРѕСЏ Р·Р°РґР°С‡Р°: РѕСЃС‚Р°РЅРѕРІРёС‚СЊ РёРіСЂРѕРєР° Р·Р° РЅР°СЂСѓС€РµРЅРёРµ РџР”Р” Рё РѕС‚С‹РіСЂР°С‚СЊ Р Рџ СЃРёС‚СѓР°С†РёСЋ (С‚СЂР°С„С„РёРє-СЃС‚РѕРї 10-55). Р‘СѓРґСЊ СЃС‚СЂРѕРіРёРј, РёСЃРїРѕР»СЊР·СѓР№ Р±РёРЅРґРµСЂРЅС‹Рµ РѕС‚С‹РіСЂРѕРІРєРё, РЅРѕ СЂРµР°РіРёСЂСѓР№ РЅР° РґРµР№СЃС‚РІРёСЏ РёРіСЂРѕРєР°. Р•СЃР»Рё РёРіСЂРѕРє С…РѕСЂРѕС€Рѕ РѕС‚С‹РіСЂС‹РІР°РµС‚ (/me, /do), С…РІР°Р»Рё РµРіРѕ РІ NonRP С‡Р°С‚Рµ (( )). Р•СЃР»Рё РїР»РѕС…Рѕ - РїРѕРґСЃРєР°Р·С‹РІР°Р№. РќР°С‡РЅРё СЃ С‚СЂРµР±РѕРІР°РЅРёСЏ Р·Р°РіР»СѓС€РёС‚СЊ РґРІРёРіР°С‚РµР»СЊ.",
-        'medic_exam': "РўС‹ - РІСЂР°С‡ Р±РѕР»СЊРЅРёС†С‹ Р›РЎ. РўРІРѕСЏ Р·Р°РґР°С‡Р°: РїСЂРѕРІРµСЃС‚Рё РјРµРґ. РѕСЃРјРѕС‚СЂ РёРіСЂРѕРєР° РїСЂРёР·С‹РІРЅРёРєР°. РЎРїСЂР°С€РёРІР°Р№ Р¶Р°Р»РѕР±С‹, РїСЂРѕРІРµСЂСЏР№ Р·СЂРµРЅРёРµ, СЃР»СѓС€Р°Р№ СЃРµСЂРґС†Рµ. РСЃРїРѕР»СЊР·СѓР№ /me Рё /do. РћС†РµРЅРёРІР°Р№ СѓСЂРѕРІРµРЅСЊ Р Рџ РёРіСЂРѕРєР°.",
-        'bar_fight': "РўС‹ - Р±Р°РЅРґРёС‚ РёР· Р“РµС‚С‚Рѕ (Vagos). РўС‹ РІ Р±Р°СЂРµ, РїСЊСЏРЅС‹Р№. Р”РѕРєРѕРїР°Р№СЃСЏ РґРѕ РёРіСЂРѕРєР°, РїСЂРѕРІРѕС†РёСЂСѓР№ РґСЂР°РєСѓ, РёСЃРїРѕР»СЊР·СѓР№ СЃР»РµРЅРі РіРµС‚С‚Рѕ. РџСЂРѕРІРµСЂСЊ, РєР°Рє РёРіСЂРѕРє Р±СѓРґРµС‚ СЂРµР°РіРёСЂРѕРІР°С‚СЊ: РёСЃРїСѓРіР°РµС‚СЃСЏ (РџР“?) РёР»Рё РѕС‚РІРµС‚РёС‚.",
-        'interview': "РўС‹ - Р—Р°РјРµСЃС‚РёС‚РµР»СЊ Р”РёСЂРµРєС‚РѕСЂР° РЎРњР. РџСЂРѕРІРѕРґРёС€СЊ СЃРѕР±РµСЃРµРґРѕРІР°РЅРёРµ РёРіСЂРѕРєСѓ РЅР° РґРѕР»Р¶РЅРѕСЃС‚СЊ РЎС‚Р°Р¶РµСЂР°. РџСЂРѕРІРµСЂСЊ РµРіРѕ РїР°СЃРїРѕСЂС‚, РјРµРґРєР°СЂС‚Сѓ Рё Р»РёС†РµРЅР·РёРё РїРѕ Р Рџ. РЎРїСЂРѕСЃРё С‚РµСЂРјРёРЅС‹ (РњР“, РўРљ, Р”Рњ) РІ /b С‡Р°С‚."
+        'traffic_stop': "Ты - офицер полиции LSPD на сервере Arizona RP. Твоя задача: остановить игрока за нарушение ПДД и отыграть РП ситуацию (траффик-стоп 10-55). Будь строгим, используй биндерные отыгровки, но реагируй на действия игрока. Если игрок хорошо отыгрывает (/me, /do), хвали его в NonRP чате (( )). Если плохо - подсказывай. Начни с требования заглушить двигатель.",
+        'medic_exam': "Ты - врач больницы ЛС. Твоя задача: провести мед. осмотр игрока призывника. Спрашивай жалобы, проверяй зрение, слушай сердце. Используй /me и /do. Оценивай уровень РП игрока.",
+        'bar_fight': "Ты - бандит из Гетто (Vagos). Ты в баре, пьяный. Докопайся до игрока, спровоцируй драку, используй сленг гетто. Проверь, как игрок будет реагировать: испугается (ПГ?) или ответит.",
+        'interview': "Ты - Заместитель Директора СМИ. Проводишь собеседование игроку на должность Стажера. Проверь его паспорт, медкарту и лицензии по РП. Спроси термины (МГ, ТК, ДМ) в /b чат."
     }
 
     system_instruction = prompts.get(scenario, prompts['traffic_stop'])
@@ -2140,7 +2389,7 @@ def api_arizona_rules():
     question = data.get('question', '').strip()
     
     if not question:
-        return jsonify({'success': False, 'error': 'РџСѓСЃС‚РѕР№ РІРѕРїСЂРѕСЃ'})
+        return jsonify({'success': False, 'error': 'Пустой вопрос'})
     
     # First try local rules database
     if RULES_DB_LOADED:
@@ -2155,21 +2404,21 @@ def api_arizona_rules():
     # Fallback to AI
     if AI_MODEL:
         try:
-            prompt = f"""РўС‹ - СЌРєСЃРїРµСЂС‚ РїРѕ РїСЂР°РІРёР»Р°Рј Arizona RP. Р—РЅР°РµС€СЊ РІСЃРµ РїСЂР°РІРёР»Р° СЃРµСЂРІРµСЂР°:
+            prompt = f"""Ты - эксперт по правилам Arizona RP. Знаешь все правила сервера:
 
-- DM (DeathMatch) - СѓР±РёР№СЃС‚РІРѕ Р±РµР· РїСЂРёС‡РёРЅС‹
-- RK (RevengeKill) - РјРµСЃС‚СЊ РїРѕСЃР»Рµ СЃРјРµСЂС‚Рё
-- PG (PowerGaming) - РЅРµСЂРµР°Р»РёСЃС‚РёС‡РЅС‹Рµ РґРµР№СЃС‚РІРёСЏ
-- MG (MetaGaming) - РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ OOC РёРЅС„РѕСЂРјР°С†РёРё РІ IC
-- VDM (Vehicle DeathMatch) - СѓР±РёР№СЃС‚РІРѕ С‚СЂР°РЅСЃРїРѕСЂС‚РѕРј
-- SK (SpawnKill) - СѓР±РёР№СЃС‚РІРѕ РЅР° СЃРїР°РІРЅРµ
-- Р—РµР»С‘РЅС‹Рµ Р·РѕРЅС‹ - РјРµСЃС‚Р° РіРґРµ РЅРµР»СЊР·СЏ СЃС‚СЂРµР»СЏС‚СЊ
-- Р§РёС‚С‹ - Р±Р°РЅ РЅР°РІСЃРµРіРґР°
-- РћСЃРєРѕСЂР±Р»РµРЅРёСЏ - РјСѓС‚/Р±Р°РЅ
+- DM (DeathMatch) - убийство без причины
+- RK (RevengeKill) - месть после смерти
+- PG (PowerGaming) - нереалистичные действия
+- MG (MetaGaming) - использование OOC информации в IC
+- VDM (Vehicle DeathMatch) - убийство транспортом
+- SK (SpawnKill) - убийство на спавне
+- Зелёные зоны - места где нельзя стрелять
+- Читы - бан навсегда
+- Оскорбления - мут/бан
 
-Р’РѕРїСЂРѕСЃ: {question}
+Вопрос: {question}
 
-Р”Р°Р№ С‡С‘С‚РєРёР№ РѕС‚РІРµС‚: СЌС‚Рѕ РЅР°СЂСѓС€РµРЅРёРµ РёР»Рё РЅРµС‚? РљР°РєРѕРµ РїСЂР°РІРёР»Рѕ? РљР°РєРѕРµ РЅР°РєР°Р·Р°РЅРёРµ?"""
+Дай чёткий ответ: это нарушение или нет? Какое правило? Какое наказание?"""
             
             # Run AI with timeout to prevent eternal loading
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -2179,56 +2428,51 @@ def api_arizona_rules():
             return jsonify({'success': True, 'response': response.text, 'source': 'ai'})
             
         except concurrent.futures.TimeoutError:
-            return jsonify({'success': False, 'error': 'РЎРµСЂРІРµСЂ РїРµСЂРµРіСЂСѓР¶РµРЅ. РџРѕРїСЂРѕР±СѓР№С‚Рµ СЃС„РѕСЂРјСѓР»РёСЂРѕРІР°С‚СЊ РІРѕРїСЂРѕСЃ РєРѕСЂРѕС‡Рµ (Timeout).'})
+            return jsonify({'success': False, 'error': 'Сервер перегружен. Попробуйте сформулировать вопрос короче (Timeout).'})
         except Exception as e:
             if '429' in str(e):
-                return jsonify({'success': False, 'error': 'Р›РёРјРёС‚ AI. РСЃРїРѕР»СЊР·СѓР№С‚Рµ РєР»СЋС‡РµРІС‹Рµ СЃР»РѕРІР°: DM, RK, PG, С‡РёС‚С‹, РєР°РїС‚'})
+                return jsonify({'success': False, 'error': 'Лимит AI. Используйте ключевые слова: DM, RK, PG, читы, капт'})
             return jsonify({'success': False, 'error': str(e)[:200]})
     
-    return jsonify({'success': False, 'error': 'РџСЂР°РІРёР»Рѕ РЅРµ РЅР°Р№РґРµРЅРѕ. РџРѕРїСЂРѕР±СѓР№С‚Рµ: DM, RK, PG, MG, SK, TK, С‡РёС‚С‹'})
+    return jsonify({'success': False, 'error': 'Правило не найдено. Попробуйте: DM, RK, PG, MG, SK, TK, читы'})
 
 @app.route('/api/arizona/rules_list', methods=['GET'])
 def api_arizona_rules_list():
     """Get list of all available rules"""
     if RULES_DB_LOADED:
         return jsonify({'success': True, 'response': get_all_rules_list()})
-    return jsonify({'success': False, 'error': 'Р‘Р°Р·Р° РїСЂР°РІРёР» РЅРµ Р·Р°РіСЂСѓР¶РµРЅР°'})
+    return jsonify({'success': False, 'error': 'База правил не загружена'})
 
 
 @app.route('/api/arizona/smi/edit', methods=['POST'])
 def api_arizona_smi_edit():
     """Smart Ad Editor using AI"""
     if not AI_MODEL:
-        return jsonify({'success': False, 'error': 'AI РЅРµ РЅР°СЃС‚СЂРѕРµРЅ'})
+        return jsonify({'success': False, 'error': 'AI не настроен'})
     
     data = request.json
     text = data.get('text', '').strip()
     
     if not text:
-        return jsonify({'success': False, 'error': 'Р’РІРµРґРёС‚Рµ С‚РµРєСЃС‚ РѕР±СЉСЏРІР»РµРЅРёСЏ'})
-    
-    try:
-        prompt = f"""РўС‹ - РїСЂРѕС„РµСЃСЃРёРѕРЅР°Р»СЊРЅС‹Р№ СЃРѕС‚СЂСѓРґРЅРёРє РЎРњР РЅР° СЃРµСЂРІРµСЂРµ Arizona RP.
-РўРІРѕСЏ Р·Р°РґР°С‡Р° - РѕС‚СЂРµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ РёРіСЂРѕРєР° СЃРѕРіР»Р°СЃРЅРѕ РџР Рћ (РџСЂР°РІРёР»Р°Рј Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёСЏ РћР±СЉСЏРІР»РµРЅРёР№).
-
-Р’С…РѕРґСЏС‰РёР№ С‚РµРєСЃС‚: "{text}"
-
-РџСЂР°РІРёР»Р°:
-1. РСЃРїСЂР°РІСЊ РіСЂР°РјРјР°С‚РёС‡РµСЃРєРёРµ РѕС€РёР±РєРё.
-2. РСЃРїРѕР»СЊР·СѓР№ РїРѕР»РЅС‹Рµ РЅР°Р·РІР°РЅРёСЏ С‚СЂР°РЅСЃРїРѕСЂС‚Р°/РіРѕСЂРѕРґРѕРІ (РЅСЂРі -> Рј/С† NRG-500, Р»СЃ -> Рі. Р›РѕСЃ-РЎР°РЅС‚РѕСЃ).
-3. Р•СЃР»Рё С†РµРЅР° РЅРµ СѓРєР°Р·Р°РЅР° - РїРёС€Рё "Р¦РµРЅР°: Р”РѕРіРѕРІРѕСЂРЅР°СЏ".
-4. Р•СЃР»Рё Р±СЋРґР¶РµС‚ РЅРµ СѓРєР°Р·Р°РЅ - РїРёС€Рё "Р‘СЋРґР¶РµС‚: РЎРІРѕР±РѕРґРЅС‹Р№".
-5. Р¤РѕСЂРјР°С‚: [РўРёРї] РўРµРєСЃС‚ РѕР±СЉСЏРІР»РµРЅРёСЏ. Р¦РµРЅР°/Р‘СЋРґР¶РµС‚: ...
-6. РќРµ РґРѕР±Р°РІР»СЏР№ "РљРѕРЅС‚Р°РєС‚: ..." РІ РєРѕРЅС†Рµ, СЌС‚Рѕ РґРµР»Р°РµС‚ РёРіСЂР° СЃР°РјР°.
-
-РџСЂРёРјРµСЂС‹:
-- "РїСЂРѕРґР°Рј РЅСЂРі 500" -> "РџСЂРѕРґР°Рј Рј/С† NRG-500. Р¦РµРЅР°: Р”РѕРіРѕРІРѕСЂРЅР°СЏ"
-- "РєСѓРїР»СЋ РґРѕРј Р»СЃ 50РєРє" -> "РљСѓРїР»СЋ РґРѕРј РІ Рі. Р›РѕСЃ-РЎР°РЅС‚РѕСЃ. Р‘СЋРґР¶РµС‚: 50 РјР»РЅ$"
-- "РЅР°Р±РѕСЂ РІ С„Р°РјСѓ" -> "РРґРµС‚ РЅР°Р±РѕСЂ РІ СЃРµРјСЊСЋ. РџСЂРѕСЃСЊР±Р° СЃРІСЏР·Р°С‚СЊСЃСЏ."
-- "РїСЂРѕРґР°Рј Р°РєСЃ РїРѕРїСѓРіР°Р№" -> "РџСЂРѕРґР°Рј Р°/СЃ РџРѕРїСѓРіР°Р№ РЅР° РїР»РµС‡Рѕ. Р¦РµРЅР°: Р”РѕРіРѕРІРѕСЂРЅР°СЏ"
-
-Р’РµСЂРЅРё РўРћР›Р¬РљРћ РѕС‚СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРЅС‹Р№ С‚РµРєСЃС‚."""
+        return jsonify({'success': False, 'error': 'Пустой текст'})
         
+    try:
+        prompt = f"""Ты - строгий редактор объявлений СМИ(PRO) на сервере Arizona RP. Отредактируй это: "{text}"
+По правилам:
+1. Замени сленг (гетто -> опасный район, велик -> в/т Горник).
+2. Добавь префиксы (а/м - авто, м/ц - мото).
+3. Если цена не указана - пиши "Цена: Договорная".
+4. Если бюджет не указан - пиши "Бюджет: Свободный".
+5. Формат: [Тип] Текст объявления. Цена/Бюджет: ...
+6. Не добавляй "Контакт: ..." в конце, это делает игра сама.
+
+Примеры:
+- "продам нрг 500" -> "Продам м/ц NRG-500. Цена: Договорная"
+- "куплю дом лс 50кк" -> "Куплю дом в г. Лос-Сантос. Бюджет: 50 млн$"
+- "набор в фаму" -> "Идет набор в семью. Просьба связаться."
+- "продам акс попугай" -> "Продам а/с Попугай на плечо. Цена: Договорная"
+
+Верни ТОЛЬКО отредактированный текст."""
         response = AI_MODEL.generate_content(prompt)
         return jsonify({'success': True, 'response': response.text.strip()})
     except Exception as e:
@@ -3101,10 +3345,7 @@ def api_friend_accept():
 # --- DM ROUTES ---
 
 def get_or_create_dm(user1_id, user2_id):
-    # Prevent self-DMs
-    if user1_id == user2_id:
-        return None
-    
+    # Allow self-DMs for Cloud Drive / Saved Messages
     # Ensure consistent ordering for lookup
     if user1_id > user2_id: user1_id, user2_id = user2_id, user1_id
     
@@ -3118,6 +3359,14 @@ def get_or_create_dm(user1_id, user2_id):
     # Fetch back
     row = execute_query('SELECT id FROM direct_messages WHERE user_id_1 = %s AND user_id_2 = %s', (user1_id, user2_id), fetch_one=True)
     return row[0]
+
+@app.route('/api/dms/get_or_create/<int:target_id>', methods=['POST'])
+def api_get_or_create_dm(target_id):
+    if 'user' not in session: return jsonify({'success': False}), 401
+    my_id = int(session['user']['id'])
+    
+    dm_id = get_or_create_dm(my_id, target_id)
+    return jsonify({'success': True, 'dm_id': dm_id})
 
 @app.route('/api/dms', methods=['GET'])
 def api_get_dms():
@@ -3140,16 +3389,21 @@ def api_get_dms():
         ts = r[3]
         
         # Determine who the other is
+        # If u1 == u2 (self-DM), other_id is still my_id
         other_id = u2 if u1 == my_id else u1
-        
-        # Skip self-DMs (shouldn't exist but filter just in case)
-        if other_id == my_id:
-            continue
         
         # Get other user info
         u_row = execute_query("SELECT username, avatar, display_name FROM users WHERE id = %s", (other_id,), fetch_one=True)
         if not u_row: continue
         
+        username = u_row[0]
+        avatar = u_row[1] if u_row[1] else DEFAULT_AVATAR
+        display_name = u_row[2] or username
+        
+        # Special rename for self-DMs
+        if other_id == my_id:
+            display_name = "Saved Messages"
+            
         # Get last message for preview
         last_msg_row = execute_query("""
             SELECT content, timestamp, author_id 
@@ -3177,9 +3431,9 @@ def api_get_dms():
             'id': str(dm_id),
             'other_user': {
                 'id': str(other_id),
-                'username': u_row[0],
-                'avatar': u_row[1] if u_row[1] else DEFAULT_AVATAR,
-                'display_name': u_row[2]
+                'username': username,
+                'avatar': avatar,
+                'display_name': display_name
             },
             'last_message_at': ts,
             'last_message_text': last_message_text,
@@ -3207,7 +3461,8 @@ def api_dm_messages_by_id(dm_id):
     # Fetch ALL messages ordered chronologically with extended fields
     rows = execute_query("""
         SELECT dm.id, dm.content, dm.timestamp, u.username, u.avatar, 
-               dm.is_pinned, dm.edited_at, dm.reply_to_id, u.id as author_id, dm.attachments
+               dm.is_pinned, dm.edited_at, dm.reply_to_id, u.id as author_id, dm.attachments,
+               dm.is_encrypted, dm.encryption_metadata, dm.cloud_folder_id, dm.tags
         FROM dm_messages dm
         JOIN users u ON u.id = dm.author_id
         WHERE dm.dm_id = %s
@@ -3218,7 +3473,7 @@ def api_dm_messages_by_id(dm_id):
     for r in rows or []:
         msg_id = r[0]
         # Get reactions for this message
-        reactions = {}  # TODO: Implement get_message_reactions function
+        reactions = get_message_reactions(msg_id)
         
         # Get reply preview if exists
         reply_preview = None
@@ -3244,7 +3499,12 @@ def api_dm_messages_by_id(dm_id):
             'reply_to': reply_preview,
             'author_id': r[8],
             'reactions': reactions,
-            'attachments': r[9]  # JSON string of attachments
+            'reactions': reactions,
+            'attachments': json.loads(r[9]) if r[9] else None,  # Parse JSON string to object
+            'is_encrypted': bool(r[10]),
+            'encryption_metadata': r[11],
+            'cloud_folder_id': r[12],
+            'tags': r[13]
         })
     
     return jsonify({'success': True, 'messages': messages})
@@ -3297,7 +3557,12 @@ def api_dm_send_by_id(dm_id):
     content = data.get('content', '').strip()
     reply_to_id = data.get('reply_to_id')  # ID сообщения на которое отвечаем
     attachments = data.get('attachments')  # JSON string of file metadata
+    attachments = data.get('attachments')  # JSON string of file metadata
     expires_in = data.get('expires_in')  # Seconds until message expires (disappearing messages)
+    is_encrypted = data.get('is_encrypted', False)
+    encryption_metadata = data.get('encryption_metadata')
+    nonce = data.get('nonce')
+    folder_id = data.get('folder_id') # New field for Cloud Drive organization
     
     # Require either content or attachments
     if not content and not attachments:
@@ -3313,9 +3578,9 @@ def api_dm_send_by_id(dm_id):
     try:
         # Insert message with reply support and expiration
         message_id = execute_query('''
-            INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id, attachments, expires_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ''', (dm_id, my_id, content, timestamp, reply_to_id, attachments, expires_at), commit=True)
+            INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id, attachments, expires_at, is_encrypted, encryption_metadata, cloud_folder_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (dm_id, my_id, content, timestamp, reply_to_id, attachments, expires_at, is_encrypted, encryption_metadata, folder_id), commit=True)
         
         # Update last_message_at
         execute_query('UPDATE direct_messages SET last_message_at = %s WHERE id = %s',
@@ -3337,8 +3602,12 @@ def api_dm_send_by_id(dm_id):
         'avatar': avatar,
         'content': content,
         'timestamp': timestamp,
-        'attachments': attachments,
-        'expires_at': expires_at
+        'attachments': json.loads(attachments) if attachments else None,  # Parse JSON to object
+        'is_encrypted': is_encrypted,
+        'encryption_metadata': encryption_metadata,
+        'expires_at': expires_at,
+        'nonce': nonce,
+        'cloud_folder_id': folder_id
     }
     
     # Only send to the OTHER user (not the sender)
@@ -3356,8 +3625,10 @@ def api_dm_send_by_id(dm_id):
             'avatar': avatar,
             'content': content,
             'timestamp': timestamp,
-            'attachments': attachments,
-            'expires_at': expires_at
+            'attachments': json.loads(attachments) if attachments else None,  # Parse JSON to object
+            'expires_at': expires_at,
+            'nonce': nonce,
+            'cloud_folder_id': folder_id
         }
     })
 
@@ -3370,6 +3641,10 @@ def api_dm_send(target_id):
     reply_to_id = data.get('reply_to_id')  # Support replies
     attachments = data.get('attachments')  # Support attachments (JSON string)
     expires_in = data.get('expires_in')  # Seconds until message expires
+    nonce = data.get('nonce')
+    is_encrypted = data.get('is_encrypted', False)
+    encryption_metadata = data.get('encryption_metadata')
+    folder_id = data.get('folder_id')
     
     # Require either content or attachments
     if not content and not attachments:
@@ -3383,10 +3658,11 @@ def api_dm_send(target_id):
     if expires_in and isinstance(expires_in, (int, float)) and expires_in > 0:
         expires_at = timestamp + expires_in
     
-    # Insert Message with attachments, reply support and expiration
-    message_id = execute_query("""INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id, attachments, expires_at) 
-                     VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-                  (dm_id, my_id, content, timestamp, reply_to_id, attachments, expires_at), commit=True)
+    # Insert Message with attachments, reply support, encryption and expiration
+    message_id = execute_query("""
+        INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id, attachments, expires_at, is_encrypted, encryption_metadata, cloud_folder_id) 
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (dm_id, my_id, content, timestamp, reply_to_id, attachments, expires_at, is_encrypted, encryption_metadata, folder_id), commit=True)
                   
     # Update timestamp for sorting
     execute_query("UPDATE direct_messages SET last_message_at = %s WHERE id = %s", (timestamp, dm_id), commit=True)
@@ -3407,7 +3683,9 @@ def api_dm_send(target_id):
         'attachments': attachments,  # Include attachments in response
         'reply_to_id': reply_to_id,  # Include reply info
         'users': [my_id, target_id],  # IDs to filter on frontend
-        'expires_at': expires_at  # Disappearing message timer
+        'expires_at': expires_at,  # Disappearing message timer
+        'nonce': nonce,
+        'cloud_folder_id': folder_id
     }
     
     # Emit real-time event only to the RECIPIENT (not sender)
@@ -3718,9 +3996,166 @@ def debug_check_tables():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# --- CLOUD DRIVE ROUTES ---
+@app.route('/api/cloud/folders', methods=['GET', 'POST'])
+def api_cloud_folders():
+    if 'user' not in session: return jsonify({'success': False}), 401
+    my_id = int(session['user']['id'])
+    
+    if request.method == 'GET':
+        folders = execute_query('SELECT id, name, color, icon FROM cloud_folders WHERE user_id = %s ORDER BY created_at ASC', (my_id,), fetch_all=True)
+        result = [{'id': r[0], 'name': r[1], 'color': r[2], 'icon': r[3]} for r in folders]
+        return jsonify({'success': True, 'folders': result})
+        
+    elif request.method == 'POST':
+        data = request.json
+        name = data.get('name', '').strip()
+        color = data.get('color', '#5865F2')
+        icon = data.get('icon', 'folder')
+        
+        if not name: return jsonify({'success': False, 'error': 'Name is required'})
+        
+        folder_id = execute_query('INSERT INTO cloud_folders (user_id, name, color, icon, created_at) VALUES (%s, %s, %s, %s, %s)',
+                                  (my_id, name, color, icon, time.time()), commit=True)
+        return jsonify({'success': True, 'folder': {'id': folder_id, 'name': name, 'color': color, 'icon': icon}})
+
+@app.route('/api/messages/<int:message_id>/organize', methods=['POST'])
+def api_messages_organize(message_id):
+    if 'user' not in session: return jsonify({'success': False}), 401
+    my_id = int(session['user']['id'])
+    
+    # Verify ownership
+    msg = execute_query('SELECT author_id, dm_id FROM dm_messages WHERE id = %s', (message_id,), fetch_one=True)
+    if not msg: return jsonify({'success': False, 'error': 'Message not found'}), 404
+    
+    # Allow organizing if I sent it OR if it's in my cloud DM
+    dm = execute_query('SELECT user_id_1, user_id_2 FROM direct_messages WHERE id = %s', (msg[1],), fetch_one=True)
+    if not dm or (my_id not in [dm[0], dm[1]]):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+    data = request.json
+    folder_id = data.get('folder_id') # None or int
+    tags = data.get('tags') # String (e.g. "work, ideas")
+    
+    execute_query('UPDATE dm_messages SET cloud_folder_id = %s, tags = %s WHERE id = %s',
+                  (folder_id, tags, message_id), commit=True)
+                  
+    # Trigger socket update to refresh tags
+    sockets_payload = {
+        'message_id': message_id,
+        'dm_id': msg[1],
+        'cloud_folder_id': folder_id,
+        'tags': tags
+    }
+    
+    socket_room = str(dm[1]) if dm[0] == my_id else str(dm[0])
+    socketio.emit('message_organized', sockets_payload, room=socket_room)
+    # also emit to self explicitly if not self-DM, but for self-DMs room is just me
+    if dm[0] == dm[1]:
+        socketio.emit('message_organized', sockets_payload, room=str(my_id))
+        
+    return jsonify({'success': True})
+
+# --- REPORT SYSTEM ---
+
+@app.route('/api/messages/<int:message_id>/report', methods=['POST'])
+def api_report_message(message_id):
+    if 'user' not in session: return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    data = request.json
+    reason = data.get('reason', 'Other')
+    reporter_id = session['user']['id']
+    
+    try:
+        execute_query("INSERT INTO reports (message_id, reporter_id, reason, timestamp) VALUES (%s, %s, %s, %s)",
+                      (message_id, reporter_id, reason, time.time()), commit=True)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/reports', methods=['GET'])
+def api_admin_reports():
+    if 'user' not in session or session['user'].get('role') != 'admin':
+        return jsonify({'success': False, 'error': 'Admin only'}), 403
+    
+    query = """
+        SELECT r.id, r.message_id, r.reason, r.timestamp, 
+               m.content as message_text, m.author_id as reported_user_id,
+               u_reporter.username as reporter_username,
+               u_reported.username as reported_username
+        FROM reports r
+        JOIN dm_messages m ON r.message_id = m.id
+        JOIN users u_reporter ON r.reporter_id = u_reporter.id
+        JOIN users u_reported ON m.author_id = u_reported.id
+        ORDER BY r.timestamp DESC
+    """
+    try:
+        conn = get_db_connection()
+        is_sqlite = isinstance(conn, sqlite3.Connection)
+        if is_sqlite:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(query.replace('%s', '?'))
+            rows = cursor.fetchall()
+            return jsonify({'success': True, 'reports': [dict(r) for r in rows]})
+        else:
+            import psycopg2.extras
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            return jsonify({'success': True, 'reports': rows})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/reports/<int:report_id>/resolve', methods=['POST'])
+def api_resolve_report(report_id):
+    if 'user' not in session or session['user'].get('role') != 'admin':
+        return jsonify({'success': False, 'error': 'Admin only'}), 403
+        
+    data = request.json
+    action = data.get('action') # 'delete' or 'dismiss'
+    
+    try:
+        report = execute_query("SELECT message_id FROM reports WHERE id = %s", (report_id,), fetch_one=True)
+        if not report: return jsonify({'success': False, 'error': 'Report not found'}), 404
+        msg_id = report[0]
+        
+        if action == 'delete':
+            execute_query("DELETE FROM dm_messages WHERE id = %s", (msg_id,), commit=True)
+            execute_query("DELETE FROM reports WHERE id = %s", (report_id,), commit=True)
+        elif action == 'dismiss':
+            execute_query("DELETE FROM reports WHERE id = %s", (report_id,), commit=True)
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # Initialize servers after all functions are defined
 load_servers()
 print(f"[+] Loaded {len(servers_db)} servers")
+
+@app.route('/api/admin/users/promote', methods=['POST'])
+def api_admin_promote_user():
+    if 'user' not in session or session['user'].get('role') != 'admin':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    target_id = data.get('user_id')
+    new_role = data.get('role', 'admin')
+    
+    if not target_id:
+        return jsonify({'success': False, 'error': 'Missing user_id'})
+        
+    try:
+        # Check if user exists
+        user = execute_query("SELECT username FROM users WHERE id = %s", (target_id,), fetch_one=True)
+        if not user:
+            return jsonify({'success': False, 'error': f'User with ID #{target_id} not found'})
+            
+        execute_query("UPDATE users SET role = %s WHERE id = %s", (new_role, target_id), commit=True)
+        return jsonify({'success': True, 'username': user[0]})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

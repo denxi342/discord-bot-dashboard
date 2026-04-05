@@ -365,10 +365,10 @@ const DiscordModule = {
     },
 
     renderHomeSidebar: (container) => {
-        // Clear container first to prevent duplicates
+        // Очистить контейнер
         container.innerHTML = '';
 
-        // 1. Search Bar
+        // 1. Поиск (Messenger Style)
         container.innerHTML += `
         <div style="padding: 10px 10px 0 10px;">
             <button class="search-bar-styled">
@@ -378,9 +378,10 @@ const DiscordModule = {
         <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 8px 10px;"></div>
         `;
 
-        // 2. Navigation Items
+        // 2. Навигация (Messenger Style)
         const navItems = [
-            { id: 'friends', icon: 'user-group', label: 'Друзья', badge: null }
+            { id: 'friends', icon: 'user-group', label: 'Друзья', badge: null },
+            { id: 'cloud', icon: 'cloud', label: 'Моё Облако', badge: null }
         ];
 
         navItems.forEach(item => {
@@ -396,14 +397,14 @@ const DiscordModule = {
             </div>`;
         });
 
-        // 3. Direct Messages Header
+        // 3. Личные сообщения Header
         container.innerHTML += `
         <div class="dm-header">
             <span>Личные сообщения</span>
             <i class="fa-solid fa-plus" style="cursor:pointer;" onclick="DiscordModule.openAddFriend()" title="Создать DM"></i>
         </div>`;
 
-        // 4. User List (Real DMs)
+        // 4. Список чатов
         container.innerHTML += `<div id="home-dm-list" style="margin-top:20px;"></div>`;
         DiscordModule.loadDMList();
     },
@@ -529,12 +530,25 @@ const DiscordModule = {
 
         if (String(chanId).startsWith('dm-')) {
             const realId = chanId.split('-')[1];
+
+            document.querySelectorAll('.channel-view').forEach(el => el.classList.remove('active'));
+            const targetView = document.getElementById('channel-view-general');
+            if (targetView) targetView.classList.add('active');
+
+            DiscordModule.currentChannel = chanId; // Set currentChannel even for DMs
             DiscordModule.loadDM(realId);
+            // Hide welcome screen
+            const welcome = document.getElementById('personal-welcome-view');
+            if (welcome) welcome.classList.remove('active');
             return;
         }
 
         DiscordModule.currentChannel = chanId;
         DiscordModule.activeDM = null; // Clear DM context when switching to normal channel
+
+        // Hide welcome screen
+        const welcomeView = document.getElementById('personal-welcome-view');
+        if (welcomeView) welcomeView.classList.remove('active');
 
         // Show chat input when selecting a channel (hide only on friends)
         const chatInput = document.querySelector('.chat-input-area');
@@ -552,10 +566,23 @@ const DiscordModule = {
         }
 
         if (chanId === 'friends') {
+            document.querySelectorAll('.channel-view').forEach(el => el.classList.remove('active'));
+            const targetView = document.getElementById('channel-view-general');
+            if (targetView) targetView.classList.add('active');
+            
             DiscordModule.loadFriends();
             // Highlight sidebar item
-            const fBtn = document.querySelector('.nav-item'); // Assuming first one is friends
+            const fBtn = document.getElementById('btn-ch-friends');
             if (fBtn) fBtn.classList.add('active');
+            
+            // Hide cloud sidebar
+            document.getElementById('cloud-folders-sidebar').style.display = 'none';
+            document.getElementById('channels-list').style.display = 'block';
+            return;
+        }
+
+        if (chanId === 'cloud') {
+            CloudModule.openCloud();
             return;
         }
 
@@ -851,7 +878,7 @@ const DiscordModule = {
                 const modalHeader = document.querySelector('.settings-header');
                 if (modalHeader) modalHeader.textContent = name;
 
-                Utils.showToast('Настройки сохранены!');
+                Utils.showToast('РќР°СЃС‚СЂРѕР№Рєи СЃРѕС…СЂР°РЅРµРЅС‹!');
             } else {
                 alert(data.error || 'Ошибка сохранения');
             }
@@ -862,7 +889,7 @@ const DiscordModule = {
     },
 
     uploadServerIcon: () => {
-        alert('Функция загрузки иконки находится в разработке.');
+        alert('Р¤СѓРЅРєС†иСЏ Р·Р°РіСЂСѓР·Рєи иРєРѕРЅРєи РЅР°С…РѕРґиС‚СЃСЏ РІ СЂР°Р·СЂР°Р±РѕС‚РєРµ.');
     },
 
     loadServerMembers: async () => {
@@ -887,7 +914,7 @@ const DiscordModule = {
                     </div>
                 `).join('');
             } else {
-                container.innerHTML = '<div style="padding:20px; color:#72767d; text-align:center;">Участники не найдены</div>';
+                container.innerHTML = '<div style="padding:20px; color:#72767d; text-align:center;">РЈС‡Р°СЃС‚РЅиРєи РЅРµ РЅР°Р№РґРµРЅС‹</div>';
             }
         } catch (e) {
             console.error(e);
@@ -913,7 +940,7 @@ const DiscordModule = {
                     </div>
                 `).join('');
             } else {
-                container.innerHTML = '<div style="padding:20px; color:#72767d; text-align:center;">Роли не настроены</div>';
+                container.innerHTML = '<div style="padding:20px; color:#72767d; text-align:center;">Р РѕР»и РЅРµ РЅР°СЃС‚СЂРѕРµРЅС‹</div>';
             }
         } catch (e) {
             console.error(e);
@@ -927,7 +954,7 @@ const DiscordModule = {
     },
 
     uploadServerIcon: () => {
-        alert('Загрузка иконки сервера будет реализована в следующем обновлении');
+        alert('Р—Р°РіСЂСѓР·РєР° иРєРѕРЅРєи СЃРµСЂРІРµСЂР° Р±СѓРґРµС‚ СЂРµР°Р»иР·РѕРІР°РЅР° РІ СЃР»РµРґСѓСЋС‰РµРј РѕР±РЅРѕРІР»РµРЅии');
     },
 
     apiCreateServer: async (payload) => {
@@ -1003,14 +1030,34 @@ const DiscordModule = {
             </div>`;
         }
 
+        // Handle voice message attachments
+        let voiceHtml = '';
+        if (msgData.attachments && msgData.attachments.length > 0) {
+            msgData.attachments.forEach(attachment => {
+                if (attachment.type === 'voice' && typeof VoiceRecorder !== 'undefined') {
+                    voiceHtml += VoiceRecorder.renderVoiceMessage({
+                        audio_url: attachment.url,
+                        duration: attachment.duration || 0,
+                        timestamp: msgData.timestamp || Date.now(),
+                        author: msgData.author,
+                        isOwn: isSent
+                    });
+                }
+            });
+        }
+
         const html = `
-        <div class="message-group ${messageClass}" ${msgData.tempId ? `id="${msgData.tempId}"` : ''}>
+        <div class="message-group ${messageClass}" 
+             ${msgData.tempId ? `id="${msgData.tempId}"` : ''} 
+             ${msgData.id ? `data-message-id="${msgData.id}"` : ''}
+             oncontextmenu="${msgData.id ? `DiscordModule.showMessageMenu(event, ${msgData.id}, ${isSent});` : ''} return false;">
             ${!isSent ? `<img src="${msgData.avatar || DEFAULT_AVATAR}" class="message-avatar">` : ''}
             <div class="message-content">
                 ${!isSent ? `<span class="msg-author">${msgData.author}</span>` : ''}
                 <div class="message-bubble">
-                    <div class="message-text">${Utils.escapeHtml(msgData.text)}</div>
+                    ${msgData.text ? `<div class="message-text">${Utils.escapeHtml(msgData.text)}</div>` : ''}
                     ${embedHtml}
+                    ${voiceHtml}
                     ${msgData.sending ? '<div class="msg-status"><i class="fa-solid fa-circle-notch fa-spin"></i></div>' : ''}
                 </div>
                 <span class="msg-timestamp">${time}</span>
@@ -1106,7 +1153,7 @@ const DiscordModule = {
         try {
             const res = await fetch('/api/arizona/helper', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });
             const data = await res.json();
-            DiscordModule.addMessage('helper', { author: 'Arizona AI', bot: true, text: data.response });
+            DiscordModule.addMessage('helper', { author: 'Octave', bot: true, text: data.response });
         } catch (e) { }
     },
 
@@ -1169,7 +1216,7 @@ const DiscordModule = {
                 if (onlineUsers.length > 0) {
                     container.innerHTML += `
                         <div class="member-group">
-                            <div class="group-name">В СЕТИ — ${onlineUsers.length}</div>
+                            <div class="group-name">Р’ РЎР•РўР вЂ” ${onlineUsers.length}</div>
                         </div>`;
 
                     onlineUsers.forEach(u => {
@@ -1188,7 +1235,7 @@ const DiscordModule = {
                 if (offlineUsers.length > 0) {
                     container.innerHTML += `
                         <div class="member-group">
-                            <div class="group-name">НЕ В СЕТИ — ${offlineUsers.length}</div>
+                            <div class="group-name">РќР• Р’ РЎР•РўР вЂ” ${offlineUsers.length}</div>
                         </div>`;
 
                     offlineUsers.forEach(u => {
@@ -1238,7 +1285,7 @@ const DiscordModule = {
         if (friendItem) {
             const statusText = friendItem.querySelector('.friend-status');
             if (statusText) {
-                statusText.textContent = status === 'online' ? 'В сети' : 'Не в сети';
+                statusText.textContent = status === 'online' ? 'В сети' : 'РќРµ РІ СЃРµС‚и';
             }
         }
     },
@@ -1335,7 +1382,7 @@ const DiscordModule = {
                     <label>CUSTOM STATUS</label>
                     <input id="edit-custom-status" type="text" placeholder="🎮 Playing games" maxlength="128">
                     <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                        Добавьте эмодзи в начале для красоты!
+                        Р”РѕР±Р°РІСЊС‚Рµ СЌРјРѕРґР·и в начале для красоты!
                     </div>
                 </div>
                 
@@ -1396,13 +1443,15 @@ const DiscordModule = {
     },
 
     switchSettingsTab: (tab) => {
-        // Simple tab switching for now
+        const tabEl = document.getElementById(`settings-tab-${tab}`);
+        if (!tabEl) return;
+        
         document.querySelectorAll('.settings-tab-view').forEach(el => el.style.display = 'none');
-        document.getElementById(`settings-tab-${tab}`).style.display = 'block';
+        tabEl.style.display = 'block';
 
-        document.querySelectorAll('.settings-sidebar-nav .nav-item').forEach(el => el.classList.remove('active'));
-        // Re-active logic is tricky without IDs on nav items, skipping visual highlight update for speed or adding IDs later.
-        // But for "My Account" we can assume default is active.
+        if (tab === 'admin-reports') {
+            DiscordModule.loadAdminReports();
+        }
     },
 
     // Unified Edit Function
@@ -1419,43 +1468,30 @@ const DiscordModule = {
     },
 
     uiEditProfile: () => {
-        // Create beautiful avatar edit modal with file upload
-        const existingModal = document.getElementById('avatar-edit-modal');
-        if (existingModal) existingModal.remove();
-
+        // Open the avatar capture/upload modal
         const modal = document.createElement('div');
-        modal.id = 'avatar-edit-modal';
-        modal.className = 'avatar-edit-modal';
+        modal.className = 'modal-overlay active';
+        modal.id = 'avatar-modal';
         modal.innerHTML = `
-            <div class="avatar-modal-backdrop" onclick="DiscordModule.closeAvatarModal()"></div>
-            <div class="avatar-modal-content">
-                <div class="avatar-modal-bg-animation"></div>
-                <div class="avatar-modal-inner">
-                    <button class="avatar-modal-close" onclick="DiscordModule.closeAvatarModal()">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                    <h2>Изменить аватар</h2>
-                    <p>Выберите изображение с вашего устройства</p>
-                    
-                    <div class="avatar-preview-container" onclick="document.getElementById('avatar-file-input').click()">
-                        <img id="avatar-preview-img" src="${document.getElementById('settings-avatar-img')?.src || ''}" alt="Preview">
-                        <div class="avatar-overlay">
-                            <i class="fa-solid fa-camera"></i>
-                            <span>Выбрать фото</span>
+            <div class="modal-content profile-edit-modal">
+                <div class="modal-header">
+                    <h2>Изменить профиль</h2>
+                    <button class="close-btn" onclick="DiscordModule.closeAvatarModal()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="profile-edit-body">
+                    <div class="avatar-edit-section">
+                        <div class="avatar-preview-big">
+                            <img src="${sessionStorage.getItem('user_avatar') || DEFAULT_AVATAR}" id="avatar-preview-img">
                         </div>
-                    </div>
-                    
-                    <input type="file" id="avatar-file-input" accept="image/*" style="display:none" 
-                           onchange="DiscordModule.handleAvatarFile(this)">
-                    
-                    <div class="avatar-input-group">
-                        <button class="avatar-choose-btn" onclick="document.getElementById('avatar-file-input').click()">
-                            <i class="fa-solid fa-folder-open"></i> Выбрать файл
-                        </button>
-                        <button class="avatar-save-btn" id="avatar-save-btn" onclick="DiscordModule.saveNewAvatar()" disabled>
-                            <i class="fa-solid fa-check"></i> Сохранить
+                        <input type="file" id="avatar-upload-input" hidden accept="image/*" onchange="DiscordModule.handleAvatarFile(this)">
+                        <button class="welcome-btn primary" onclick="document.getElementById('avatar-upload-input').click()">
+                            <i class="fa-solid fa-upload"></i> Выбрать файл
                         </button>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="welcome-btn secondary" onclick="DiscordModule.closeAvatarModal()">Отмена</button>
+                    <button class="welcome-btn primary" id="avatar-save-btn" disabled onclick="DiscordModule.saveNewAvatar()">Сохранить</button>
                 </div>
             </div>
         `;
@@ -1514,7 +1550,7 @@ const DiscordModule = {
                 Utils.showToast('Ошибка: ' + (data.error || 'Unknown'));
             }
         } catch (e) {
-            Utils.showToast('Ошибка загрузки');
+            Utils.showToast('РћС€иР±РєР° Р·Р°РіСЂСѓР·Рєи');
             console.error(e);
         }
     },
@@ -1670,7 +1706,7 @@ const DiscordModule = {
                 if (isIncoming) {
                     actions = `<div class="friend-action accept" onclick="DiscordModule.acceptFriend(${u.id})" title="Принять"><i class="fa-solid fa-check"></i></div>`;
                 } else {
-                    actions = `<span class="friend-status-text">Исходящий запрос</span>`;
+                    actions = `<span class="friend-status-text">РСЃС…РѕРґСЏС‰РёР№ Р·Р°РїСЂРѕСЃ</span>`;
                 }
             } else {
                 actions = `
@@ -1681,7 +1717,7 @@ const DiscordModule = {
 
             // Check real online status from memory
             const isOnline = DiscordModule.userStatuses[u.id] === 'online';
-            const statusText = isPending ? 'Запрос в друзья' : (isOnline ? 'В сети' : 'Не в сети');
+            const statusText = isPending ? 'Запрос в друзья' : (isOnline ? 'В сети' : 'РќРµ РІ СЃРµС‚и');
             const statusColor = isOnline ? '#23A559' : '#80848E';
 
             container.innerHTML += `
@@ -1823,10 +1859,12 @@ const DiscordModule = {
                 data.messages.forEach(msg => {
                     // Reuse addMessage logic but adapt it
                     DiscordModule.addMessage(DiscordModule.currentChannel, {
+                        id: msg.id,
                         author: msg.author,
                         avatar: msg.avatar,
                         text: msg.content,
-                        timestamp: msg.timestamp
+                        timestamp: msg.timestamp,
+                        is_pinned: msg.is_pinned
                     });
                 });
             } else {
@@ -1953,11 +1991,12 @@ const DiscordModule = {
     },
 
     loadDM: async (dmId) => {
+        DiscordModule.activeDM = dmId; // Set immediately to prevent race conditions
         // Create view logic for DM... 
         const container = document.getElementById('channel-view-general');
         const activeDM = DiscordModule.dmList ? DiscordModule.dmList.find(d => d.id == dmId) : null;
         const otherUser = activeDM ? activeDM.other_user : null;
-        const name = otherUser ? otherUser.username : 'Chat';
+        let name = otherUser ? (otherUser.display_name || otherUser.username) : 'Chat';
         const avatar = otherUser ? (otherUser.avatar || DEFAULT_AVATAR) : DEFAULT_AVATAR;
 
         // Show chat input for DM
@@ -1967,6 +2006,10 @@ const DiscordModule = {
         // Update main header for DM view
         const channelName = document.getElementById('current-channel-name');
         if (channelName) channelName.textContent = name;
+
+        // Hide welcome screen
+        const welcomeView = document.getElementById('personal-welcome-view');
+        if (welcomeView) welcomeView.classList.remove('active');
 
         // Change # icon to @ for DM
         const headerIcon = document.querySelector('.chat-header > i.fa-hashtag');
@@ -2013,20 +2056,95 @@ const DiscordModule = {
                         <div class="dm-profile-name">${name}</div>
                         <div class="dm-profile-tag">${otherUser.display_name || name}</div>
                     </div>
-                    <div class="dm-profile-section">
-                        <div class="dm-profile-section-title">В число участников с</div>
-                        <div class="dm-profile-section-value">${otherUser.created_at ? new Date(otherUser.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Неизвестно'}</div>
+
+                    <!-- Tabs -->
+                    <div class="dm-profile-tabs">
+                        <div class="dm-profile-tab active" id="tab-profile-btn" onclick="DiscordModule.switchProfileTab('profile', ${dmId})">
+                            <i class="fa-solid fa-user"></i> Профиль
+                        </div>
+                        <div class="dm-profile-tab" id="tab-media-btn" onclick="DiscordModule.switchProfileTab('media', ${dmId})">
+                            <i class="fa-solid fa-image"></i> Медиа
+                        </div>
+                        <div class="dm-profile-tab" id="tab-files-btn" onclick="DiscordModule.switchProfileTab('files', ${dmId})">
+                            <i class="fa-solid fa-file"></i> Файлы
+                        </div>
                     </div>
-                    <div class="dm-profile-note">
-                        <textarea placeholder="Нажмите, чтобы добавить заметку"></textarea>
+
+                    <!-- Tab: Profile -->
+                    <div class="dm-tab-content active" id="dm-tab-profile">
+                        <div class="dm-profile-section">
+                            <div class="dm-profile-section-title">В числе участников с</div>
+                            <div class="dm-profile-section-value">${otherUser.created_at ? new Date(otherUser.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Неизвестно'}</div>
+                        </div>
+                        <div class="dm-profile-note">
+                            <textarea placeholder="Нажмите, чтобы добавить заметку"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Media -->
+                    <div class="dm-tab-content" id="dm-tab-media">
+                        <div class="shared-media-header">
+                            <span class="shared-media-count" id="shared-media-count">Загрузка...</span>
+                        </div>
+                        <div class="shared-media-grid" id="shared-media-grid">
+                            <div class="shared-media-loading">
+                                <i class="fa-solid fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Files -->
+                    <div class="dm-tab-content" id="dm-tab-files">
+                        <div class="shared-files-list" id="shared-files-list">
+                            <div class="shared-media-loading">
+                                <i class="fa-solid fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
+
+            // Load shared media in background
+            DiscordModule.loadSharedMedia(dmId);
         }
 
-        // Update Global Input Placeholder
-        const globalInput = document.getElementById('global-input');
-        if (globalInput) globalInput.placeholder = `Message @${name}`;
+        // --- CLOUD DRIVE MODE DETECTION ---
+        const isCloudBySelf = otherUser && String(otherUser.id) === String(window.currentUserId);
+        const isCloudByTitle = channelName && (channelName.textContent.includes("Облако") || channelName.textContent.includes("Saved Messages"));
+        const isCloudByDMList = DiscordModule.dmList?.some(d => d.id == dmId && (d.other_user?.id == window.currentUserId || d.other_user?.display_name === "Saved Messages"));
+        const isCloudByDisplayName = otherUser && (otherUser.display_name === "Saved Messages" || otherUser.username === "Saved Messages");
+        const isCloud = isCloudBySelf || isCloudByDMList || isCloudByTitle || isCloudByDisplayName;
+        
+        const cloudFoldersSidebar = document.getElementById('cloud-folders-sidebar');
+        const channelsList = document.getElementById('channels-list');
+
+        if (isCloud) {
+            name = "Моё Облако";
+            const globalInput = document.getElementById('global-input');
+            if (channelName) channelName.innerHTML = `<i class="fa-solid fa-cloud" style="margin-right:8px; color:var(--blurple);"></i> Моё Облако`;
+            if (globalInput) globalInput.placeholder = "Сохранить в облако...";
+            
+            // Show folders sidebar above channels list
+            if (cloudFoldersSidebar) {
+                cloudFoldersSidebar.classList.add('active-context');
+                cloudFoldersSidebar.style.display = 'block';
+            }
+            // Ensure DM list stays visible
+            if (channelsList) channelsList.style.display = 'block';
+            
+            // Load folders
+            CloudModule.loadFolders();
+        } else {
+            if (cloudFoldersSidebar) {
+                cloudFoldersSidebar.classList.remove('active-context');
+                cloudFoldersSidebar.style.display = 'none';
+            }
+            if (channelsList) channelsList.style.display = 'block';
+        }
+
+        // Update Global Input Placeholder if not cloud
+        const globalInputUpdate = document.getElementById('global-input');
+        if (globalInputUpdate && !isCloud) globalInputUpdate.placeholder = `Message @${name}`;
         DiscordModule.activeDM = dmId;
         DiscordModule.fetchDMMessages(dmId);
     },
@@ -2074,7 +2192,7 @@ const DiscordModule = {
                 let replyHtml = '';
                 if (m.reply_to) {
                     replyHtml = `
-                        <div class="dm-bubble-reply">
+                        <div class="dm-bubble-reply" onclick="DiscordModule.scrollToMessage(${m.reply_to.id})">
                             <i class="fa-solid fa-reply"></i>
                             <span class="reply-author">@${Utils.escapeHtml(m.reply_to.username)}</span>
                             <span class="reply-text">${Utils.escapeHtml(m.reply_to.content)}</span>
@@ -2105,23 +2223,38 @@ const DiscordModule = {
 
                 const timeStr = new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+                // Tags HTML
+                let tagsHtml = '';
+                if (m.tags && typeof m.tags === 'string') {
+                    const tagList = m.tags.split(',').map(t => t.trim()).filter(t => t);
+                    tagsHtml = `<div class="message-tags">${tagList.map(t => `<span class="tag-badge">#${Utils.escapeHtml(t)}</span>`).join('')}</div>`;
+                }
+
                 box.innerHTML += `
-                    <div class="dm-bubble ${bubbleClass}" data-id="${m.id}" oncontextmenu="DiscordModule.showMessageMenu(event, ${m.id}, ${isOwn})">
+                    <div class="dm-bubble ${bubbleClass}" data-id="${m.id}" data-message-id="${m.id}" data-tags="${Utils.escapeHtml(m.tags || '')}" data-folder-id="${m.cloud_folder_id || ''}" oncontextmenu="DiscordModule.showMessageMenu(event, ${m.id}, ${isOwn}); return false;">
                         ${!isOwn ? avatarImg : ''}
                         <div class="dm-bubble-content">
                             ${replyHtml}
-                            ${m.content ? `<div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>` : ''}
+                            ${m.is_encrypted ?
+                        `<span class="encrypted-msg" data-enc="${Utils.escapeHtml(m.content)}" data-author-id="${m.author_id}"><i class="fa-solid fa-lock"></i> Encrypted Message</span>`
+                        : (m.content ? `<div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>` : '')
+                    }
                             ${attachmentHTML}
+                            ${tagsHtml}
                             ${reactionsHtml}
                             <div class="dm-bubble-time">${timeStr}</div>
                         </div>
                     </div>`;
             });
 
+            // Trigger decryption if UI present
+            if (typeof EncryptionUI !== 'undefined') {
+                setTimeout(() => EncryptionUI.tryDecryptElements(), 500);
+            }
 
             box.scrollTop = box.scrollHeight;
         } catch (e) {
-            console.error(`[DM] Fetch error:`, e);
+            console.error(`[DM] Fetch error: `, e);
         } finally {
             // Release lock
             DiscordModule[lockKey] = false;
@@ -2194,31 +2327,31 @@ const DiscordModule = {
     renderLinkPreview: (preview) => {
         if (preview.type === 'youtube') {
             return `
-                <div class="youtube-embed">
-                    <iframe 
-                        src="https://www.youtube.com/embed/${preview.video_id}" 
-                        frameborder="0" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        allowfullscreen>
-                    </iframe>
-                </div>`;
+    < div class="youtube-embed" >
+        <iframe
+            src="https://www.youtube.com/embed/${preview.video_id}"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+        </iframe>
+                </div> `;
         }
 
         if (preview.type === 'image') {
             return `
-                <div class="link-preview-card">
-                    <img src="${preview.url}" alt="Image preview">
-                </div>`;
+    < div class="link-preview-card" >
+        <img src="${preview.url}" alt="Image preview">
+        </div>`;
         }
 
         if (preview.type === 'website') {
             return `
-                <div class="link-preview-card">
-                    ${preview.image ? `<img src="${preview.image}" alt="${preview.title}">` : ''}
-                    <div class="link-preview-title">${Utils.escapeHtml(preview.title)}</div>
+            < div class="link-preview-card" >
+                ${preview.image ? `<img src="${preview.image}" alt="${preview.title}">` : ''}
+<div class="link-preview-title">${Utils.escapeHtml(preview.title)}</div>
                     ${preview.description ? `<div class="link-preview-description">${Utils.escapeHtml(preview.description)}</div>` : ''}
-                    <div class="link-preview-url">${preview.url}</div>
-                </div>`;
+<div class="link-preview-url">${preview.url}</div>
+                </div> `;
         }
 
         return '';
@@ -2229,10 +2362,10 @@ const DiscordModule = {
 
         if (user.custom_status || user.status_emoji) {
             profileHTML += `
-                <div class="user-status-badge">
-                    ${user.status_emoji ? `<span class="user-status-emoji">${user.status_emoji}</span>` : ''}
+    < div class="user-status-badge" >
+        ${user.status_emoji ? `<span class="user-status-emoji">${user.status_emoji}</span>` : ''}
                     ${user.custom_status || ''}
-                </div>`;
+                </div> `;
         }
 
         if (user.bio) {
@@ -2246,13 +2379,50 @@ const DiscordModule = {
         return profileHTML;
     },
 
+    /**
+     * Render message attachments (images, files, voice messages, etc.)
+     */
+    renderAttachments: (attachments) => {
+        if (!attachments || attachments.length === 0) return '';
+
+        let html = '';
+
+        for (const attachment of attachments) {
+            // Voice message
+            if (attachment.type === 'voice') {
+                html += typeof VoiceRecorder !== 'undefined' ?
+                    VoiceRecorder.renderVoiceMessage({
+                        audio_url: attachment.url || attachment.path,
+                        duration: attachment.duration || 0
+                    }) : '';
+            }
+            // Image
+            else if (attachment.type === 'image' || /\.(jpg|jpeg|png|gif|webp)$/i.test(attachment.name || attachment.filename || attachment.url || attachment.path)) {
+                html += `<div class="message-attachment-image"><img src="${attachment.url || attachment.path}" alt="${attachment.name || attachment.filename || 'Image'}" /></div>`;
+            }
+            // Video
+            else if (attachment.type === 'video' || /\.(mp4|webm|ogg)$/i.test(attachment.name || attachment.filename || attachment.url || attachment.path)) {
+                html += `<div class="message-attachment-video"><video controls src="${attachment.url || attachment.path}"></video></div>`;
+            }
+            // Generic file
+            else {
+                const fileName = attachment.name || attachment.filename || 'File';
+                html += `<div class="message-attachment-file">
+                    <i class="fa-solid fa-file"></i>
+                    <a href="${attachment.url || attachment.path}" download="${fileName}" target="_blank">${fileName}</a>
+                </div>`;
+            }
+        }
+
+        return html;
+    },
+
     sendDMMessage: async (dmId, text, attachments = []) => {
         console.log('[DEBUG sendDMMessage] dmId:', dmId, 'text:', text);
         if (!text && (!attachments || attachments.length === 0)) return;
 
         const box = document.getElementById(`dm-messages-${dmId}`);
         const tempId = 'sending-' + Date.now();
-        console.log('[DEBUG sendDMMessage] tempId:', tempId);
 
         if (box) {
             // Render attachments for optimistic UI
@@ -2261,23 +2431,77 @@ const DiscordModule = {
                 attachmentHTML = DiscordModule.renderAttachments(attachments);
             }
 
+            // Render reply preview if replying
+            let replyHtml = '';
+            if (DiscordModule.replyingTo) {
+                replyHtml = `
+    <div class="dm-bubble-reply">
+                        <i class="fa-solid fa-reply"></i>
+                        <span class="reply-author">@${Utils.escapeHtml(DiscordModule.replyingTo.username)}</span>
+                        <span class="reply-text">${Utils.escapeHtml(DiscordModule.replyingTo.content)}</span>
+                    </div> `;
+            }
+
             // Show timer icon if disappearing message
             const timerIcon = DiscordModule.disappearingTimer ?
                 `<i class="fa-solid fa-clock disappearing-icon" title="Исчезнет через ${DiscordModule.formatDisappearingTime(DiscordModule.disappearingTimer)}"></i>` : '';
 
             box.innerHTML += `
-            <div class="dm-bubble own sending ${DiscordModule.disappearingTimer ? 'disappearing' : ''}" id="${tempId}">
-                <div class="dm-bubble-content">
-                    ${text ? `<div class="dm-bubble-text">${Utils.escapeHtml(text)}</div>` : ''}
-                    ${attachmentHTML}
-                    <div class="dm-bubble-time">${timerIcon}<i class="fa-solid fa-circle-notch fa-spin"></i></div>
-                </div>
+    <div class="dm-bubble own sending ${DiscordModule.disappearingTimer ? 'disappearing' : ''}" id="${tempId}" data-folder-id="${CloudModule.activeFolderId || ''}" oncontextmenu="return false;">
+        <div class="dm-bubble-content">
+            ${replyHtml}
+            ${text ? `<div class="dm-bubble-text">${Utils.escapeHtml(text)}</div>` : ''}
+            ${attachmentHTML}
+            <div class="dm-bubble-time">${timerIcon}<i class="fa-solid fa-circle-notch fa-spin"></i></div>
+        </div>
             </div>`;
             box.scrollTop = box.scrollHeight;
         }
 
+        const nonce = 'n-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        if (typeof DiscordModule.recentOwnMessages === 'undefined') {
+            DiscordModule.recentOwnMessages = new Set();
+        }
+        DiscordModule.recentOwnMessages.add(nonce);
+        
+        const contentKey = (text || '').trim();
+        if (contentKey) DiscordModule.recentOwnMessages.add(contentKey);
+
+        // Auto-cleanup
+        setTimeout(() => {
+            DiscordModule.recentOwnMessages.delete(nonce);
+            if (contentKey) DiscordModule.recentOwnMessages.delete(contentKey);
+        }, 10000);
+
         try {
-            const payload = { content: text };
+            let contentToSend = text;
+            let isEncrypted = false;
+            let encryptionMetadata = null;
+
+            // ENCRYPTION LOGIC
+            // Check if E2EE is enabled and we have keys
+            if (typeof EncryptionModule !== 'undefined' && EncryptionModule.privateKey && typeof EncryptionUI !== 'undefined') {
+                try {
+                    const dm = DiscordModule.dmList ? DiscordModule.dmList.find(d => d.id == dmId) : null;
+                    if (dm && dm.other_user) {
+                        const recipientKey = await EncryptionUI.getRecipientKey(dm.other_user.id);
+                        if (recipientKey) {
+                            const secret = await EncryptionModule.getSharedSecret(dm.other_user.id, recipientKey);
+                            if (text) {
+                                const enc = await EncryptionModule.encryptMessage(text, secret);
+                                contentToSend = JSON.stringify(enc);
+                                isEncrypted = true;
+                            }
+                        } else {
+                            console.warn("[E2EE] Recipient has no public key, sending unencrypted");
+                        }
+                    }
+                } catch (err) {
+                    console.error("[E2EE] Encryption failed:", err);
+                }
+            }
+
+            const payload = { content: contentToSend, is_encrypted: isEncrypted, encryption_metadata: encryptionMetadata, nonce: nonce };
             if (attachments && attachments.length > 0) {
                 payload.attachments = JSON.stringify(attachments);
             }
@@ -2288,6 +2512,11 @@ const DiscordModule = {
             // Add expires_in for disappearing messages
             if (DiscordModule.disappearingTimer) {
                 payload.expires_in = DiscordModule.disappearingTimer;
+            }
+            
+            // AUTOMATIC CLOUD FOLDER ASSIGNMENT
+            if (CloudModule.activeFolderId) {
+                payload.folder_id = CloudModule.activeFolderId;
             }
 
             const res = await fetch(`/api/dms/by_id/${dmId}/send`, {
@@ -2321,10 +2550,6 @@ const DiscordModule = {
                     `<i class="fa-solid fa-clock disappearing-icon"></i>` : '';
                 if (timeEl) timeEl.innerHTML = timerIcon + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
-
-            // No need for 1s delay, WebSocket or the next manual fetch will update the UI properly if needed,
-            // but for now we rely on the optimistic bubble.
-
         } catch (e) {
             console.error("[DM] Send error:", e);
             const failEl = document.getElementById(tempId);
@@ -2333,19 +2558,208 @@ const DiscordModule = {
         }
     },
 
+    // === SHARED MEDIA (GALLERY) ===
+
+    switchProfileTab: (tab, dmId) => {
+        // Toggle tab buttons
+        document.querySelectorAll('.dm-profile-tab').forEach(el => el.classList.remove('active'));
+        const activeBtn = document.getElementById(`tab-${tab}-btn`);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        // Toggle content panels
+        document.querySelectorAll('.dm-tab-content').forEach(el => el.classList.remove('active'));
+        const activePanel = document.getElementById(`dm-tab-${tab}`);
+        if (activePanel) activePanel.classList.add('active');
+
+        // Load media/files on first switch
+        if (tab === 'media' || tab === 'files') {
+            const grid = document.getElementById('shared-media-grid');
+            const filesList = document.getElementById('shared-files-list');
+            const isLoaded = grid && !grid.querySelector('.shared-media-loading')
+                          && filesList && !filesList.querySelector('.shared-media-loading');
+            if (!isLoaded) {
+                DiscordModule.loadSharedMedia(dmId);
+            }
+        }
+    },
+
+    loadSharedMedia: async (dmId) => {
+        try {
+            const res = await fetch(`/api/dms/by_id/${dmId}/messages?limit=200`);
+            const data = await res.json();
+
+            const grid = document.getElementById('shared-media-grid');
+            const filesList = document.getElementById('shared-files-list');
+            const countEl = document.getElementById('shared-media-count');
+
+            if (!grid || !filesList) return;
+
+            const messages = data.messages || [];
+            const mediaItems = [];
+            const fileItems = [];
+
+            // Scan all messages for attachments
+            messages.forEach(m => {
+                if (!m.attachments) return;
+                const attachments = typeof m.attachments === 'string'
+                    ? JSON.parse(m.attachments) : m.attachments;
+
+                attachments.forEach(att => {
+                    const attUrl = att.url || att.path || '';
+                    const attName = att.name || att.filename || '';
+                    const isImage = att.type === 'image'
+                        || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(attName || attUrl);
+                    const isVideo = att.type === 'video'
+                        || /\.(mp4|webm|ogg|mov)$/i.test(attName || attUrl);
+
+                    if (isImage || isVideo) {
+                        mediaItems.push({ ...att, isVideo, msgTime: m.timestamp });
+                    } else if (att.type !== 'voice') {
+                        fileItems.push({ ...att, msgTime: m.timestamp, author: m.username });
+                    }
+                });
+            });
+
+            // Render Media Grid
+            if (mediaItems.length === 0) {
+                grid.innerHTML = `
+                    <div class="shared-media-empty">
+                        <i class="fa-solid fa-photo-film"></i>
+                        <p>Нет медиафайлов</p>
+                    </div>`;
+                if (countEl) countEl.textContent = '0 медиафайлов';
+            } else {
+                if (countEl) {
+                    let count = mediaItems.length;
+                    let text = count + ' медиафайлов';
+                    if (count % 10 === 1 && count % 100 !== 11) {
+                        text = count + ' медиафайл';
+                    } else if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
+                        text = count + ' медиафайла';
+                    }
+                    countEl.textContent = text;
+                }
+                grid.innerHTML = mediaItems.map(item => {
+                    const mediaUrl = item.url || item.path;
+                    if (item.isVideo) {
+                        return `
+                        <div class="shared-media-item" onclick="DiscordModule.openMediaViewer('${mediaUrl}', 'video')">
+                            <video src="${mediaUrl}" class="shared-media-thumb"></video>
+                            <div class="shared-media-play-icon"><i class="fa-solid fa-play"></i></div>
+                        </div>`;
+                    }
+                    return `
+                    <div class="shared-media-item" onclick="DiscordModule.openMediaViewer('${mediaUrl}', 'image')">
+                        <img src="${mediaUrl}" class="shared-media-thumb" alt="Недоступно" loading="lazy" onerror="DiscordModule.handleBrokenSharedMedia(this)">
+                    </div>`;
+                }).join('');
+            }
+
+            // Render Files List
+            if (fileItems.length === 0) {
+                filesList.innerHTML = `
+                    <div class="shared-media-empty">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <p>Нет файлов</p>
+                    </div>`;
+            } else {
+                const fileIcons = {
+                    pdf: 'fa-file-pdf', doc: 'fa-file-word', docx: 'fa-file-word',
+                    xls: 'fa-file-excel', xlsx: 'fa-file-excel',
+                    zip: 'fa-file-zipper', rar: 'fa-file-zipper',
+                    txt: 'fa-file-lines', js: 'fa-file-code', py: 'fa-file-code',
+                    mp3: 'fa-file-audio', wav: 'fa-file-audio',
+                };
+                filesList.innerHTML = fileItems.map(item => {
+                    const name = item.name || item.url?.split('/').pop() || 'Файл';
+                    const ext = name.split('.').pop().toLowerCase();
+                    const iconClass = fileIcons[ext] || 'fa-file';
+                    const date = item.msgTime
+                        ? new Date(item.msgTime * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+                        : '';
+                    const sizeStr = item.size ? DiscordModule.formatFileSize(item.size) : '';
+
+                    return `
+                    <a class="shared-file-item" href="${item.url}" target="_blank" download="${name}">
+                        <div class="shared-file-icon">
+                            <i class="fa-solid ${iconClass}"></i>
+                        </div>
+                        <div class="shared-file-info">
+                            <div class="shared-file-name">${Utils.escapeHtml(name)}</div>
+                            <div class="shared-file-meta">${[sizeStr, date].filter(Boolean).join(' · ')}</div>
+                        </div>
+                        <div class="shared-file-download">
+                            <i class="fa-solid fa-download"></i>
+                        </div>
+                    </a>`;
+                }).join('');
+            }
+        } catch (e) {
+            console.error('[SharedMedia] Load error:', e);
+        }
+    },
+
+    formatFileSize: (bytes) => {
+        if (!bytes) return '';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    },
+
+    openMediaViewer: (url, type) => {
+        const existing = document.getElementById('media-viewer-overlay');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'media-viewer-overlay';
+        overlay.className = 'media-viewer-overlay';
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+        const mediaEl = type === 'video'
+            ? `<video src="${url}" controls autoplay class="media-viewer-content"></video>`
+            : `<img src="${url}" class="media-viewer-content" alt="media">`;
+
+        overlay.innerHTML = `
+            <button class="media-viewer-close" onclick="document.getElementById('media-viewer-overlay').remove()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            ${mediaEl}
+            <a href="${url}" download target="_blank" class="media-viewer-download">
+                <i class="fa-solid fa-download"></i> Скачать
+            </a>
+        `;
+        document.body.appendChild(overlay);
+    },
+
+    handleBrokenSharedMedia: (imgElement) => {
+        const div = document.createElement('div');
+        div.className = 'shared-media-thumb';
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.justifyContent = 'center';
+        div.style.background = '#2b2d31';
+        div.style.color = '#80848e';
+        div.style.fontSize = '2.5rem';
+        div.title = 'Файл недоступен или удалён';
+        div.innerHTML = '<i class="fa-solid fa-file-circle-xmark"></i>';
+        imgElement.replaceWith(div);
+    },
+
     // === РАСШИРЕННЫЕ ФУНКЦИИ СООБЩЕНИЙ ===
 
     replyingTo: null, // { id, username, content }
 
     showMessageMenu: (event, messageId, isOwn) => {
         event.preventDefault();
+        event.stopPropagation(); // Stop bubbling
 
         // Remove existing menu
-        const existingMenu = document.querySelector('.message-context-menu');
+        const existingMenu = document.getElementById('message-context-menu');
         if (existingMenu) existingMenu.remove();
 
         const menu = document.createElement('div');
-        menu.className = 'message-context-menu';
+        menu.id = 'message-context-menu'; // Use ID for singleton
+        menu.className = 'message-context-menu'; // Keep class for styling if needed
         menu.innerHTML = `
             <div class="menu-item" onclick="DiscordModule.startReply(${messageId})">
                 <i class="fa-solid fa-reply"></i> Ответить
@@ -2356,6 +2770,11 @@ const DiscordModule = {
             <div class="menu-item" onclick="DiscordModule.togglePin(${messageId})">
                 <i class="fa-solid fa-thumbtack"></i> Закрепить
             </div>
+            ${!isOwn ? `
+            <div class="menu-item danger" onclick="DiscordModule.reportMessage(${messageId})">
+                <i class="fa-solid fa-flag"></i> Пожаловаться
+            </div>
+            ` : ''}
             ${isOwn ? `
             <div class="menu-divider"></div>
             <div class="menu-item" onclick="DiscordModule.editMessage(${messageId})">
@@ -2416,11 +2835,28 @@ const DiscordModule = {
         if (replyBar) replyBar.style.display = 'none';
     },
 
+    scrollToMessage: (messageId) => {
+        const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!msgEl) {
+            Utils.showToast('⚠️ Не удалось найти сообщение');
+            return;
+        }
+
+        // Scroll to message
+        msgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Add highlight animation
+        msgEl.classList.add('message-highlighted');
+        setTimeout(() => {
+            msgEl.classList.remove('message-highlighted');
+        }, 1800);
+    },
+
     showEmojiPicker: (messageId) => {
         const existingPicker = document.querySelector('.emoji-picker-popup');
         if (existingPicker) existingPicker.remove();
 
-        const emojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🎉', '💯'];
+        const emojis = ['рџ‘Ќ', 'вќ¤пёЏ', 'рџ‚', 'рџ®', 'рџў', 'рџЎ', 'рџ”Ґ', 'рџ‘Џ', 'рџЋ‰', 'рџ’Ї'];
         const picker = document.createElement('div');
         picker.className = 'emoji-picker-popup';
         picker.innerHTML = emojis.map(e =>
@@ -2637,55 +3073,8 @@ const DiscordModule = {
     },
 
     // --- CONTEXT MENU FOR MESSAGES ---
-    showMessageContextMenu: (event, messageId) => {
-        event.preventDefault();
+    // --- CONTEXT MENU REMOVED (Duplicate) ---
 
-        // Remove existing menu
-        document.getElementById('message-context-menu')?.remove();
-
-        const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (!msgEl) return;
-
-        const isOwnMessage = msgEl.classList.contains('own');
-
-        // Create menu
-        const menu = document.createElement('div');
-        menu.id = 'message-context-menu';
-        menu.className = 'context-menu';
-        menu.style.left = event.pageX + 'px';
-        menu.style.top = event.pageY + 'px';
-
-        let menuItems = `
-            <div class="context-menu-item" onclick="DiscordModule.copyMessageText(${messageId})">
-                <i class="fa-solid fa-copy"></i> Копировать текст
-            </div>
-            <div class="context-menu-item" onclick="DiscordModule.startReply(${messageId})">
-                <i class="fa-solid fa-reply"></i> Ответить
-            </div>
-        `;
-
-        if (isOwnMessage) {
-            menuItems += `
-                <div class="context-menu-item" onclick="DiscordModule.editMessage(${messageId})">
-                    <i class="fa-solid fa-pen"></i> Редактировать
-                </div>
-                <div class="context-menu-item danger" onclick="DiscordModule.deleteMessage(${messageId})">
-                    <i class="fa-solid fa-trash"></i> Удалить
-                </div>
-            `;
-        }
-
-        menu.innerHTML = menuItems;
-        document.body.appendChild(menu);
-
-        // Close on click outside
-        setTimeout(() => {
-            document.addEventListener('click', function closeMenu() {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-            });
-        }, 10);
-    },
 
     copyMessageText: (messageId) => {
         const msgEl = document.querySelector(`[data-message-id="${messageId}"]`);
@@ -2693,6 +3082,104 @@ const DiscordModule = {
         if (textEl) {
             Utils.copyToClipboard(textEl.textContent);
             Utils.showToast('Текст скопирован');
+        }
+    },
+
+    // --- REPORT SYSTEM FRONTEND ---
+    reportMessage: (messageId) => {
+        const modal = document.getElementById('report-modal');
+        if (!modal) return;
+        
+        modal.style.display = 'flex';
+        const submitBtn = document.getElementById('submit-report-btn');
+        submitBtn.onclick = () => DiscordModule.submitReport(messageId);
+    },
+
+    closeReportModal: () => {
+        const modal = document.getElementById('report-modal');
+        if (modal) modal.style.display = 'none';
+    },
+
+    submitReport: async (messageId) => {
+        const reason = document.querySelector('input[name="report-reason"]:checked')?.value || 'Other';
+        try {
+            const res = await fetch(`/api/messages/${messageId}/report`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason })
+            });
+            const data = await res.json();
+            if (data.success) {
+                Utils.showToast('✅ Жалоба отправлена. Спасибо!');
+                DiscordModule.closeReportModal();
+            } else {
+                Utils.showToast('❌ Ошибка: ' + data.error);
+            }
+        } catch (e) {
+            console.error('Report error:', e);
+            Utils.showToast('❌ Произошла ошибка');
+        }
+    },
+
+    // --- ADMIN REPORTS SYSTEM ---
+    loadAdminReports: async () => {
+        const list = document.getElementById('admin-reports-list');
+        if (!list) return;
+        
+        try {
+            const res = await fetch('/api/admin/reports');
+            const data = await res.json();
+            if (!data.success) {
+                list.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger);">${data.error || 'Access Denied'}</td></tr>`;
+                return;
+            }
+            
+            if (data.reports.length === 0) {
+                list.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">Активных жалоб нет</td></tr>`;
+                return;
+            }
+            
+            list.innerHTML = data.reports.map(r => `
+                <tr>
+                    <td style="color:var(--text-muted); font-size:11px;">${new Date(r.timestamp * 1000).toLocaleString()}</td>
+                    <td><strong>@${Utils.escapeHtml(r.reporter_username)}</strong></td>
+                    <td><span style="color:var(--danger);">@${Utils.escapeHtml(r.reported_username)}</span></td>
+                    <td><span class="tag-badge" style="background:rgba(237, 66, 69, 0.1); color:var(--danger);">${r.reason}</span></td>
+                    <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${Utils.escapeHtml(r.message_text)}">
+                        ${Utils.escapeHtml(r.message_text)}
+                    </td>
+                    <td>
+                        <div class="admin-reports-actions">
+                            <button class="btn-mini-danger" onclick="DiscordModule.resolveReport(${r.id}, 'delete')">Удалить сообщение</button>
+                            <button class="btn-mini-secondary" onclick="DiscordModule.resolveReport(${r.id}, 'dismiss')">Отклонить</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (e) {
+            list.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger);">Error loading reports</td></tr>`;
+        }
+    },
+
+    resolveReport: async (reportId, action) => {
+        const confirmMsg = action === 'delete' ? 'Удалить это сообщение и закрыть жалобу?' : 'Отклонить жалобу?';
+        if (!confirm(confirmMsg)) return;
+        
+        try {
+            const res = await fetch(`/api/admin/reports/${reportId}/resolve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action })
+            });
+            const data = await res.json();
+            if (data.success) {
+                Utils.showToast(action === 'delete' ? 'Сообщение успешно удалено' : 'Жалоба отклонена');
+                DiscordModule.loadAdminReports();
+            } else {
+                Utils.showToast('Ошибка: ' + data.error);
+            }
+        } catch (e) {
+            Utils.showToast('Произошла ошибка при разрешении жалобы');
         }
     }
 
@@ -2759,8 +3246,11 @@ const WebSocketModule = {
                 const isOwn = data.author === myUsername;
 
                 if (isOwn) {
-                    const cacheKey = `${data.content}`.trim();
-                    if (DiscordModule.recentOwnMessages.has(cacheKey)) {
+                    const contentKey = `${data.content}`.trim();
+                    const hasNonce = data.nonce && DiscordModule.recentOwnMessages.has(data.nonce);
+                    const hasContent = contentKey && DiscordModule.recentOwnMessages.has(contentKey);
+
+                    if (hasNonce || hasContent) {
                         console.log('[DEBUG] Skipping own DM from socket (already added)');
                         const placeholders = document.querySelectorAll('.dm-bubble.sending');
                         placeholders.forEach(p => {
@@ -2786,16 +3276,35 @@ const WebSocketModule = {
                     const bubbleClass = isOwn ? 'own' : 'other';
                     const avatarImg = `<img src="${data.avatar || DEFAULT_AVATAR}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">`;
 
+                    // Render reply preview
+                    let replyHtml = '';
+                    if (data.reply_to) {
+                        replyHtml = `
+                            <div class="dm-bubble-reply" onclick="DiscordModule.scrollToMessage(${data.reply_to.id})">
+                                <i class="fa-solid fa-reply"></i>
+                                <span class="reply-author">@${Utils.escapeHtml(data.reply_to.username)}</span>
+                                <span class="reply-text">${Utils.escapeHtml(data.reply_to.content)}</span>
+                            </div>`;
+                    }
+
                     box.innerHTML += `
-                        <div class="dm-bubble ${bubbleClass}" data-id="${data.id}">
+                        <div class="dm-bubble ${bubbleClass}" data-id="${data.id}" data-message-id="${data.id}" oncontextmenu="DiscordModule.showMessageMenu(event, ${data.id}, ${isOwn}); return false;">
                             ${!isOwn ? avatarImg : ''}
                             <div class="dm-bubble-content">
-                                ${data.content ? `<div class="dm-bubble-text">${Utils.escapeHtml(data.content)}</div>` : ''}
+                                ${replyHtml}
+                                ${data.is_encrypted ?
+                            `<span class="encrypted-msg" data-enc="${Utils.escapeHtml(data.content)}" data-author-id="${data.author_id || data.user_id}"><i class="fa-solid fa-lock"></i> Encrypted Message</span>`
+                            : (data.content ? `<div class="dm-bubble-text">${Utils.escapeHtml(data.content)}</div>` : '')
+                        }
                                 ${attachmentHTML}
                                 <div class="dm-bubble-time">${new Date(data.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                             </div>
                         </div>`;
                     box.scrollTop = box.scrollHeight;
+
+                    if (typeof EncryptionUI !== 'undefined') {
+                        setTimeout(() => EncryptionUI.tryDecryptElements(), 100);
+                    }
                 }
             }
         });
@@ -2859,8 +3368,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const bubble = e.target.closest('.dm-bubble[data-message-id]');
         if (bubble) {
             const messageId = bubble.getAttribute('data-message-id');
+            const isOwn = bubble.classList.contains('own');
             if (messageId) {
-                DiscordModule.showMessageContextMenu(e, messageId);
+                DiscordModule.showMessageMenu(e, messageId, isOwn);
             }
         }
     });
@@ -2959,4 +3469,337 @@ window.DiscordModule = DiscordModule;
 window.Utils = Utils;
 window.DEFAULT_AVATAR = DEFAULT_AVATAR;
 window.GifModule = GifModule;
+
+
+
+// =========================================================================
+// ENCRYPTION UI & INTEGRATION
+// =========================================================================
+
+const EncryptionUI = {
+    password: null, // Temporary storage for session
+
+    init: async () => {
+        if (typeof EncryptionModule === 'undefined') return;
+
+        try {
+            await EncryptionModule.init();
+
+            // Check if we have keys
+            const hasKey = await EncryptionModule.hasStoredKey();
+
+            // Check session storage for password (cached)
+            const cachedPwd = sessionStorage.getItem('e2ee_pwd');
+            if (cachedPwd) {
+                await EncryptionUI.unlockKeys(cachedPwd);
+            }
+
+            // Update UI status
+            const status = await EncryptionUI.getStatus();
+            EncryptionUI.updateStatus(status);
+
+        } catch (e) { console.error("EncryptionUI Init Error:", e); }
+    },
+
+    getStatus: async () => {
+        if (!EncryptionModule.isInitialized) {
+            await EncryptionModule.init();
+        }
+        if (EncryptionModule.privateKey) return 'ready';
+        const hasKey = await EncryptionModule.hasStoredKey();
+        return hasKey ? 'locked' : 'setup';
+    },
+
+    updateStatus: (status) => {
+        const indicators = document.querySelectorAll('.encryption-status-indicator');
+        const text = document.getElementById('encryption-status-text');
+
+        if (status === 'ready') {
+            indicators.forEach(el => {
+                el.classList.remove('disabled');
+                el.classList.add('enabled');
+                el.textContent = 'Active';
+            });
+            if (text) text.textContent = 'Keys loaded. Valid for this session.';
+
+            // Generate fingerprint
+            if (EncryptionModule.publicKey) {
+                EncryptionModule.getFingerprint().then(fp => {
+                    const fpEl = document.getElementById('my-fingerprint');
+                    if (fpEl) fpEl.textContent = fp;
+                });
+            }
+
+            const toggle = document.getElementById('e2ee-toggle');
+            if (toggle) toggle.style.display = 'flex';
+
+        } else if (status === 'locked') {
+            indicators.forEach(el => {
+                el.classList.add('disabled');
+                el.classList.remove('enabled');
+                el.textContent = 'Locked';
+            });
+            if (text) text.textContent = 'Keys locked. Enter password to decrypt history.';
+        } else {
+            indicators.forEach(el => {
+                el.classList.add('disabled');
+                el.classList.remove('enabled');
+                el.textContent = 'Not Setup';
+            });
+            if (text) text.textContent = 'Encryption not configured. Create a password in settings.';
+        }
+    },
+
+    unlockKeys: async (password) => {
+        try {
+            await EncryptionModule.loadPrivateKey(password);
+            EncryptionUI.password = password; // Cache in memory
+            sessionStorage.setItem('e2ee_pwd', password); // Persist for session
+            EncryptionUI.updateStatus('ready');
+            EncryptionUI.tryDecryptElements();
+            return true;
+        } catch (e) {
+            console.error("Unlock error:", e);
+            return false;
+        }
+    },
+
+    tryDecryptElements: async () => {
+        if (!EncryptionModule.privateKey) return;
+
+        // Decrypt text messages
+        const elements = document.querySelectorAll('.encrypted-msg');
+        for (const el of elements) {
+            try {
+                const metadataStr = el.getAttribute('data-enc');
+                if (!metadataStr) continue;
+
+                const metadata = JSON.parse(metadataStr);
+                const authorId = el.getAttribute('data-author-id');
+
+                // Need author's public key if not me
+                let sharedSecret;
+                if (authorId == DiscordModule.me?.id) {
+                    // It's my own message, need recipient's key? 
+                    // Actually, E2EE protocol stores a version for each participant usually.
+                    // Here it depends on implementation. If implemented as one secret for the DM:
+                    // we just need the other person's key.
+                }
+
+                // Assume DM context - get other user's key
+                const dmId = DiscordModule.activeDM;
+                const dm = DiscordModule.dmList?.find(d => d.id == dmId);
+                const otherUser = dm ? dm.other_user : null;
+
+                if (!otherUser) continue;
+
+                const theirKey = await EncryptionUI.getRecipientKey(otherUser.id);
+                if (!theirKey) continue;
+
+                sharedSecret = await EncryptionModule.getSharedSecret(otherUser.id, theirKey);
+                const decrypted = await EncryptionModule.decryptMessage(metadata, sharedSecret);
+
+                el.innerHTML = `<i class="fa-solid fa-lock-open" style="color:var(--status-online); margin-right:5px;"></i> ${Utils.escapeHtml(decrypted)}`;
+                el.classList.remove('encrypted-msg');
+                el.classList.add('decrypted-msg');
+            } catch (e) {
+                console.error("Decryption element error:", e);
+            }
+        }
+    },
+
+    toggleEncryptionInfo: () => {
+        DiscordModule.openSettings();
+        DiscordModule.switchSettingsTab('privacy');
+    },
+
+    getRecipientKey: async (userId) => {
+        try {
+            const res = await fetch(`/api/keys/${userId}`);
+            const data = await res.json();
+            if (data.success && data.public_key) {
+                return data.public_key;
+            }
+        } catch (e) { console.error(e); }
+        return null;
+    }
+};
+
+// Expose
+window.EncryptionUI = EncryptionUI;
+
+// === CLOUD MODULE ===
+const CloudModule = {
+    folders: [],
+    activeFolderId: null,
+    activeMessageId: null,
+
+    openCloud: async () => {
+        // Get or Create DM with self
+        try {
+            const res = await fetch(`/api/dms/get_or_create/${window.currentUserId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.success && data.dm_id) {
+                // Refresh DM list so loadDM can find the otherUser
+                await DiscordModule.loadDMList();
+                // Open the DM
+                DiscordModule.selectChannel('dm-' + data.dm_id, 'dm');
+                // Fresh load of folders
+                CloudModule.loadFolders();
+            } else {
+                Utils.showToast("Не удалось открыть облако");
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    loadFolders: async () => {
+        try {
+            const res = await fetch('/api/cloud/folders');
+            const data = await res.json();
+            if (data.success) {
+                CloudModule.folders = data.folders;
+                CloudModule.renderFolders();
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    renderFolders: () => {
+        const container = document.getElementById('cloud-folders-list');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        CloudModule.folders.forEach(f => {
+            const isActive = CloudModule.activeFolderId == f.id;
+            container.innerHTML += `
+                <div class="folder-item ${isActive ? 'active' : ''}" onclick="CloudModule.filterByFolder(${f.id})" style="border-left: 3px solid ${f.color || '#5865F2'}; ${isActive ? 'background: rgba(255,255,255,0.05); border-right: 2px solid ' + f.color : ''}">
+                    <i class="fa-solid fa-${f.icon || 'folder'}"></i>
+                    <span>${Utils.escapeHtml(f.name)}</span>
+                </div>
+            `;
+        });
+        
+        // Populate organizational dropdown if modal exists
+        const select = document.getElementById('organize-folder-select');
+        if (select) {
+            select.innerHTML = '<option value="">Без папки</option>';
+            CloudModule.folders.forEach(f => {
+                select.innerHTML += `<option value="${f.id}">${f.name}</option>`;
+            });
+        }
+    },
+
+    openAddFolderModal: () => {
+        document.getElementById('create-folder-modal').style.display = 'flex';
+        document.getElementById('new-folder-name').focus();
+    },
+
+    closeModals: () => {
+        document.getElementById('create-folder-modal').style.display = 'none';
+        document.getElementById('organize-message-modal').style.display = 'none';
+    },
+
+    createFolder: async () => {
+        const name = document.getElementById('new-folder-name').value.trim();
+        const color = document.getElementById('new-folder-color').value;
+        if (!name) return;
+
+        try {
+            const res = await fetch('/api/cloud/folders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, color: color, icon: 'folder' })
+            });
+            const data = await res.json();
+            if (data.success) {
+                CloudModule.loadFolders();
+                CloudModule.closeModals();
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    openOrganizeModal: (messageId) => {
+        CloudModule.activeMessageId = messageId;
+        const msgEl = document.querySelector(`.dm-bubble[data-message-id="${messageId}"]`);
+        if (!msgEl) return;
+        
+        const folderId = msgEl.dataset.folderId;
+        const tags = msgEl.dataset.tags || '';
+        
+        document.getElementById('organize-folder-select').value = folderId || '';
+        document.getElementById('organize-tags-input').value = tags;
+        document.getElementById('organize-message-modal').style.display = 'flex';
+        
+        const existingMenu = document.getElementById('message-context-menu');
+        if (existingMenu) existingMenu.remove();
+    },
+
+    saveMessageOrganization: async () => {
+        const folderId = document.getElementById('organize-folder-select').value || null;
+        const tags = document.getElementById('organize-tags-input').value.trim();
+        
+        try {
+            const res = await fetch(`/api/messages/${CloudModule.activeMessageId}/organize`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folder_id: folderId, tags: tags })
+            });
+            const data = await res.json();
+            if (data.success) {
+                CloudModule.closeModals();
+                // Update local element immediately
+                const msgEl = document.querySelector(`.dm-bubble[data-message-id="${CloudModule.activeMessageId}"]`);
+                if (msgEl) {
+                    msgEl.dataset.folderId = folderId || '';
+                    msgEl.dataset.tags = tags;
+                    // Trigger tag redraw
+                    const contentEl = msgEl.querySelector('.dm-bubble-content');
+                    // Find or create tags container
+                    let tagsContainer = contentEl.querySelector('.message-tags');
+                    if (!tags) {
+                        if (tagsContainer) tagsContainer.remove();
+                    } else {
+                        if (!tagsContainer) {
+                            tagsContainer = document.createElement('div');
+                            tagsContainer.className = 'message-tags';
+                            // insert before time
+                            const timeEl = contentEl.querySelector('.dm-bubble-time');
+                            contentEl.insertBefore(tagsContainer, timeEl);
+                        }
+                        const tagList = tags.split(',').map(t => t.trim()).filter(t => t);
+                        tagsContainer.innerHTML = tagList.map(t => `<span class="tag-badge">#${Utils.escapeHtml(t)}</span>`).join('');
+                    }
+                }
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    filterByFolder: (folderId) => {
+        // Toggle logic: if clicking the same folder, clear filter
+        if (CloudModule.activeFolderId == folderId) {
+            CloudModule.activeFolderId = null;
+            Utils.showToast("Фильтр сброшен");
+        } else {
+            CloudModule.activeFolderId = folderId;
+            Utils.showToast("Фильтр по папке активирован");
+        }
+        
+        // Refresh UI highlight
+        CloudModule.renderFolders();
+        
+        // Client-side filtering
+        const bubbles = document.querySelectorAll('.dm-bubble');
+        bubbles.forEach(b => {
+            if (CloudModule.activeFolderId === null || b.dataset.folderId == CloudModule.activeFolderId) {
+                b.style.display = 'flex';
+            } else {
+                b.style.display = 'none';
+            }
+        });
+    }
+};
+
+window.CloudModule = CloudModule;
 

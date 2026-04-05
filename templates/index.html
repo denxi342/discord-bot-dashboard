@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arizona AI | Messenger</title>
+    <title>Octave Assistant</title>
 
     <!-- CDN Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" crossorigin="anonymous"></script>
@@ -46,10 +46,22 @@
     <!-- Emoji Data -->
     <script src="{{ url_for('static', filename='js/emoji-data.js') }}"></script>
 
+    <!-- Advanced Features Module -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/advanced-features.css') }}">
+    <script src="{{ url_for('static', filename='js/advanced-features.js') }}"></script>
+
+    <!-- Voice Messages Module -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/voice-messages.css') }}">
+    <script src="{{ url_for('static', filename='js/voice-recorder.js') }}"></script>
+
+    <!-- End-to-End Encryption Module -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/encryption.css') }}">
+    <script src="{{ url_for('static', filename='js/encryption.js') }}"></script>
+
     <!-- Current User Data -->
     <script>
         window.currentUsername = "{{ user.username }}";
-        window.currentUserId = {{ user.id }};
+        window.currentUserId = "{{ user.id }}";
     </script>
 
     <style>
@@ -351,13 +363,87 @@
 
         /* Shimmer effect on progress bar */
         @keyframes shimmer {
-            0% {
-                background-position: -100% 0;
-            }
+            0% { background-position: -100% 0; }
+            100% { background-position: 100% 0; }
+        }
 
-            100% {
-                background-position: 100% 0;
-            }
+        /* ☁️ CLOUD DRIVE STYLES */
+        .folder-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            margin: 2px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .folder-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-normal);
+            transform: translateX(4px);
+        }
+
+        .folder-item i {
+            margin-right: 12px;
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .message-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            margin-bottom: 4px;
+        }
+
+        .tag-badge {
+            background: rgba(88, 101, 242, 0.15);
+            color: #b9bbbe;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid rgba(88, 101, 242, 0.2);
+            transition: all 0.2s;
+            cursor: default;
+        }
+
+        .tag-badge:hover {
+            background: rgba(88, 101, 242, 0.3);
+            color: white;
+            border-color: rgba(88, 101, 242, 0.5);
+        }
+
+        .dm-bubble-content {
+            position: relative;
+        }
+
+        /* Organize button in bubble (optional hover icon) */
+        .dm-bubble:hover .organize-trigger {
+            opacity: 1;
+        }
+
+        .organize-trigger {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: var(--background-floating);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
         }
     </style>
 </head>
@@ -423,6 +509,23 @@
                 <!-- Dynamic Content -->
                 <div style="padding:20px; text-align:center; color:gray;">Loading context...</div>
             </div>
+            
+            <!-- Cloud Folders Sidebar (Shown only when in Cloud mode) -->
+            <div id="cloud-folders-sidebar" style="display: none; padding: 10px 0;">
+                <div class="dm-header">
+                    <span>ПАПКИ</span>
+                    <i class="fa-solid fa-plus" onclick="CloudModule.openAddFolderModal()" title="Создать папку"></i>
+                </div>
+                <div id="cloud-folders-list">
+                    <!-- Dynamic Folders -->
+                </div>
+                <div class="dm-header" style="margin-top: 15px;">
+                    <span>ТЕГИ</span>
+                </div>
+                <div id="cloud-tags-list" style="padding: 0 10px;">
+                    <!-- Dynamic Tags -->
+                </div>
+            </div>
 
             <!-- User Bar -->
             <div class="user-bar">
@@ -449,9 +552,15 @@
             <header class="chat-header">
                 <div class="chat-header-info">
                     <h3 id="current-channel-name">Чаты</h3>
-                    <span class="chat-header-status" id="chat-header-status">в сети</span>
+                    <span class="chat-header-status" id="chat-header-status" style="display: none;">в сети</span>
                 </div>
                 <div class="header-toolbar">
+                    <div class="encryption-toggle" id="e2ee-toggle" onclick="EncryptionModule.toggleEncryptionInfo()"
+                        style="display: none;">
+                        <i class="fa-solid fa-lock encryption-toggle-icon"></i>
+                        <span class="encryption-toggle-text">E2EE</span>
+                    </div>
+                    <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.1); margin: 0 8px;"></div>
                     <i class="fa-solid fa-phone" onclick="DiscordModule.fakeCall()" data-tooltip="Start Voice Call"></i>
                     <i class="fa-solid fa-video" onclick="DiscordModule.fakeCall()" data-tooltip="Start Video Call"></i>
                     <i class="fa-solid fa-circle-info" onclick="DiscordModule.toggleMemberList()"
@@ -464,8 +573,47 @@
 
                 <!-- STREAMS (Hidden by default, toggled by JS) -->
 
+                <!-- Premium Welcome Screen -->
+                <div id="personal-welcome-view" class="personal-welcome-view active">
+                    <div class="welcome-logo-container">
+                        <i class="fa-solid fa-comment-dots"></i>
+                    </div>
+                    <h1 class="welcome-title">Octave</h1>
+                    <p class="welcome-subtitle">
+                        Добро пожаловать в мессенджер нового поколения. Безопасность, скорость и элегантность в
+                        каждом сообщении.
+                    </p>
+
+                    <div class="welcome-actions">
+                        <button class="welcome-btn primary" onclick="DiscordModule.openAddFriend()">
+                            <i class="fa-solid fa-user-plus"></i> Найти друзей
+                        </button>
+                        <button class="welcome-btn secondary" onclick="DiscordModule.openSettings()">
+                            <i class="fa-solid fa-gear"></i> Настройки
+                        </button>
+                    </div>
+
+                    <div class="welcome-features">
+                        <div class="feature-box">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <h4>Защита E2EE</h4>
+                            <p>Ваши переписки полностью зашифрованы.</p>
+                        </div>
+                        <div class="feature-box">
+                            <i class="fa-solid fa-bolt"></i>
+                            <h4>Мгновенно</h4>
+                            <p>Доставка сообщений в режиме реального времени.</p>
+                        </div>
+                        <div class="feature-box">
+                            <i class="fa-solid fa-cloud"></i>
+                            <h4>Облако</h4>
+                            <p>Храните вложения любого размера надежно.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- General -->
-                <div id="channel-view-general" class="channel-view active">
+                <div id="channel-view-general" class="channel-view">
                     <div class="welcome-message">
                         <div class="welcome-icon"><i class="fa-solid fa-hashtag"></i></div>
                         <h1>Welcome to #general</h1>
@@ -488,7 +636,7 @@
                 <div id="channel-view-helper" class="channel-view">
                     <div class="welcome-message">
                         <div class="welcome-icon"><i class="fa-solid fa-robot"></i></div>
-                        <h1>Arizona AI Assistant</h1>
+                        <h1>Octave Assistant</h1>
                         <p>I can help you with server rules and commands.</p>
                     </div>
                     <div id="stream-helper"></div>
@@ -546,6 +694,8 @@
                     <button class="input-btn" id="attach-file-btn" title="Прикрепить файл"
                         onclick="document.getElementById('file-input-hidden').click()"><i
                             class="fa-solid fa-paperclip"></i></button>
+                    <button class="input-btn voice-record-btn" id="voice-record-btn" title="Голосовое сообщение"
+                        onclick="VoiceRecorder.startRecording()"><i class="fa-solid fa-microphone"></i></button>
                     <input type="file" id="file-input-hidden" multiple style="display:none;"
                         onchange="DiscordModule.handleFileSelect(this)">
                     <div id="file-preview-container" style="display:none;"></div>
@@ -568,7 +718,7 @@
             <div id="typing-indicator" class="typing-indicator" style="display: none;">
                 <span id="typing-users"></span>
                 <span class="typing-dots">
-                    <span></span><span></span><span></span>
+                    <span>OC</span> Octave
                 </span>
             </div>
 
@@ -718,7 +868,21 @@
                     <div class="nav-header">USER SETTINGS</div>
                     <div class="nav-item active" onclick="DiscordModule.switchSettingsTab('account')">My Account</div>
                     <div class="nav-sep"></div>
+                    <div class="nav-item" onclick="DiscordModule.switchSettingsTab('privacy')">Privacy & Security</div>
+                    <div class="nav-sep"></div>
                     <div class="nav-item logout" onclick="DiscordModule.logout()">Log Out</div>
+                    {% if user.role == 'admin' %}
+                    <div class="nav-sep"></div>
+                    <div class="nav-header">ADMIN SETTINGS</div>
+                    <div class="nav-item" onclick="DiscordModule.switchSettingsTab('admin-reports')">
+                        <i class="fa-solid fa-shield-halved" style="margin-right:8px;"></i> Reports
+                    </div>
+                    {% endif %}
+                    <div class="nav-sep"></div>
+                    <div class="nav-header">LEGAL</div>
+                    <div class="nav-link-item" onclick="window.open('/terms', '_blank')">Terms of Service</div>
+                    <div class="nav-link-item" onclick="window.open('/privacy', '_blank')">Privacy Policy</div>
+                    <div class="nav-link-item" onclick="window.open('/cookies', '_blank')">Cookie Policy</div>
                 </div>
             </div>
 
@@ -812,7 +976,100 @@
 
                     </div>
 
-                    <!-- Other tabs placeholders -->
+                    <!-- Tab: Privacy & Security -->
+                    <div id="settings-tab-privacy" class="settings-tab-view" style="display: none;">
+                        <h2>Privacy & Security</h2>
+
+                        <div class="security-settings">
+                            <h3>End-to-End Encryption</h3>
+
+                            <div class="security-item">
+                                <div class="security-item-info">
+                                    <h4>Encryption Status</h4>
+                                    <p id="e2ee-status-text">Checking...</p>
+                                </div>
+                                <div id="e2ee-status-indicator" class="encryption-indicator disabled">Not Encrypted
+                                </div>
+                            </div>
+
+                            <div class="security-item">
+                                <div class="security-item-info">
+                                    <h4>My Fingerprint</h4>
+                                    <p>Share this with others to verify your identity</p>
+                                </div>
+                                <div class="encryption-fingerprint" id="my-fingerprint">
+                                    Not generated
+                                </div>
+                            </div>
+
+                            <div class="security-item">
+                                <div class="security-item-info">
+                                    <h4>Key Management</h4>
+                                    <p>Backup or restore your encryption keys</p>
+                                </div>
+                                <div class="btn-group">
+                                    <button onclick="EncryptionModule.showBackupModal('export')">Backup Keys</button>
+                                    <button class="btn-secondary"
+                                        onclick="EncryptionModule.showBackupModal('import')">Restore Keys</button>
+                                </div>
+                            </div>
+
+                            <div class="security-item">
+                                <div class="security-item-info">
+                                    <h4>Change Password</h4>
+                                    <p>Update the password used to encrypt your keys</p>
+                                </div>
+                                <button onclick="EncryptionModule.changePassword()">Change</button>
+                            </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Admin Panel -->
+                        <div id="settings-tab-admin-reports" class="settings-tab-view" style="display: none;">
+                            <div class="admin-view-header">
+                                <h2>Панель управления Octave</h2>
+                                <div class="admin-view-tabs">
+                                    <button class="admin-tab-btn active" onclick="DiscordModule.switchAdminSubTab('reports', this)">Жалобы</button>
+                                    <button class="admin-tab-btn" onclick="DiscordModule.switchAdminSubTab('users', this)">Пользователи</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Sub-tab: Reports -->
+                            <div id="admin-subtab-reports" class="admin-subtab-content">
+                                <p class="desc">Просмотр и обработка жалоб от сообщества.</p>
+                                <div class="admin-reports-container">
+                                    <table class="admin-reports-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Дата</th>
+                                                <th>Репортер</th>
+                                                <th>Нарушитель</th>
+                                                <th>Причина</th>
+                                                <th>Сообщение</th>
+                                                <th>Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-reports-list">
+                                            <tr><td colspan="6" style="text-align:center; padding:20px;">Загрузка жалоб...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Sub-tab: User Management -->
+                            <div id="admin-subtab-users" class="admin-subtab-content" style="display:none;">
+                                <div class="admin-management-card">
+                                    <h3>Назначить администратора</h3>
+                                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:15px;">Введите ID пользователя (число после # в нике)</p>
+                                    <div class="admin-form-group">
+                                        <input type="number" id="promote-user-id" placeholder="Например: 15" class="settings-input">
+                                        <button class="btn-primary" onclick="DiscordModule.promoteUserById()" style="background:var(--brand-color); color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;">Назначить</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Other tabs placeholders -->
                 </div>
             </div>
         </div>
@@ -1023,7 +1280,10 @@
     </div>
 
     <!-- Scripts -->
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=100"></script>
+    <script src="/static/js/utils.js?v=1.2"></script>
+    <script src="/static/js/dashboard.js?v=1.2"></script>
+    <script src="/static/js/advanced-features.js?v=1.2"></script>
+    <script src="/static/js/legal-consent.js?v=1.2"></script>
     <script src="{{ url_for('static', filename='js/attachments.js') }}"></script>
 
     <!-- 🎨 LOADING SCREEN SCRIPT -->
@@ -1076,6 +1336,215 @@
 
     <!-- Edit Field Fix - Override prompt with modal -->
     <script src="{{ url_for('static', filename='js/edit_field_fix.js') }}"></script>
+    <!-- Encryption Setup Wizard -->
+    <div id="encryption-wizard" class="encryption-wizard" style="display: none;">
+        <div class="encryption-wizard-content">
+            <h2>End-to-End Encryption</h2>
+            <p>Secure your messages with military-grade encryption. Only you and the recipient can read them.</p>
+
+            <ul class="feature-list">
+                <li>Private keys stored on your device</li>
+                <li>Messages encrypted before sending</li>
+                <li>No one (including us) can read your chats</li>
+            </ul>
+
+            <div class="encryption-progress">
+                <div class="encryption-progress-bar">
+                    <div class="encryption-progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="wizard-step-password">
+                <p>Create a password to protect your encryption keys on this device:</p>
+                <input type="password" id="encryption-password" class="encryption-password-input"
+                    placeholder="Enter a strong password">
+                <div class="encryption-password-strength">
+                    <div class="encryption-password-strength-bar"></div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-primary" onclick="EncryptionModule.finishSetup()">Enable Encryption</button>
+                    <button class="btn-secondary"
+                        onclick="document.getElementById('encryption-wizard').style.display='none'">Later</button>
+                </div>
+            </div>
+
+            <div id="wizard-step-generating" style="display: none; text-align: center;">
+                DiscordModule.addMessage('helper', { author: 'Octave', bot: true, text: data.response });
+                <p>Generating secure keys...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Backup/Import Modal -->
+    <div id="key-backup-modal" class="modal-backdrop" style="display: none;">
+        <div class="discord-modal key-backup-modal">
+            <button class="close-modal" onclick="document.getElementById('key-backup-modal').style.display='none'"><i
+                    class="fa-solid fa-xmark"></i></button>
+
+            <div id="backup-mode-export" style="display: none;">
+                <h2>Backup Encryption Keys</h2>
+                <div class="key-backup-warning">
+                    <strong>⚠️ Important Security Warning</strong>
+                    Save this file securely. Anyone with this file and your password can access your encrypted messages.
+                </div>
+                <button class="btn-primary" style="width: 100%" onclick="EncryptionModule.downloadKeys()">Download
+                    Backup File</button>
+            </div>
+
+            <div id="backup-mode-import" style="display: none;">
+                <h2>Restore Encryption Keys</h2>
+                <p style="color: var(--text-muted); margin-bottom: 20px;">Upload your backup file to restore access to
+                    your encrypted messages.</p>
+
+                <div class="key-file-upload" onclick="document.getElementById('key-import-file').click()">
+                    <div class="key-file-upload-icon"><i class="fa-solid fa-file-shield"></i></div>
+                    <div class="key-file-upload-text">Click to select backup file</div>
+                    <input type="file" id="key-import-file" accept=".json"
+                        onchange="EncryptionModule.handleImportFile(this)">
+                </div>
+
+                <input type="password" id="key-import-password" class="encryption-password-input"
+                    placeholder="Enter backup password" style="display: none;">
+                <button id="btn-import-confirm" class="btn-primary" style="width: 100%; display: none;"
+                    onclick="EncryptionModule.confirmImport()">Restore Keys</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Cloud Folder Modal -->
+    <div id="create-folder-modal" class="modal-backdrop" style="display:none;">
+        <div class="discord-modal">
+            <button class="close-modal" onclick="CloudModule.closeModals()"><i class="fa-solid fa-xmark"></i></button>
+            <h2 style="text-align:center; font-weight:700; margin-bottom:8px;">Новая папка</h2>
+            <p style="text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:24px;">Организуйте свои файлы и заметки</p>
+            
+            <div class="input-group">
+                <label>НАЗВАНИЕ ПАПКИ</label>
+                <input id="new-folder-name" type="text" placeholder="Например: Работа, Идеи..." autofocus>
+            </div>
+            
+            <div class="input-group">
+                <label>ЦВЕТ</label>
+                <div style="display: flex; gap: 10px; margin-top: 8px;">
+                    <input type="color" id="new-folder-color" value="#5865F2" style="width: 50px; height: 35px; border: none; background: none; cursor: pointer;">
+                    <span style="color: var(--text-muted); font-size: 12px; align-self: center;">Выберите цвет для идентификации</span>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="background:var(--sidebar-bg); margin:-24px; margin-top:24px; padding:16px; display:flex; justify-content:flex-end;">
+                <button class="footer-btn primary" onclick="CloudModule.createFolder()">Создать папку</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Organize Message Modal -->
+    <div id="organize-message-modal" class="modal-backdrop" style="display:none;">
+        <div class="discord-modal">
+            <button class="close-modal" onclick="CloudModule.closeModals()"><i class="fa-solid fa-xmark"></i></button>
+            <h2 style="text-align:center; font-weight:700; margin-bottom:8px;">Организация</h2>
+            
+            <div class="input-group">
+                <label>ВЫБЕРИТЕ ПАПКУ</label>
+                <select id="organize-folder-select" class="settings-input" style="width: 100%; margin-top: 8px; background: var(--input-bg); border: none; color: white; padding: 10px; border-radius: 4px;">
+                    <option value="">Без папки</option>
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+            
+            <div class="input-group" style="margin-top: 20px;">
+                <label>ТЕГИ (через запятую)</label>
+                <input id="organize-tags-input" type="text" placeholder="например: важно, ссылка, пдф">
+            </div>
+
+            <div class="modal-footer" style="background:var(--sidebar-bg); margin:-24px; margin-top:24px; padding:16px; display:flex; justify-content:flex-end;">
+                <button class="footer-btn primary" onclick="CloudModule.saveMessageOrganization()">Сохранить изменения</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="cookie-banner" style="display:none; position:fixed; bottom:20px; left:20px; right:20px; background:rgba(26, 27, 38, 0.95); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:15px 20px; z-index:9999; align-items:center; justify-content:space-between; box-shadow:0 10px 30px rgba(0,0,0,0.5); animation:slideUp 0.5s ease-out;">
+        <div style="font-size:13px; color:rgba(255,255,255,0.6); max-width:80%; line-height:1.4;">
+            Мы используем куки (Session Cookies) только для того, чтобы вы не «вылетали» из аккаунта. Никакой слежки! Подробнее в <a href="/cookies" target="_blank" style="color:#667eea; text-decoration:none; font-weight:600;">Политике Cookie</a>.
+        </div>
+        <button onclick="acceptCookiesGlobal()" style="background:#667eea; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer; font-size:12px; white-space:nowrap; margin-left:15px;">Принять</button>
+    </div>
+
+    <style>
+        @keyframes slideUp { 
+            from { transform:translateY(100%); opacity:0; } 
+            to { transform:translateY(0); opacity:1; } 
+        }
+    </style>
+
+    <script>
+        function checkCookiesGlobal() {
+            if (!localStorage.getItem('cookies-accepted')) {
+                document.getElementById('cookie-banner').style.display = 'flex';
+            }
+        }
+
+        function acceptCookiesGlobal() {
+            localStorage.setItem('cookies-accepted', 'true');
+            const banner = document.getElementById('cookie-banner');
+            banner.style.opacity = '0';
+            banner.style.transform = 'translateY(20px)';
+            banner.style.transition = 'all 0.3s ease';
+            setTimeout(() => { banner.style.display = 'none'; }, 300);
+        }
+
+        // Delay check slightly to ensure app is loaded
+        setTimeout(checkCookiesGlobal, 2000);
+    </script>
+    <!-- Report Abuse Modal -->
+    <div id="report-modal" class="modal-backdrop" style="display:none;">
+        <div class="discord-modal report-modal">
+            <h2 style="margin-bottom:8px;">Пожаловаться</h2>
+            <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">Почему вы хотите пожаловаться на это сообщение?</p>
+            
+            <div class="report-options">
+                <label class="report-option">
+                    <input type="radio" name="report-reason" value="Spam" checked>
+                    <span>Спам / Реклама</span>
+                </label>
+                <label class="report-option">
+                    <input type="radio" name="report-reason" value="Harassment">
+                    <span>Оскорбление / Травля</span>
+                </label>
+                <label class="report-option">
+                    <input type="radio" name="report-reason" value="Illegal">
+                    <span>Незаконный контент</span>
+                </label>
+                <label class="report-option">
+                    <input type="radio" name="report-reason" value="Other">
+                    <span>Другое</span>
+                </label>
+            </div>
+
+            <div style="margin-top:24px; display:flex; justify-content:flex-end; gap:12px;">
+                <button class="btn-secondary" onclick="DiscordModule.closeReportModal()">Отмена</button>
+                <button class="btn-primary" id="submit-report-btn">Отправить жалобу</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .report-modal { max-width: 440px; padding: 24px; }
+        .report-options { display: flex; flex-direction: column; gap: 12px; }
+        .report-option { 
+            display: flex; align-items: center; gap: 12px; cursor: pointer; 
+            padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.03);
+            transition: background 0.2s;
+        }
+        .report-option:hover { background: rgba(255,255,255,0.06); }
+        .report-option input { width: 18px; height: 18px; accent-color: var(--primary); }
+        
+        .admin-reports-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+        .admin-reports-table th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--text-muted); text-transform: uppercase; font-size: 11px; }
+        .admin-reports-table td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        .admin-reports-actions { display: flex; gap: 8px; }
+        .btn-mini-danger { background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .btn-mini-secondary { background: var(--secondary); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+    </style>
 </body>
 
 </html>

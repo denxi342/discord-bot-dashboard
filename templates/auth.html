@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arizona AI | Auth</title>
+    <title>Octave | Auth</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -217,6 +217,58 @@
             color: var(--primary);
             text-decoration: none;
         }
+
+        .terms-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-top: 15px;
+            margin-bottom: 25px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .terms-checkbox input {
+            width: auto;
+            margin-top: 4px;
+            cursor: pointer;
+        }
+
+        .terms-checkbox span {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .terms-checkbox a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .auth-footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            position: relative;
+            z-index: 999;
+        }
+
+        .auth-footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 12px;
+            transition: color 0.3s;
+            cursor: pointer;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .auth-footer-links a:hover {
+            color: var(--primary);
+        }
     </style>
 </head>
 
@@ -225,7 +277,7 @@
     <div class="auth-container">
         <div class="auth-card">
             <div class="logo">
-                <i class="fa-solid fa-robot"></i> Arizona AI
+                <i class="fa-solid fa-music"></i> Octave
             </div>
 
             <div class="auth-tabs">
@@ -283,11 +335,23 @@
                         <input type="password" id="reg-pass-confirm" placeholder="••••••••">
                     </div>
                 </div>
+                <div class="form-group">
+                    <label class="terms-checkbox">
+                        <input type="checkbox" id="reg-terms">
+                        <span>Я согласен с <a href="/terms" target="_blank">условиями использования</a> и <a href="/privacy" target="_blank">политикой конфиденциальности</a></span>
+                    </label>
+                </div>
                 <button class="btn-submit" onclick="handleRegister()">Создать аккаунт</button>
             </div>
 
+            <div class="auth-footer-links">
+                <a href="/terms">Условия использования</a>
+                <a href="/privacy">Конфиденциальность</a>
+                <a href="/cookies">Cookie</a>
+            </div>
+
             <div class="footer-text">
-                Protected by Arizona AI Security
+                Protected by Octave Security
             </div>
         </div>
     </div>
@@ -336,10 +400,12 @@
             const user = document.getElementById('reg-user').value;
             const pass = document.getElementById('reg-pass').value;
             const confirm = document.getElementById('reg-pass-confirm').value;
+            const terms = document.getElementById('reg-terms').checked;
 
             if (!user || !pass) return showError('Заполните все поля');
             if (pass !== confirm) return showError('Пароли не совпадают');
             if (pass.length < 3) return showError('Пароль слишком короткий');
+            if (!terms) return showError('Необходимо принять условия использования');
 
             try {
                 const res = await fetch('/api/auth/register', {
@@ -377,7 +443,38 @@
             document.getElementById('error-text').innerText = msg;
             box.style.display = 'flex';
         }
+
+        function checkCookies() {
+            if (!localStorage.getItem('cookies-accepted')) {
+                document.getElementById('cookie-banner').style.display = 'flex';
+            }
+        }
+
+        function acceptCookies() {
+            localStorage.setItem('cookies-accepted', 'true');
+            const banner = document.getElementById('cookie-banner');
+            banner.style.opacity = '0';
+            banner.style.transform = 'translateY(20px)';
+            banner.style.transition = 'all 0.3s ease';
+            setTimeout(() => { banner.style.display = 'none'; }, 300);
+        }
+
+        window.addEventListener('load', checkCookies);
     </script>
+
+    <div id="cookie-banner" style="display:none; position:fixed; bottom:20px; left:20px; right:20px; background:rgba(26, 27, 38, 0.95); backdrop-filter:blur(10px); border:1px solid var(--border); border-radius:16px; padding:15px 20px; z-index:9999; align-items:center; justify-content:space-between; box-shadow:0 10px 30px rgba(0,0,0,0.5); animation:slideUp 0.5s ease-out;">
+        <div style="font-size:13px; color:var(--text-muted); max-width:80%; line-height:1.4;">
+            Мы используем куки (Session Cookies) только для того, чтобы вы не «вылетали» из аккаунта. Никакой слежки! Подробнее в <a href="/cookies" style="color:var(--primary); text-decoration:none; font-weight:600;">Политике Cookie</a>.
+        </div>
+        <button onclick="acceptCookies()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer; font-size:12px; white-space:nowrap; margin-left:15px;">Принять</button>
+    </div>
+
+    <style>
+        @keyframes slideUp { 
+            from { transform:translateY(100%); opacity:0; } 
+            to { transform:translateY(0); opacity:1; } 
+        }
+    </style>
 </body>
 
 </html>

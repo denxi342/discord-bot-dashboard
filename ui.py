@@ -648,7 +648,7 @@ class ArizonaMainMenu(discord.ui.View):
     async def ai_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Информация об AI чате"""
         embed = create_base_embed(
-            title="🤖 Arizona AI Assistant",
+            title="🤖 Octave Assistant",
             description="""**Два режима общения с AI:**
 
 **1️⃣ Одиночный вопрос** — `!az ask <вопрос>`

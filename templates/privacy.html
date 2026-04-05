@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Политика конфиденциальности | Octave</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --bg: #0a0b0e;
+            --card-bg: #1a1b26;
+            --text: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.6);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 32px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 20px;
+            margin-top: 30px;
+            border-left: 4px solid var(--secondary);
+            padding-left: 15px;
+        }
+
+        p, li {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover {
+            color: var(--primary);
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/login" class="back-link"><i class="fa-solid fa-arrow-left"></i> Вернуться к авторизации</a>
+        <h1>Политика конфиденциальности</h1>
+        
+        <p>Ваша конфиденциальность — наш приоритет. Octave разработана с учетом защиты данных.</p>
+
+        <h2>1. Какую информацию мы собираем</h2>
+        <ul>
+            <li>**Метаданные аккаунта**: Имя пользователя, хэш пароля, аватар и дата создания.</li>
+            <li>**Сообщения**: Мы храним ваши сообщения для их доставки и синхронизации между вашими устройствами.</li>
+            <li>**Технические данные**: IP-адрес и данные о браузере для защиты от спама и оптимизации работы.</li>
+        </ul>
+
+        <h2>2. Сквозное шифрование (E2EE)</h2>
+        <p>В нашем мессенджере реализована поддержка сквозного шифрования. Если вы активируете E2EE в чате, сообщение зашифровывается на вашем устройстве и может быть расшифровано только получателем. Администрация Octave не имеет доступа к ключам и содержанию таких сообщений.</p>
+
+        <h2>3. Хранение файлов</h2>
+        <p>Файлы, загруженные в Облако или прикрепленные к сообщениям, хранятся на наших защищенных серверах. Мы используем безопасные протоколы передачи данных.</p>
+
+        <h2>4. Удаление данных</h2>
+        <p>Вы имеете полное право на удаление своего аккаунта и связанных с ним данных. После удаления мы стираем информацию без возможности восстановления.</p>
+
+        <div class="footer">
+            <div style="margin-bottom: 10px;">
+                <a href="/terms" style="color:var(--text-muted); text-decoration:none; margin:0 10px;">Условия</a>
+                <a href="/privacy" style="color:var(--text-muted); text-decoration:none; margin:0 10px;">Приватность</a>
+                <a href="/cookies" style="color:var(--text-muted); text-decoration:none; margin:0 10px;">Cookie</a>
+            </div>
+            © 2026 Octave. Последнее обновление: 5 апреля 2026 г.
+        </div>
+    </div>
+</body>
+</html>

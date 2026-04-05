@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пользовательское соглашение | Octave</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --bg: #0a0b0e;
+            --card-bg: #1a1b26;
+            --text: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.6);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 32px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 20px;
+            margin-top: 30px;
+            border-left: 4px solid var(--secondary);
+            padding-left: 15px;
+        }
+
+        p, li {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover {
+            color: var(--primary);
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/login" class="back-link"><i class="fa-solid fa-arrow-left"></i> Вернуться к авторизации</a>
+        <h1>Пользовательское соглашение</h1>
+        
+        <p>Добро пожаловать в Octave. Используя наш сервис, вы соглашаетесь с данными условиями.</p>
+
+        <h2>1. Общие положения</h2>
+        <p>Настоящее соглашение регулирует отношения между администрацией Octave и пользователем сервиса. Мы предоставляем платформу для обмена сообщениями и хранения данных.</p>
+
+        <h2>2. Права и обязанности сторон</h2>
+        <ul>
+            <li>Пользователь обязуется не использовать сервис для распространения вредоносного ПО или незаконного контента.</li>
+            <li>Администрация имеет право заблокировать доступ при нарушении правил сервиса.</li>
+            <li>Вы несете ответственность за сохранность своих учетных данных.</li>
+        </ul>
+
+        <h2>3. Ограничение ответственности</h2>
+        <p>Сервис предоставляется "как есть". Мы не гарантируем 100% аптайм, хотя стремимся к нему. Мы не несем ответственности за потерю данных, вызванную внешними факторами или действиями третьих лиц.</p>
+
+        <h2>4. Контент пользователя</h2>
+        <p>Вы сохраняете все права на передаваемый вами контент. Мы не претендуем на владение вашими сообщениями или файлами.</p>
+
+        <div class="footer">
+            <div style="margin-bottom: 10px;">
+                <a href="/terms" style="color:var(--text-muted); text-decoration:none; margin:0 10px;">Условия</a>
+                <a href="/privacy" style="color:var(--text-muted); text-decoration:none; margin:0 10px;">Приватность</a>
+                <a href="/cookies" style="color:var(--text-muted); text-decoration:none; margin:0 10px;">Cookie</a>
+            </div>
+            © 2026 Octave. Последнее обновление: 5 апреля 2026 г.
+        </div>
+    </div>
+</body>
+</html>

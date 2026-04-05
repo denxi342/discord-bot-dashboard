@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arizona AI Assistant</title>
+    <title>Octave Assistant</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -365,7 +365,7 @@
     <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="logo">
-            <span>AZ</span> Arizona AI
+            <span>OC</span> Octave
         </div>
 
         <button class="nav-btn active" onclick="switchTab('chat', this)">💬 AI Чат</button>
@@ -572,7 +572,7 @@
                 document.getElementById('typing').classList.remove('active');
 
                 if (data.success) {
-                    addMessage('ai', data.response);
+                    DiscordModule.addMessage('helper', { author: 'Octave', bot: true, text: data.response });
                 } else {
                     addMessage('ai', 'Ошибка: ' + data.error);
                 }

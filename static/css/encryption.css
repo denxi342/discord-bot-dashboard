@@ -1,0 +1,468 @@
+/* End-to-End Encryption Styles */
+
+/* Encryption Setup Wizard Modal */
+.encryption-wizard {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(5px);
+}
+
+.encryption-wizard-content {
+    background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+    border-radius: 16px;
+    padding: 40px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(88, 101, 242, 0.3);
+}
+
+.encryption-wizard h2 {
+    color: #fff;
+    font-size: 28px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.encryption-wizard h2::before {
+    content: '🔐';
+    font-size: 32px;
+}
+
+.encryption-wizard p {
+    color: #b9bbbe;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.encryption-wizard .feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+}
+
+.encryption-wizard .feature-list li {
+    color: #dcddde;
+    padding: 10px 0;
+    padding-left: 30px;
+    position: relative;
+}
+
+.encryption-wizard .feature-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #43b581;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.encryption-password-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(88, 101, 242, 0.4);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    margin: 10px 0;
+    transition: all 0.3s ease;
+}
+
+.encryption-password-input:focus {
+    outline: none;
+    border-color: #5865f2;
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.1);
+}
+
+.encryption-password-strength {
+    height: 4px;
+    background: #2a2a3e;
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.encryption-password-strength-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #f04747, #faa61a, #43b581);
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.encryption-wizard .btn-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 30px;
+}
+
+.encryption-wizard button {
+    flex: 1;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.encryption-wizard .btn-primary {
+    background: linear-gradient(135deg, #5865f2, #7289da);
+    color: white;
+}
+
+.encryption-wizard .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(88, 101, 242, 0.4);
+}
+
+.encryption-wizard .btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #dcddde;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.encryption-wizard .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.encryption-progress {
+    margin: 20px 0;
+}
+
+.encryption-progress-bar {
+    height: 8px;
+    background: #2a2a3e;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.encryption-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #5865f2, #7289da);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200px 0;
+    }
+
+    100% {
+        background-position: 200px 0;
+    }
+}
+
+/* Encryption Status Indicator */
+.encryption-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(67, 181, 129, 0.15);
+    border: 1px solid rgba(67, 181, 129, 0.3);
+    border-radius: 12px;
+    color: #43b581;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: help;
+}
+
+.encryption-indicator::before {
+    content: '🔒';
+    font-size: 14px;
+}
+
+.encryption-indicator.disabled {
+    background: rgba(114, 118, 125, 0.15);
+    border-color: rgba(114, 118, 125, 0.3);
+    color: #72767d;
+}
+
+.encryption-indicator.disabled::before {
+    content: '🔓';
+}
+
+/* Message Encryption Icons */
+.message-encrypted {
+    position: relative;
+}
+
+.message-encrypted::before {
+    content: '🔒';
+    position: absolute;
+    right: -20px;
+    top: 2px;
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+.message-encryption-failed {
+    background: rgba(240, 71, 71, 0.1);
+    border-left: 3px solid #f04747;
+    padding: 12px;
+    border-radius: 4px;
+    color: #f04747;
+    font-style: italic;
+}
+
+.message-encryption-failed::before {
+    content: '⚠️ ';
+}
+
+/* Security Settings Panel */
+.security-settings {
+    background: #2f3136;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.security-settings h3 {
+    color: #fff;
+    font-size: 18px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.security-settings h3::before {
+    content: '🛡️';
+}
+
+.security-item {
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.security-item-info h4 {
+    color: #dcddde;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.security-item-info p {
+    color: #72767d;
+    font-size: 13px;
+}
+
+.security-item button {
+    padding: 8px 16px;
+    background: #5865f2;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.security-item button:hover {
+    background: #4752c4;
+    transform: translateY(-1px);
+}
+
+/* Fingerprint Display */
+.encryption-fingerprint {
+    font-family: 'Courier New', monospace;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 16px;
+    border-radius: 8px;
+    color: #43b581;
+    font-size: 14px;
+    line-height: 1.8;
+    word-break: break-all;
+    border: 1px solid rgba(67, 181, 129, 0.2);
+}
+
+.fingerprint-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.fingerprint-actions button {
+    flex: 1;
+    padding: 10px;
+    background: rgba(88, 101, 242, 0.2);
+    color: #5865f2;
+    border: 1px solid rgba(88, 101, 242, 0.3);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.fingerprint-actions button:hover {
+    background: rgba(88, 101, 242, 0.3);
+}
+
+/* Encryption Toggle in Chat Header */
+.chat-header .encryption-toggle {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.chat-header .encryption-toggle:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(88, 101, 242, 0.5);
+}
+
+.chat-header .encryption-toggle.active {
+    background: rgba(67, 181, 129, 0.15);
+    border-color: rgba(67, 181, 129, 0.5);
+}
+
+.encryption-toggle-icon {
+    font-size: 16px;
+    transition: transform 0.3s ease;
+}
+
+.encryption-toggle.active .encryption-toggle-icon {
+    transform: scale(1.1);
+}
+
+.encryption-toggle-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #dcddde;
+}
+
+/* Key Export/Import Modal */
+.key-backup-modal {
+    max-width: 600px;
+}
+
+.key-backup-warning {
+    background: rgba(250, 166, 26, 0.15);
+    border-left: 4px solid #faa61a;
+    padding: 16px;
+    border-radius: 4px;
+    margin: 16px 0;
+    color: #faa61a;
+}
+
+.key-backup-warning strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.key-file-upload {
+    border: 2px dashed rgba(88, 101, 242, 0.4);
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 20px 0;
+}
+
+.key-file-upload:hover {
+    border-color: #5865f2;
+    background: rgba(88, 101, 242, 0.05);
+}
+
+.key-file-upload input[type="file"] {
+    display: none;
+}
+
+.key-file-upload-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.key-file-upload-text {
+    color: #dcddde;
+    font-size: 15px;
+}
+
+/* Animations */
+@keyframes encryptionPulse {
+
+    0%,
+    100% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+.encrypting {
+    animation: encryptionPulse 1.5s infinite;
+}
+
+/* Toast notification for encryption events */
+.encryption-toast {
+    background: linear-gradient(135deg, #43b581, #3ba55d);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(67, 181, 129, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.encryption-toast::before {
+    content: '🔒';
+    font-size: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .encryption-wizard-content {
+        padding: 24px;
+        max-width: 90%;
+    }
+
+    .encryption-wizard h2 {
+        font-size: 22px;
+    }
+
+    .encryption-wizard .btn-group {
+        flex-direction: column;
+    }
+
+    .security-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .security-item button {
+        width: 100%;
+    }
+}

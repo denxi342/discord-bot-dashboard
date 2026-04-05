@@ -1,0 +1,331 @@
+/* ===================================
+   VOICE MESSAGES STYLES
+   =================================== */
+
+/* Voice Recorder Modal */
+.voice-recorder-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease;
+}
+
+.voice-recorder-content {
+    background: var(--sidebar-bg);
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color);
+}
+
+.voice-recorder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.voice-recorder-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.voice-recorder-header h3 i {
+    color: var(--primary);
+}
+
+.close-recorder {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.close-recorder:hover {
+    color: var(--text-primary);
+}
+
+/* Waveform Container */
+.waveform-container {
+    background: #1e1f22;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+#waveform-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Recording Timer */
+.recording-timer {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 24px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Recording Controls */
+.recording-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.recording-controls button {
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btn-cancel {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-cancel:hover {
+    background: #d63135;
+    transform: scale(1.05);
+}
+
+.btn-send {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-send:hover {
+    background: var(--primary-hover);
+    transform: scale(1.05);
+}
+
+/* Recording Indicator */
+.recording-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.pulse-dot {
+    width: 12px;
+    height: 12px;
+    background: var(--danger);
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+/* ===================================
+   VOICE MESSAGE PLAYER IN CHAT
+   =================================== */
+
+.voice-message-player {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    min-width: 280px;
+    max-width: 350px;
+}
+
+.voice-play-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.voice-play-btn:hover {
+    background: var(--primary-hover);
+    transform: scale(1.1);
+}
+
+.voice-play-btn i {
+    margin-left: 2px;
+    /* Visual centering for play icon */
+}
+
+.voice-play-btn .fa-pause {
+    margin-left: 0;
+}
+
+/* Static Waveform Visualization */
+.voice-waveform-static {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 32px;
+    overflow: hidden;
+}
+
+.waveform-bar {
+    flex: 1;
+    background: var(--primary);
+    border-radius: 2px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.voice-message-player:hover .waveform-bar {
+    opacity: 1;
+}
+
+/* Duration Display */
+.voice-duration {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    min-width: 35px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Speed Control */
+.voice-speed {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 12px;
+    padding: 4px 8px;
+    cursor: pointer;
+    outline: none;
+}
+
+.voice-speed:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* Voice Message in Bubble (Own) */
+.dm-bubble.own .voice-message-player {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dm-bubble.own .voice-duration,
+.dm-bubble.own .voice-speed {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Voice Message in Bubble (Other) */
+.dm-bubble.other .voice-message-player {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Voice Button in Input Area */
+.voice-record-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+    transition: all 0.2s;
+    margin-right: 8px;
+}
+
+.voice-record-btn:hover {
+    color: var(--primary);
+    transform: scale(1.1);
+}
+
+.voice-record-btn.recording {
+    color: var(--danger);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .voice-recorder-content {
+        width: 95%;
+        padding: 20px;
+    }
+
+    .recording-controls {
+        flex-direction: column;
+    }
+
+    .recording-controls button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .voice-message-player {
+        min-width: 240px;
+        max-width: 100%;
+    }
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

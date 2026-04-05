@@ -1,0 +1,409 @@
+/* Advanced Messenger Features Styles */
+
+/* ===== Upload Progress ===== */
+.upload-progress-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 350px;
+}
+
+.upload-progress-card {
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.upload-progress-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.upload-progress-header i {
+    color: var(--primary);
+    font-size: 20px;
+}
+
+.upload-progress-bar-container {
+    background: var(--input-bg);
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.upload-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.upload-progress-percent {
+    text-align: right;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* ===== Link Preview Card ===== */
+.link-preview-card {
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 8px;
+    max-width: 500px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.link-preview-card:hover {
+    border-left-color: var(--accent);
+    transform: translateX(2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.link-preview-image {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    display: block;
+}
+
+.link-preview-content {
+    padding: 12px;
+}
+
+.link-preview-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.link-preview-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.link-preview-url {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ===== Unread Message Divider ===== */
+.unread-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+    position: relative;
+}
+
+.unread-line {
+    flex: 1;
+    height: 2px;
+    background: var(--danger);
+    border-radius: 1px;
+}
+
+.unread-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--danger);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 12px;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--danger);
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+/* ===== Lightbox Modal ===== */
+.lightbox-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.lightbox-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    cursor: zoom-out;
+}
+
+.lightbox-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    z-index: 1;
+}
+
+.lightbox-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    display: block;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.lightbox-close {
+    position: absolute;
+    top: -50px;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 32px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(90deg);
+}
+
+/* ===== Photo Album Grid ===== */
+.photo-album {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+    max-width: 400px;
+    margin-top: 8px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.photo-album.single {
+    grid-template-columns: 1fr;
+}
+
+.photo-album.three {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.photo-album.three .album-photo:first-child {
+    grid-row: span 2;
+}
+
+.album-photo {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+}
+
+.album-photo:hover {
+    filter: brightness(1.1);
+}
+
+.album-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.album-count-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* ===== PDF Preview ===== */
+.pdf-preview-container {
+    max-width: 500px;
+    margin-top: 8px;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.pdf-preview-container canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* ===== Video Preview ===== */
+.video-preview {
+    max-width: 500px;
+    margin-top: 8px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.video-preview video {
+    width: 100%;
+    border-radius: 12px;
+}
+
+/* ===== File Attachments ===== */
+.file-attachment {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--input-bg);
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-top: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border-color);
+}
+
+.file-attachment:hover {
+    background: var(--chat-hover);
+    border-color: var(--primary);
+}
+
+.file-attachment-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+}
+
+.file-attachment-info {
+    flex: 1;
+}
+
+.file-attachment-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.file-attachment-size {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ===== Image Compression Selector ===== */
+.compression-selector {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    padding: 8px 0;
+    min-width: 180px;
+    margin-bottom: 8px;
+    z-index: 1000;
+}
+
+.compression-option {
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.compression-option:hover {
+    background: var(--chat-hover);
+}
+
+.compression-option i {
+    width: 20px;
+    text-align: center;
+}
+
+.compression-option.active {
+    background: var(--chat-active);
+    color: var(--primary);
+}
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

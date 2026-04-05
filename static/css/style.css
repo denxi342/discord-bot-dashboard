@@ -462,6 +462,7 @@ body::before {
     margin: 0 0 8px 0;
     background: var(--primary-gradient);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -633,6 +634,175 @@ body::before {
     color: var(--bubble-received-text) !important;
 }
 
+
+/* --- PREMIUM WELCOME SCREEN --- */
+.personal-welcome-view {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 20px;
+    background: radial-gradient(circle at center, rgba(88, 101, 242, 0.05) 0%, transparent 70%);
+    text-align: center;
+    animation: welcome-fade-in 0.8s ease-out;
+}
+
+.personal-welcome-view.active {
+    display: flex;
+}
+
+@keyframes welcome-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.welcome-logo-container {
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(88, 101, 242, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.welcome-logo-container i {
+    font-size: 64px;
+    color: white;
+    z-index: 2;
+}
+
+.welcome-logo-container::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shine-animation 3s infinite;
+}
+
+@keyframes shine-animation {
+    0% {
+        transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+
+    100% {
+        transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+}
+
+.welcome-title {
+    font-size: 42px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    background: linear-gradient(to right, #ffffff, #b5bac1);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.welcome-subtitle {
+    font-size: 18px;
+    color: var(--text-muted);
+    max-width: 500px;
+    line-height: 1.6;
+    margin-bottom: 40px;
+}
+
+.welcome-actions {
+    display: flex;
+    gap: 16px;
+}
+
+.welcome-btn {
+    padding: 12px 32px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+}
+
+.welcome-btn.primary {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 8px 16px rgba(88, 101, 242, 0.3);
+}
+
+.welcome-btn.primary:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 12px 20px rgba(88, 101, 242, 0.4);
+}
+
+.welcome-btn.secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.welcome-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.welcome-features {
+    margin-top: 60px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    width: 100%;
+    max-width: 800px;
+}
+
+.feature-box {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s;
+}
+
+.feature-box:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--primary);
+    transform: translateY(-5px);
+}
+
+.feature-box i {
+    font-size: 24px;
+    color: var(--primary);
+    margin-bottom: 12px;
+}
+
+.feature-box h4 {
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.feature-box p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
 .dm-bubble-content {
     padding: 10px 16px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2) !important;
@@ -640,6 +810,7 @@ body::before {
     flex-direction: column;
     gap: 6px;
 }
+
 
 .dm-bubble-text {
     font-size: 15px;
@@ -1263,7 +1434,39 @@ body::before {
     text-overflow: ellipsis;
 }
 
-/* --- NEW UI ELEMENTS (Dropdown, Settings, Roles) --- */
+/* --- MESSENGER SIDEBAR STYLES --- */
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 2px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.1s;
+    gap: 12px;
+}
+
+.nav-item:hover {
+    background: var(--channel-hover);
+    color: var(--text-normal);
+}
+
+.nav-item.active {
+    background: var(--channel-active);
+    color: white;
+}
+
+.nav-item i {
+    width: 20px;
+    text-align: center;
+    font-size: 18px;
+}
+
+.nav-item span {
+    font-size: 15px;
+    font-weight: 500;
+}
 
 /* SERVER DROPDOWN */
 .server-header {
@@ -2108,9 +2311,7 @@ body::before {
    but Discord keeps it simple text usually, just green. 
    Let's make it a pill if active? Actually standard discord is just green text until clicked. 
    When clicked it has a background. */
-.fh-tab.add-friend[onclick*='add'] {
-    /* Special styling if desired */
-}
+
 
 /* ========================================
    FULLSCREEN SETTINGS MODAL - Glassmorphism
@@ -3419,6 +3620,347 @@ body::before {
 }
 
 /* ========================================
+   DM PROFILE TABS
+   ======================================== */
+
+.dm-profile-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.25);
+    padding: 0 8px;
+    gap: 2px;
+}
+
+.dm-profile-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    text-align: center;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.dm-profile-tab i {
+    font-size: 11px;
+}
+
+.dm-profile-tab:hover {
+    color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px 6px 0 0;
+}
+
+.dm-profile-tab.active {
+    color: white;
+    border-bottom-color: var(--primary, #8b5cf6);
+}
+
+.dm-tab-content {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    flex-direction: column;
+}
+
+.dm-tab-content.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ========================================
+   SHARED MEDIA GALLERY
+   ======================================== */
+
+.shared-media-header {
+    padding: 10px 14px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.shared-media-count {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.shared-media-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    padding: 0 3px 3px;
+}
+
+.shared-media-item {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+.shared-media-item::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    transition: background 0.2s ease;
+}
+
+.shared-media-item:hover::after {
+    background: rgba(139, 92, 246, 0.3);
+}
+
+.shared-media-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.shared-media-item:hover .shared-media-thumb {
+    transform: scale(1.08);
+}
+
+.shared-media-play-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.shared-media-play-icon i {
+    color: white;
+    font-size: 18px;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.7));
+}
+
+.shared-media-loading {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 22px;
+}
+
+.shared-media-empty {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: rgba(255, 255, 255, 0.25);
+    text-align: center;
+    gap: 12px;
+}
+
+.shared-media-empty i {
+    font-size: 36px;
+    opacity: 0.5;
+}
+
+.shared-media-empty p {
+    font-size: 13px;
+    margin: 0;
+}
+
+/* ========================================
+   SHARED FILES LIST
+   ======================================== */
+
+.shared-files-list {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 0;
+    flex: 1;
+}
+
+.shared-file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s ease;
+    border-radius: 6px;
+    margin: 0 6px 2px;
+}
+
+.shared-file-item:hover {
+    background: rgba(139, 92, 246, 0.15);
+}
+
+.shared-file-item:hover .shared-file-download {
+    opacity: 1;
+}
+
+.shared-file-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(139, 92, 246, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.shared-file-icon i {
+    font-size: 16px;
+    color: var(--primary, #8b5cf6);
+}
+
+.shared-file-icon .fa-file-pdf { color: #ef4444; }
+.shared-file-icon .fa-file-word { color: #3b82f6; }
+.shared-file-icon .fa-file-excel { color: #22c55e; }
+.shared-file-icon .fa-file-zipper { color: #f59e0b; }
+.shared-file-icon .fa-file-audio { color: #a78bfa; }
+.shared-file-icon .fa-file-code { color: #06b6d4; }
+
+.shared-file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.shared-file-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shared-file-meta {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 2px;
+}
+
+.shared-file-download {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    flex-shrink: 0;
+}
+
+.shared-file-download:hover {
+    background: var(--primary, #8b5cf6);
+    color: white;
+}
+
+/* ========================================
+   MEDIA VIEWER (LIGHTBOX)
+   ======================================== */
+
+.media-viewer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.media-viewer-content {
+    max-width: 90vw;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.8);
+    animation: zoomIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes zoomIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+
+.media-viewer-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
+}
+
+.media-viewer-close:hover {
+    background: rgba(244, 63, 94, 0.5);
+    border-color: #f43f5e;
+    transform: scale(1.1);
+}
+
+.media-viewer-download {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    color: white;
+    text-decoration: none;
+    padding: 10px 24px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.media-viewer-download:hover {
+    background: var(--primary, #8b5cf6);
+    border-color: var(--primary, #8b5cf6);
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+}
+
+/* ========================================
    РАСШИРЕННЫЕ ФУНКЦИИ СООБЩЕНИЙ
    ======================================== */
 
@@ -3752,4 +4294,178 @@ body::before {
 .pinned-modal-content button:hover {
     transform: translateY(-2px);
     box-shadow: var(--glow-primary);
+}
+
+/* ===========================
+   REPLY FEATURE STYLES
+   =========================== */
+
+/* Reply preview bar above input */
+.reply-preview-bar {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: rgba(79, 84, 92, 0.4);
+    border-left: 3px solid var(--primary);
+    margin: 0 0 8px 0;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.reply-preview-bar i.fa-reply {
+    color: var(--primary);
+    font-size: 14px;
+}
+
+.reply-preview-bar span {
+    flex: 1;
+}
+
+.reply-preview-bar strong {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.reply-preview-bar button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    font-size: 16px;
+}
+
+.reply-preview-bar button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+/* Reply quote in message bubble */
+.dm-bubble-reply {
+    cursor: pointer;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.15);
+    border-left: 3px solid rgba(255, 255, 255, 0.4);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.dm-bubble-reply:hover {
+    background: rgba(0, 0, 0, 0.25);
+    border-left-color: rgba(255, 255, 255, 0.6);
+}
+
+.dm-bubble-reply i {
+    margin-right: 6px;
+    opacity: 0.6;
+}
+
+.dm-bubble-reply .reply-author {
+    font-weight: 600;
+    margin-right: 4px;
+    opacity: 0.9;
+}
+
+.dm-bubble-reply .reply-text {
+    opacity: 0.7;
+    font-size: 12px;
+}
+
+/* Different styling for "own" bubbles (blue background) */
+.dm-bubble.own .dm-bubble-reply {
+    background: rgba(255, 255, 255, 0.15);
+    border-left-color: rgba(255, 255, 255, 0.5);
+}
+
+.dm-bubble.own .dm-bubble-reply:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-left-color: rgba(255, 255, 255, 0.7);
+}
+
+/* Different styling for "other" bubbles (gray background) */
+.dm-bubble.other .dm-bubble-reply {
+    background: rgba(0, 0, 0, 0.1);
+    border-left-color: var(--primary);
+}
+
+.dm-bubble.other .dm-bubble-reply:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Message highlight animation when navigating to original message */
+@keyframes message-highlight {
+
+    0%,
+    100% {
+        background: transparent;
+    }
+
+    50% {
+        background: rgba(88, 101, 242, 0.25);
+        box-shadow: 0 0 20px rgba(88, 101, 242, 0.3);
+    }
+}
+
+.message-highlighted {
+    animation: message-highlight 1.8s ease;
+}
+
+/* Also apply to dm-bubble */
+.dm-bubble.message-highlighted .dm-bubble-content {
+    animation: message-highlight 1.8s ease;
+}
+
+/* Message context menu styles */
+.message-context-menu {
+    position: fixed;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    padding: 6px;
+    z-index: 10000;
+    min-width: 180px;
+}
+
+.message-context-menu .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.15s;
+}
+
+.message-context-menu .menu-item:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.message-context-menu .menu-item.danger {
+    color: var(--danger);
+}
+
+.message-context-menu .menu-item.danger:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.message-context-menu .menu-item i {
+    width: 16px;
+    text-align: center;
+}
+
+.message-context-menu .menu-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 4px 0;
 }
