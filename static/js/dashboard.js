@@ -1092,6 +1092,7 @@ const DiscordModule = {
         // Require either text or attachments  
         if (!text && attachments.length === 0) return;
         input.value = '';
+        input.style.height = '36px'; // Reset height (Beautiful UX)
 
         // Check if virtual channel
         const virtuals = ['helper', 'news', 'community', 'admin', 'profile', 'biography', 'search-rules', 'ad-editor'];
@@ -3352,7 +3353,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const globalInput = document.getElementById('global-input');
     if (globalInput) {
-        globalInput.addEventListener('input', () => {
+        globalInput.addEventListener('input', function() {
+            // 1. Auto-resize height (Beautiful UX)
+            this.style.height = '36px';
+            const newHeight = Math.min(this.scrollHeight, 200);
+            this.style.height = (newHeight) + 'px';
+            
+            // 2. Typing indicator
             if (DiscordModule && typeof DiscordModule.handleTypingInput === 'function') {
                 DiscordModule.handleTypingInput();
             }

@@ -906,75 +906,149 @@ body::before {
 }
 
 /* INPUT AREA */
+/* --- GLASSMORPHIC CHAT INPUT (Beautified) --- */
+/* --- GLASSMORPHIC CHAT INPUT (Beautified) --- */
 .chat-input-area {
-    padding: 16px 20px;
+    padding: 10px 20px 24px;
     flex-shrink: 0;
-    border-top: 1px solid var(--border-color);
-    background: var(--chat-bg);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: transparent;
+    position: relative;
+    z-index: 10;
 }
 
 .chat-input-wrapper {
-    background: var(--input-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 24px;
+    background: rgba(49, 51, 56, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
     display: flex;
-    align-items: center;
-    padding: 10px 16px;
+    align-items: flex-end;
+    padding: 8px 12px;
+    min-height: 48px;
     transition: all 0.2s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
 }
 
 .chat-input-wrapper:focus-within {
-    background: var(--input-bg);
+    background: rgba(49, 51, 56, 0.6);
     border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
 }
 
 .input-btn {
-    background: none;
+    background: transparent;
     border: none;
-    color: var(--text-secondary);
+    color: var(--text-muted);
     font-size: 20px;
     cursor: pointer;
-    margin-right: 8px;
-    transition: color 0.15s;
-    padding: 4px;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .input-btn:hover {
-    color: var(--primary);
+    color: var(--text-normal);
+    background: rgba(255, 255, 255, 0.05);
 }
 
-.chat-input-wrapper input {
+.input-field-container {
+    flex: 1;
+    position: relative;
+    margin: 0 10px;
+    display: flex;
+    align-items: center;
+}
+
+#global-input {
+    width: 100%;
     background: transparent;
     border: none;
-    color: var(--text-primary);
-    flex: 1;
     outline: none;
+    color: var(--text-normal);
     font-size: 15px;
-    caret-color: var(--primary);
+    padding: 8px 35px 8px 4px;
+    resize: none;
+    height: 36px;
+    min-height: 24px;
+    max-height: 200px;
+    line-height: 20px;
+    font-family: inherit;
 }
 
-.chat-input-wrapper input::placeholder {
+.input-actions-overlay {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    display: flex;
+    gap: 8px;
+}
+
+.input-actions-overlay i {
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.input-actions-overlay i:hover {
+    color: #ffcc4d;
+}
+
+.right-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.extra-icons {
+    display: flex;
+    gap: 12px;
     color: var(--text-muted);
 }
 
-.right-icons {
-    display: flex;
-    gap: 8px;
-    color: var(--text-secondary);
-    position: relative;
-    /* For dropdown positioning */
-}
-
-.right-icons i {
+.extra-icons i {
     cursor: pointer;
-    padding: 4px;
-    transition: color 0.15s;
+    font-size: 18px;
+    transition: all 0.2s;
 }
 
-.right-icons i:hover {
-    color: var(--primary);
+.extra-icons i:hover {
+    color: var(--text-normal);
+    transform: scale(1.1);
 }
+
+.send-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5865F2, #4752C4);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 10px rgba(88, 101, 242, 0.3);
+}
+
+.send-btn:hover {
+    transform: scale(1.1) rotate(-10deg);
+    box-shadow: 0 6px 15px rgba(88, 101, 242, 0.4);
+    background: linear-gradient(135deg, #6c79f5, #5865f2);
+}
+
+.send-btn i {
+    font-size: 14px;
+    margin-left: 2px;
+}
+
 
 /* --- DISAPPEARING MESSAGES --- */
 #disappearing-timer-btn {
@@ -3405,12 +3479,7 @@ body::before {
    CHAT INPUT AREA - Full Width Styling
    ======================================== */
 
-.chat-input-area {
-    position: relative;
-    padding: 0 16px 24px;
-    width: 100%;
-    box-sizing: border-box;
-}
+/* (Merged with main input styling above) */
 
 .chat-input-wrapper {
     display: flex;

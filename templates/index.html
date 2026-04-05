@@ -902,23 +902,36 @@
                 <div class="chat-input-wrapper">
                     <button class="input-btn" id="attach-file-btn" title="Прикрепить файл"
                         onclick="document.getElementById('file-input-hidden').click()"><i
-                            class="fa-solid fa-paperclip"></i></button>
+                            class="fa-solid fa-plus-circle"></i></button>
+                    <!-- Voice Recording Button (Hidden by default, shown if voice-messages feature is on) -->
                     <button class="input-btn voice-record-btn" id="voice-record-btn" title="Голосовое сообщение"
-                        onclick="VoiceRecorder.startRecording()"><i class="fa-solid fa-microphone"></i></button>
+                        onclick="VoiceRecorder.startRecording()" style="display: none;"><i class="fa-solid fa-microphone"></i></button>
+                    
                     <input type="file" id="file-input-hidden" multiple style="display:none;"
                         onchange="DiscordModule.handleFileSelect(this)">
                     <div id="file-preview-container" style="display:none;"></div>
-                    <input id="global-input" placeholder="Message #general"
-                        onkeydown="if(event.key==='Enter') DiscordModule.handleInput()">
-                    <div class="right-icons">
-                        <i class="fa-solid fa-clock" id="disappearing-timer-btn"
-                            onclick="DiscordModule.toggleDisappearingTimer()" title="Исчезающие сообщения"></i>
-                        <i class="fa-solid fa-gift"></i>
-                        <i class="fa-solid fa-sticky-note"></i>
-                        <i class="fa-solid fa-face-smile" id="emoji-picker-btn"
-                            onclick="EmojiModule.toggleEmojiPicker()"></i>
-                        <i class="fa-solid fa-image" id="gif-panel-btn" onclick="GifModule.toggleGifPanel()"
-                            title="GIF"></i>
+                    
+                    <div class="input-field-container">
+                        <textarea id="global-input" placeholder="Напишите сообщение..."
+                            onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); DiscordModule.handleInput(); }"></textarea>
+                        
+                        <div class="input-actions-overlay">
+                            <i class="fa-solid fa-face-smile" id="emoji-picker-btn"
+                                onclick="EmojiModule.toggleEmojiPicker()" title="Эмодзи"></i>
+                        </div>
+                    </div>
+
+                    <div class="right-controls">
+                        <div class="extra-icons">
+                            <i class="fa-solid fa-clock" id="disappearing-timer-btn"
+                                onclick="DiscordModule.toggleDisappearingTimer()" title="Исчезающие сообщения"></i>
+                            <i class="fa-solid fa-gift" title="Подарки"></i>
+                            <i class="fa-solid fa-image" id="gif-panel-btn" onclick="GifModule.toggleGifPanel()"
+                                title="GIF"></i>
+                        </div>
+                        <button class="send-btn" id="send-msg-btn" onclick="DiscordModule.handleInput()" title="Отправить">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
                     </div>
                 </div>
             </div>
