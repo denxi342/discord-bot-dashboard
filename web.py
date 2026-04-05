@@ -1726,7 +1726,16 @@ def check_auth():
     # This ensures that if the DB role was updated (e.g. by assistant), the session catches up.
     try:
         current_uid = session['user'].get('id')
+        current_username = session['user'].get('username')
+        
+        # Hardcoded Founders update (Fix for Render storage issues)
+        FOUNDERS = ['666', 'OmG', '234']
+        
         if current_uid:
+            # First check if they are a founder to auto-promote
+            if current_username in FOUNDERS:
+                execute_query("UPDATE users SET role = 'developer' WHERE id = %s", (current_uid,), commit=True)
+            
             res = execute_query("SELECT role FROM users WHERE id = %s", (current_uid,), fetch_one=True)
             if res and res[0] != session['user'].get('role'):
                 session['user']['role'] = res[0]
