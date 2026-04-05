@@ -3778,7 +3778,7 @@ def api_dm_send_by_id(dm_id):
         message_id = execute_query('''
             INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id, attachments, expires_at, is_encrypted, encryption_metadata, cloud_folder_id)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (dm_id, my_id, content, timestamp, reply_to_id, attachments, expires_at, is_encrypted, encryption_metadata, folder_id), commit=True)
+        ''', (dm_id, my_id, content, timestamp, reply_to_id, attachments, expires_at, int(is_encrypted), encryption_metadata, folder_id), commit=True)
         
         # Update last_message_at
         execute_query('UPDATE direct_messages SET last_message_at = %s WHERE id = %s',
@@ -3860,7 +3860,7 @@ def api_dm_send(target_id):
     message_id = execute_query("""
         INSERT INTO dm_messages (dm_id, author_id, content, timestamp, reply_to_id, attachments, expires_at, is_encrypted, encryption_metadata, cloud_folder_id) 
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (dm_id, my_id, content, timestamp, reply_to_id, attachments, expires_at, is_encrypted, encryption_metadata, folder_id), commit=True)
+    """, (dm_id, my_id, content, timestamp, reply_to_id, attachments, expires_at, int(is_encrypted), encryption_metadata, folder_id), commit=True)
                   
     # Update timestamp for sorting
     execute_query("UPDATE direct_messages SET last_message_at = %s WHERE id = %s", (timestamp, dm_id), commit=True)
