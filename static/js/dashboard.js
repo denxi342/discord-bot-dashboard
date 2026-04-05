@@ -545,13 +545,17 @@ const DiscordModule = {
         const welcomeView = document.getElementById('personal-welcome-view');
         if (welcomeView) welcomeView.classList.remove('active');
 
-        // Show chat input when selecting a channel (hide only on friends)
+        // Define views that should NOT have a chat input field (read-only or pure UI)
+        const noInputViews = ['friends', 'admin', 'settings', 'leaderboard', 'my-profile', 'discovery', 'nitro', 'shop'];
+        
         const chatInput = document.querySelector('.chat-input-area');
-        const specialViews = ['friends', 'admin', 'cloud', 'news', 'leaderboard', 'my-profile'];
-        if (chatInput && specialViews.includes(chanId)) {
-            chatInput.style.display = 'none';
-        } else if (chatInput) {
-            chatInput.style.display = 'flex';
+        if (chatInput) {
+            // Hide input for special UI-only views
+            if (noInputViews.includes(chanId)) {
+                chatInput.style.display = 'none';
+            } else {
+                chatInput.style.display = 'flex';
+            }
         }
 
         document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
@@ -1989,11 +1993,15 @@ const DiscordModule = {
         let name = otherUser ? (otherUser.display_name || otherUser.username) : 'Chat';
         const avatar = otherUser ? (otherUser.avatar || DEFAULT_AVATAR) : DEFAULT_AVATAR;
 
-        // Show chat input for DM (except system team)
+        // Show chat input for DM (except system team with ID 0)
         const chatInput = document.querySelector('.chat-input-area');
         if (chatInput) {
-            if (dmId == 0) chatInput.style.display = 'none';
-            else chatInput.style.display = 'flex';
+            // dmId 0 is "Команда Octave", which is read-only announcement channel
+            if (String(dmId) === '0') {
+                chatInput.style.display = 'none';
+            } else {
+                chatInput.style.display = 'flex';
+            }
         }
 
         // Update main header for DM view
