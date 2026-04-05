@@ -4,3 +4,4 @@ This file was created to trigger a Render redeploy.
 Timestamp: 2025-12-11T14:28:44+03:00
 
 The issue was that Render was serving an old version of index.html without the ArizonaModule fix in the <head> tag.
+Redeploy triggered by AI at 2026-04-05T21:16:46Z to ensure all features are live.
