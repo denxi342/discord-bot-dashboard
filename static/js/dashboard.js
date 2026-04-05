@@ -3903,11 +3903,14 @@ const AdminModule = {
                 AdminModule.users = data.users;
                 AdminModule.renderUsers(data.users);
             } else {
-                AdminModule.renderUsers([]);
+                console.error("Failed to fetch users or data.users is not an array", data);
+                const tbody = document.getElementById('admin-users-table-body');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #ed4245;">Ошибка загрузки данных</td></tr>';
             }
         } catch (e) {
-            console.error(e);
-            AdminModule.renderUsers([]);
+            console.error("Error in fetchUsers:", e);
+            const tbody = document.getElementById('admin-users-table-body');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #ed4245;">Ошибка соединения с сервером</td></tr>';
         }
     },
 

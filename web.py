@@ -306,6 +306,7 @@ def safe_init_db():
         print("[!] The application will attempt to start, but database features will be broken.")
 
 safe_init_db()
+run_db_migration()
 
 def run_db_migration():
     """
