@@ -459,8 +459,12 @@
     </div>
 
     <div class="discord-app">
-        <!-- Server list removed - pure messenger mode -->
-
+        <!-- Compatibility Layer (Hidden) to prevent JS crashes -->
+        <nav class="server-list" style="display: none !important;">
+            <div id="server-profile"></div>
+            <div class="add-server"></div>
+        </nav>
+        
         <!-- 2. CHANNEL SIDEBAR -->
         <div class="channel-sidebar">
             <!-- Search Header -->
@@ -1502,10 +1506,9 @@
     </div>
 
     <!-- Scripts -->
-    <script src="/static/js/utils.js?v=1.2"></script>
-    <script src="/static/js/dashboard.js?v=1.2"></script>
-    <script src="/static/js/advanced-features.js?v=1.2"></script>
-    <script src="/static/js/legal-consent.js?v=1.2"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/legal-consent.js') }}"></script>
     <script src="{{ url_for('static', filename='js/attachments.js') }}"></script>
 
     <!-- 🎨 LOADING SCREEN SCRIPT -->
@@ -1552,9 +1555,8 @@
         });
     </script>
 
-    <!-- Feature Modules -->
+    <!-- Feature Modules (Duplicates removed to prevent SyntaxErrors) -->
     <script src="{{ url_for('static', filename='js/emoji-module.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/gif-module.js') }}"></script>
 
     <!-- Edit Field Fix - Override prompt with modal -->
     <script src="{{ url_for('static', filename='js/edit_field_fix.js') }}"></script>

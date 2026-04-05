@@ -259,6 +259,11 @@ const DiscordModule = {
 
     renderServerList: () => {
         const list = document.querySelector('.server-list');
+        if (!list) {
+            console.warn('[App] .server-list not found, skipping sidebar render.');
+            return;
+        }
+
         const profile = list.querySelector('#server-profile');
         const addBtn = list.querySelector('.add-server');
 
