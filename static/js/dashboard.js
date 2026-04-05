@@ -3087,12 +3087,7 @@ const DiscordModule = {
 
     // --- REPORT SYSTEM FRONTEND ---
     reportMessage: (messageId) => {
-        const modal = document.getElementById('report-modal');
-        if (!modal) return;
-        
-        modal.style.display = 'flex';
-        const submitBtn = document.getElementById('submit-report-btn');
-        submitBtn.onclick = () => DiscordModule.submitReport(messageId);
+        AdminModule.reportMessagePrompt(messageId);
     },
 
     closeReportModal: () => {
@@ -3805,12 +3800,37 @@ window.CloudModule = CloudModule;
 
 const AdminModule = {
     users: [],
+    reports: [],
+    currentTab: 'overview',
     
     openAdminPanel: () => {
         // Switch to admin view
         DiscordModule.selectChannel('admin', 'channel');
-        AdminModule.fetchStats();
-        AdminModule.fetchUsers();
+        AdminModule.switchTab('overview');
+    },
+
+    switchTab: (tab) => {
+        AdminModule.currentTab = tab;
+        
+        // Update Buttons
+        document.querySelectorAll('.admin-tab-btns .tab-btn').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.getElementById(`admin-tab-btn-${tab}`);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        // Update Views
+        document.querySelectorAll('.admin-tab-view').forEach(view => view.style.display = 'none');
+        const activeView = document.getElementById(`admin-view-${tab}`);
+        if (activeView) activeView.style.display = 'block';
+
+        // Load Data
+        if (tab === 'overview') AdminModule.fetchStats();
+        if (tab === 'users') AdminModule.fetchUsers();
+        if (tab === 'reports') AdminModule.fetchReports();
+    },
+
+    refreshCurrentTab: () => {
+        AdminModule.switchTab(AdminModule.currentTab);
+        Utils.showToast("Данные обновлены");
     },
     
     fetchStats: async () => {
@@ -3843,6 +3863,115 @@ const AdminModule = {
             }
         } catch (e) { console.error(e); }
     },
+
+    // --- REPORT SYSTEM ---
+
+    reportMessagePrompt: (messageId) => {
+        const reason = prompt("Пожалуйста, укажите причину жалобы (спам, оскорбление, непристойный контент и т.д.):");
+        if (reason === null) return;
+        if (!reason.trim()) {
+            Utils.showToast("Причина не может быть пустой");
+            return;
+        }
+        AdminModule.submitReport(messageId, reason.trim());
+    },
+
+    submitReport: async (messageId, reason) => {
+        try {
+            const res = await fetch('/api/messages/report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message_id: messageId, reason: reason })
+            });
+            const data = await res.json();
+            if (data.success) {
+                Utils.showToast("✅ Жалоба отправлена. Спасибо!");
+            } else {
+                Utils.showToast("❌ " + data.error);
+            }
+        } catch (e) {
+            console.error(e);
+            Utils.showToast("Ошибка при отправке жалобы");
+        }
+    },
+
+    fetchReports: async () => {
+        try {
+            const res = await fetch('/api/admin/reports');
+            const data = await res.json();
+            if (data.success) {
+                AdminModule.reports = data.reports;
+                document.getElementById('admin-report-count').textContent = `${data.reports.length} активных`;
+                AdminModule.renderReports(data.reports);
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    renderReports: (reports) => {
+        const container = document.getElementById('admin-reports-list');
+        if (!container) return;
+
+        if (reports.length === 0) {
+            container.innerHTML = `
+                <div class="empty-reports" style="text-align: center; color: #949ba4; padding: 40px;">
+                    <i class="fa-solid fa-check-double" style="font-size: 48px; margin-bottom: 20px; opacity: 0.3;"></i>
+                    <p>Жалоб пока нет. Всё спокойно!</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = reports.map(r => `
+            <div class="report-item-card" data-report-id="${r.report_id}">
+                <div class="report-header">
+                    <div class="report-meta">
+                        <span class="reporter-name"><i class="fa-solid fa-user"></i> ${Utils.escapeHtml(r.reporter)}</span>
+                        <i class="fa-solid fa-arrow-right" style="opacity: 0.3;"></i>
+                        <span class="reported-name"><i class="fa-solid fa-user-shield"></i> ${Utils.escapeHtml(r.author)}</span>
+                    </div>
+                    <span class="report-time">${Utils.formatMessageTime(r.timestamp)}</span>
+                </div>
+                <div class="reported-content">
+                    <div class="quote-bar"></div>
+                    <p>${Utils.escapeHtml(r.content)}</p>
+                </div>
+                <div class="report-reason">
+                    <strong>Причина:</strong> ${Utils.escapeHtml(r.reason)}
+                </div>
+                <div class="report-actions">
+                    <button class="admin-btn danger" onclick="AdminModule.resolveReport(${r.report_id}, 'delete')">
+                        <i class="fa-solid fa-trash"></i> Удалить сообщение
+                    </button>
+                    <button class="admin-btn secondary" onclick="AdminModule.resolveReport(${r.report_id}, 'ignore')">
+                        <i class="fa-solid fa-xmark"></i> Отклонить
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    resolveReport: async (reportId, action) => {
+        if (action === 'delete' && !confirm("Вы уверены, что хотите удалить это сообщение?")) return;
+
+        try {
+            const res = await fetch('/api/admin/reports/resolve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ report_id: reportId, action: action })
+            });
+            const data = await res.json();
+            if (data.success) {
+                Utils.showToast(data.message);
+                AdminModule.fetchReports(); // Refresh
+            } else {
+                Utils.showToast("Ошибка: " + data.error);
+            }
+        } catch (e) {
+            console.error(e);
+            Utils.showToast("Ошибка сервера");
+        }
+    },
+    
+    // --- END REPORT SYSTEM ---
     
     renderUsers: (users) => {
         const body = document.getElementById('admin-users-table-body');

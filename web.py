@@ -1926,6 +1926,100 @@ def api_admin_grant_admin():
     
     return jsonify({'success': True, 'message': f'Admin status granted to {target_username}'})
 
+# --- REPORT SYSTEM API ---
+
+@app.route('/api/messages/report', methods=['POST'])
+def api_report_message():
+    if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
+    
+    data = request.json
+    message_id = data.get('message_id')
+    reason = data.get('reason', 'No reason provided')
+    
+    if not message_id:
+        return jsonify({'success': False, 'error': 'Message ID required'})
+    
+    reporter_id = session['user']['id']
+    
+    # Check if report already exists for this user and message
+    exists = execute_query("SELECT id FROM reports WHERE message_id = %s AND reporter_id = %s", 
+                           (message_id, reporter_id), fetch_one=True)
+    if exists:
+        return jsonify({'success': False, 'error': 'You have already reported this message'})
+    
+    # Store report
+    execute_query("INSERT INTO reports (message_id, reporter_id, reason, timestamp) VALUES (%s, %s, %s, %s)",
+                   (message_id, reporter_id, reason, time.time()), commit=True)
+    
+    return jsonify({'success': True, 'message': 'Report submitted successfully. Admins will review it soon.'})
+
+@app.route('/api/admin/reports')
+def api_admin_reports():
+    if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
+    
+    # Admin only check
+    role = session['user'].get('role')
+    if role not in ['developer', 'admin']: return jsonify({'error': 'Forbidden'}), 403
+    
+    # Fetch reports with message content and author info
+    # We join reports with dm_messages and users
+    query = """
+    SELECT r.id, r.message_id, r.reason, r.timestamp, 
+           rm.content as message_content, 
+           u_rep.username as reporter_name,
+           u_msg.username as author_name,
+           u_msg.id as author_id
+    FROM reports r
+    JOIN dm_messages rm ON r.message_id = rm.id
+    JOIN users u_rep ON r.reporter_id = u_rep.id
+    JOIN users u_msg ON rm.author_id = u_msg.id
+    ORDER BY r.timestamp DESC
+    """
+    rows = execute_query(query, fetch_all=True)
+    
+    reports = []
+    for r in rows:
+        reports.append({
+            'report_id': r[0],
+            'message_id': r[1],
+            'reason': r[2],
+            'timestamp': r[3],
+            'content': r[4],
+            'reporter': r[5],
+            'author': r[6],
+            'author_id': r[7]
+        })
+        
+    return jsonify({'success': True, 'reports': reports})
+
+@app.route('/api/admin/reports/resolve', methods=['POST'])
+def api_admin_resolve_report():
+    if 'user' not in session: return jsonify({'error': 'Auth needed'}), 401
+    
+    role = session['user'].get('role')
+    if role not in ['developer', 'admin']: return jsonify({'error': 'Forbidden'}), 403
+    
+    data = request.json
+    report_id = data.get('report_id')
+    action = data.get('action') # 'delete' or 'ignore'
+    
+    if not report_id: return jsonify({'error': 'Report ID required'})
+    
+    if action == 'delete':
+        # Get message_id first
+        rep = execute_query("SELECT message_id FROM reports WHERE id = %s", (report_id,), fetch_one=True)
+        if rep:
+            msg_id = rep[0]
+            # Delete message
+            execute_query("DELETE FROM dm_messages WHERE id = %s", (msg_id,), commit=True)
+            # Notify via socket or log
+            add_log('warning', f"Admin {session['user']['username']} deleted reported message {msg_id}")
+            
+    # Remove the report after handling
+    execute_query("DELETE FROM reports WHERE id = %s", (report_id,), commit=True)
+    
+    return jsonify({'success': True, 'message': 'Report resolved'})
+
 @app.route('/callback')
 def callback():
     code = request.args.get('code')

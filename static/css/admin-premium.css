@@ -238,3 +238,134 @@
 .admin-dashboard > * {
     animation: fadeInUp 0.5s ease forwards;
 }
+
+/* 📑 TABS & REPORTS STYLES */
+
+.admin-tab-btns {
+    display: flex;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: #949ba4;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+    color: #fff;
+    background: #5865f2;
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+}
+
+/* Report Cards */
+.reports-container {
+    display: grid;
+    gap: 16px;
+}
+
+.report-item-card {
+    background: rgba(30, 31, 34, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.2s;
+}
+
+.report-item-card:hover {
+    border-color: rgba(237, 66, 69, 0.3);
+    background: rgba(35, 36, 40, 0.8);
+}
+
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.report-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.reporter-name, .reported-name {
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.reporter-name { color: #5865f2; }
+.reported-name { color: #f2a458; }
+
+.report-time {
+    font-size: 12px;
+    color: #949ba4;
+}
+
+.reported-content {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 12px;
+}
+
+.quote-bar {
+    width: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.reported-content p {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.report-reason {
+    font-size: 13px;
+    padding: 8px 12px;
+    background: rgba(237, 66, 69, 0.1);
+    border: 1px solid rgba(237, 66, 69, 0.2);
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.report-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.report-actions .admin-btn {
+    padding: 8px 16px;
+    height: auto;
+    font-size: 13px;
+}
+
+.report-count-badge {
+    background: #ed4245;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(237, 66, 69, 0.4);
+}

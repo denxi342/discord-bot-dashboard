@@ -676,83 +676,111 @@
                     <div class="admin-dashboard">
                         <div class="admin-header">
                             <h1>Админ-панель</h1>
-                            <div class="header-actions">
-                                <button class="admin-btn secondary" onclick="AdminModule.fetchStats()" style="width: auto; padding: 10px 15px;">
-                                    <i class="fa-solid fa-rotate"></i> Обновить
+                            <div class="header-actions" style="display: flex; gap: 10px;">
+                                <div class="admin-tab-btns" style="display: flex; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 4px;">
+                                    <button class="tab-btn active" id="admin-tab-btn-overview" onclick="AdminModule.switchTab('overview')">Обзор</button>
+                                    <button class="tab-btn" id="admin-tab-btn-users" onclick="AdminModule.switchTab('users')">Пользователи</button>
+                                    <button class="tab-btn" id="admin-tab-btn-reports" onclick="AdminModule.switchTab('reports')">Жалобы</button>
+                                </div>
+                                <button class="admin-btn secondary" onclick="AdminModule.refreshCurrentTab()" style="width: auto; padding: 10px 15px;">
+                                    <i class="fa-solid fa-rotate"></i>
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Stats Grid -->
-                        <div class="stats-grid">
-                            <div class="stat-card" style="--accent-color: #5865f2;">
-                                <div class="stat-label">Всего пользователей</div>
-                                <div class="stat-value" id="admin-stat-users">0</div>
-                                <i class="fa-solid fa-users stat-icon"></i>
-                            </div>
-                            <div class="stat-card" style="--accent-color: #23a559;">
-                                <div class="stat-label">В сети сейчас</div>
-                                <div class="stat-value" id="admin-stat-online">0</div>
-                                <i class="fa-solid fa-signal stat-icon"></i>
-                            </div>
-                            <div class="stat-card" style="--accent-color: #faa61a;">
-                                <div class="stat-label">Сообщений в системе</div>
-                                <div class="stat-value" id="admin-stat-messages">0</div>
-                                <i class="fa-solid fa-comments stat-icon"></i>
-                            </div>
-                            <div class="stat-card" style="--accent-color: #ed4245;">
-                                <div class="stat-label">Аптайм сервера</div>
-                                <div class="stat-value" id="admin-stat-uptime">00:00:00</div>
-                                <i class="fa-solid fa-clock stat-icon"></i>
+                        <!-- Tab: Overview -->
+                        <div id="admin-view-overview" class="admin-tab-view">
+                            <!-- Stats Grid -->
+                            <div class="stats-grid">
+                                <div class="stat-card" style="--accent-color: #5865f2;">
+                                    <div class="stat-label">Всего пользователей</div>
+                                    <div class="stat-value" id="admin-stat-users">0</div>
+                                    <i class="fa-solid fa-users stat-icon"></i>
+                                </div>
+                                <div class="stat-card" style="--accent-color: #23a559;">
+                                    <div class="stat-label">В сети сейчас</div>
+                                    <div class="stat-value" id="admin-stat-online">0</div>
+                                    <i class="fa-solid fa-signal stat-icon"></i>
+                                </div>
+                                <div class="stat-card" style="--accent-color: #faa61a;">
+                                    <div class="stat-label">Сообщений в системе</div>
+                                    <div class="stat-value" id="admin-stat-messages">0</div>
+                                    <i class="fa-solid fa-comments stat-icon"></i>
+                                </div>
+                                <div class="stat-card" style="--accent-color: #ed4245;">
+                                    <div class="stat-label">Аптайм сервера</div>
+                                    <div class="stat-value" id="admin-stat-uptime">00:00:00</div>
+                                    <i class="fa-solid fa-clock stat-icon"></i>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="admin-sections">
-                            <!-- User Management -->
-                            <div class="admin-card">
-                                <div class="admin-card-header">
-                                    <h3>Управление пользователями</h3>
-                                    <div class="search-container" style="background: rgba(0,0,0,0.2); border-radius: 8px;">
-                                        <input type="text" class="search-input" placeholder="Поиск по нику..." style="height: 32px;" oninput="AdminModule.filterUsers(this.value)">
+                        <!-- Tab: Users -->
+                        <div id="admin-view-users" class="admin-tab-view" style="display: none;">
+                            <div class="admin-sections">
+                                <!-- User Management -->
+                                <div class="admin-card">
+                                    <div class="admin-card-header">
+                                        <h3>Управление пользователями</h3>
+                                        <div class="search-container" style="background: rgba(0,0,0,0.2); border-radius: 8px;">
+                                            <input type="text" class="search-input" id="admin-user-search" placeholder="Поиск по нику..." style="height: 32px;" oninput="AdminModule.filterUsers(this.value)">
+                                        </div>
+                                    </div>
+                                    <div class="admin-table-container">
+                                        <table class="admin-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Пользователь</th>
+                                                    <th>ID / Тег</th>
+                                                    <th>Роль</th>
+                                                    <th>Статус</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="admin-users-table-body">
+                                                <!-- Dynamic Users -->
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
-                                <div class="admin-table-container">
-                                    <table class="admin-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Пользователь</th>
-                                                <th>ID / Тег</th>
-                                                <th>Роль</th>
-                                                <th>Статус</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="admin-users-table-body">
-                                            <!-- Dynamic Users -->
-                                        </tbody>
-                                    </table>
+
+                                <!-- Grant Privileges Form -->
+                                <div class="admin-card" style="height: fit-content;">
+                                    <div class="admin-card-header">
+                                        <h3>Выдать админку</h3>
+                                    </div>
+                                    <div class="admin-form">
+                                        <div class="form-group">
+                                            <label>ID или Тег пользователя</label>
+                                            <input type="text" id="admin-grant-id" class="admin-input" placeholder="Например: 123 или #15">
+                                            <p style="font-size: 11px; color: #949ba4; margin-top: 8px;">Введите полный ID или тег, который идет после # в профиле.</p>
+                                        </div>
+                                        {% if user.role == 'developer' %}
+                                        <button class="admin-btn" onclick="AdminModule.grantAdmin()">
+                                            <i class="fa-solid fa-shield-halved"></i> Назначить администратором
+                                        </button>
+                                        {% else %}
+                                        <p style="color: #ed4245; font-size: 13px; text-align: center; font-weight: 600;">
+                                            <i class="fa-solid fa-lock"></i> Только разработчик может выдавать права
+                                        </p>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Grant Privileges Form -->
-                            <div class="admin-card" style="height: fit-content;">
+                        <!-- Tab: Reports -->
+                        <div id="admin-view-reports" class="admin-tab-view" style="display: none;">
+                            <div class="admin-card">
                                 <div class="admin-card-header">
-                                    <h3>Выдать админку</h3>
+                                    <h3>Жалобы на сообщения</h3>
+                                    <span class="report-count-badge" id="admin-report-count">0 активных</span>
                                 </div>
-                                <div class="admin-form">
-                                    <div class="form-group">
-                                        <label>ID или Тег пользователя</label>
-                                        <input type="text" id="admin-grant-id" class="admin-input" placeholder="Например: 123 или #15">
-                                        <p style="font-size: 11px; color: #949ba4; margin-top: 8px;">Введите полный ID или тег, который идет после # в профиле.</p>
+                                <div class="reports-container" id="admin-reports-list" style="padding: 20px;">
+                                    <!-- Reports will be injected here -->
+                                    <div class="empty-reports" style="text-align: center; color: #949ba4; padding: 40px;">
+                                        <i class="fa-solid fa-check-double" style="font-size: 48px; margin-bottom: 20px; opacity: 0.3;"></i>
+                                        <p>Жалоб пока нет. Всё спокойно!</p>
                                     </div>
-                                    {% if user.role == 'developer' %}
-                                    <button class="admin-btn" onclick="AdminModule.grantAdmin()">
-                                        <i class="fa-solid fa-shield-halved"></i> Назначить администратором
-                                    </button>
-                                    {% else %}
-                                    <p style="color: #ed4245; font-size: 13px; text-align: center; font-weight: 600;">
-                                        <i class="fa-solid fa-lock"></i> Только разработчик может выдавать права
-                                    </p>
-                                    {% endif %}
                                 </div>
                             </div>
                         </div>
