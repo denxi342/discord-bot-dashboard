@@ -518,7 +518,7 @@ const DiscordModule = {
                         html += `
                         <div class="chat-list-item ${unreadClass}" id="btn-ch-dm-${dm.id}" onclick="DiscordModule.selectChannel('dm-${dm.id}', 'dm')">
                             <div class="avatar-wrapper ${onlineClass}" id="av-${dm.id}">
-                                <img src="${u.avatar}" class="chat-avatar" loading="lazy" decoding="async" onerror="this.src=DEFAULT_AVATAR">
+                                <img src="${u.avatar}" class="chat-avatar" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR">
                                 <div class="status-indicator"></div>
                             </div>
                             <div class="chat-info">
@@ -600,7 +600,7 @@ const DiscordModule = {
                     div.onclick = () => DiscordModule.selectChannel(`dm-${dm.id}`, 'dm');
                     div.innerHTML = `
                         <div class="avatar-wrapper ${onlineClass}" id="av-${dm.id}">
-                            <img src="${u.avatar}" class="chat-avatar" loading="lazy" decoding="async" onerror="this.src=DEFAULT_AVATAR">
+                            <img src="${u.avatar}" class="chat-avatar" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR">
                             <div class="status-indicator"></div>
                         </div>
                         <div class="chat-info">

@@ -1964,11 +1964,9 @@ body::before {
     min-width: 32px;
     min-height: 32px;
     margin-right: 8px;
-    position: relative;
     overflow: hidden;
 }
 
-/* Override the global 48px !important specifically for user-bar */
 .user-bar .avatar-wrapper img {
     width: 32px !important;
     height: 32px !important;
@@ -2217,7 +2215,7 @@ body::before {
     flex-shrink: 0;
     border-radius: 50%;
     overflow: hidden;
-    contain: layout style;
+    background: #2b2d31; /* neutral fallback so broken images don't show as color bleed */
 }
 
 .avatar-wrapper img, .chat-avatar {
@@ -2226,7 +2224,6 @@ body::before {
     border-radius: 50%;
     object-fit: cover;
     display: block;
-    will-change: auto;
 }
 
 .nav-icon-circle {
