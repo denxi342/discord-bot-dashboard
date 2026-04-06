@@ -34,6 +34,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/advanced-features.css') }}?v=100">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/voice-messages.css') }}?v=100">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/encryption.css') }}?v=100">
+    <!-- Mobile Responsive Adjustments -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}?v=101">
+    <script src="{{ url_for('static', filename='js/mobile.js') }}?v=101"></script>
 
     <!-- Current User Data -->
     <script>
@@ -543,6 +546,7 @@
             <!-- Header -->
             <header class="chat-header">
                 <div class="chat-header-info">
+                    <i class="fa-solid fa-chevron-left mobile-back-btn" onclick="MobileModule.showSidebar()"></i>
                     <h3 id="current-channel-name">Чаты</h3>
                     <span class="chat-header-status" id="chat-header-status" style="display: none;">в сети</span>
                 </div>
