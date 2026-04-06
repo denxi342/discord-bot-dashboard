@@ -431,6 +431,11 @@ body::before {
     background: var(--online-green);
 }
 
+/* 📱 MOBILE NAV HIDING FOR DESKTOP */
+.mobile-bottom-nav {
+    display: none !important;
+}
+
 .chat-header {
     height: 60px;
     border-bottom: 1px solid var(--border-color);
@@ -2074,8 +2079,6 @@ body::before {
     flex-direction: column;
     gap: 1px;
     padding: 0 4px;
-}
-    gap: 12px;
 }
 
 .nav-item:hover {
