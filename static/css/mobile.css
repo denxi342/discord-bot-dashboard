@@ -1,49 +1,48 @@
-/* mobile.css - Premium Mobile Overhaul for Octave */
+/* mobile.css - Compact & Unified Premium Mobile Design */
 :root {
-    --mobile-nav-height: 65px;
-    --mobile-header-height: 60px;
-    --glass-bg: rgba(43, 45, 49, 0.75);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-blur: blur(20px);
+    --app-bg: #0d0e10;
+    --container-bg: rgba(255, 255, 255, 0.05);
+    --glass-blur: blur(40px);
+    --header-h: 54px;
+    --nav-h: 58px;
+    --primary-glow: drop-shadow(0 0 8px rgba(88, 101, 242, 0.4));
 }
 
 @media screen and (max-width: 768px) {
-    /* --- 1. CORE LAYOUT --- */
+    /* --- 1. CORE LAYOUT (Compact & Stable) --- */
     .discord-app {
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-        height: 100dvh;
+        height: 100dvh; /* Stable viewport for bottom nav */
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        background: var(--body-bg) !important;
+        background: var(--app-bg) !important;
     }
 
-    /* --- 2. BOTTOM NAVIGATION --- */
+    /* --- 2. BOTTOM NAVIGATION (Sleek Obsidian) --- */
     .mobile-bottom-nav {
         display: flex !important;
         position: fixed;
         bottom: 0;
         left: 0;
         width: 100%;
-        height: var(--mobile-nav-height);
-        background: var(--glass-bg);
+        height: var(--nav-h);
+        background: rgba(13, 14, 16, 0.9) !important;
         backdrop-filter: var(--glass-blur);
         -webkit-backdrop-filter: var(--glass-blur);
-        border-top: 1px solid var(--glass-border);
-        z-index: 1000;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        z-index: 2000;
         justify-content: space-around;
         align-items: center;
         padding-bottom: env(safe-area-inset-bottom);
-        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .mobile-bottom-nav.nav-hidden-mobile {
-        transform: translateY(100%);
-    }
+    .nav-hidden-mobile { transform: translateY(100%); }
 
     .mobile-nav-item {
         display: flex;
@@ -51,68 +50,44 @@
         align-items: center;
         justify-content: center;
         color: var(--text-muted);
-        gap: 4px;
+        gap: 2px;
         flex: 1;
         height: 100%;
         transition: all 0.2s ease;
-        cursor: pointer;
+        position: relative;
     }
 
-    .mobile-nav-item i {
-        font-size: 20px;
-    }
+    .mobile-nav-item i { font-size: 18px; }
+    .mobile-nav-item span { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.8;}
 
-    .mobile-nav-item span {
-        font-size: 11px;
-        font-weight: 500;
-    }
-
-    .mobile-nav-item.active {
-        color: var(--primary);
-        transform: translateY(-2px);
-    }
-
-    .mobile-nav-item.active i {
-        color: var(--primary);
-        filter: drop-shadow(0 0 8px rgba(88, 101, 242, 0.6));
-    }
-
-    .mobile-nav-item::after {
-        content: '';
-        position: absolute;
-        bottom: 12px;
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background: var(--primary);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
+    .mobile-nav-item.active { color: white; }
+    .mobile-nav-item.active i { color: var(--primary); filter: var(--primary-glow); }
 
     .mobile-nav-item.active::after {
-        opacity: 1;
+        content: '';
+        position: absolute;
+        bottom: 8px;
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: var(--primary);
         box-shadow: 0 0 10px var(--primary);
     }
 
-    /* --- 3. VIEW CONTAINERS --- */
+    /* --- 3. VIEW CONTAINERS (Compact) --- */
     .channel-sidebar {
         position: fixed;
         top: 0;
         left: 0;
         width: 100% !important;
-        height: calc(100% - var(--mobile-nav-height));
+        height: calc(100% - var(--nav-h));
         z-index: 500;
-        background: var(--body-bg) !important;
+        background: var(--app-bg) !important;
         transform: translateX(0);
-        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex;
-        flex-direction: column;
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .channel-sidebar.sidebar-hidden-mobile {
-        transform: translateX(-20%); /* Parallax effect */
-        opacity: 0.5;
-    }
+    .sidebar-hidden-mobile { transform: translateX(-15%); opacity: 0.4; pointer-events: none; }
 
     .chat-area {
         position: fixed;
@@ -120,175 +95,281 @@
         left: 0;
         width: 100% !important;
         height: 100% !important;
-        z-index: 1500; /* Over everything when active */
-        background: var(--body-bg);
+        z-index: 1500;
+        background: var(--app-bg);
         transform: translateX(100%);
-        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
         flex-direction: column;
-        box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+        box-shadow: -20px 0 40px rgba(0,0,0,0.5);
     }
 
-    .chat-area.active-mobile {
-        transform: translateX(0);
-    }
+    .chat-area.active-mobile { transform: translateX(0); }
 
-    /* --- 4. HEADER & UI --- */
+    /* --- 4. HEADER (ZERO OVERLAP + CENTERING) --- */
     .chat-header {
-        height: var(--mobile-header-height) !important;
-        background: var(--glass-bg) !important;
+        height: var(--header-h) !important;
+        background: rgba(13, 14, 16, 0.75) !important;
         backdrop-filter: var(--glass-blur) !important;
         -webkit-backdrop-filter: var(--glass-blur) !important;
-        border-bottom: 1px solid var(--glass-border) !important;
-        padding: 0 16px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        padding: 0 10px !important;
         display: flex !important;
         align-items: center !important;
-        z-index: 10;
+        z-index: 100;
+        /* Ensure no overlap */
+        gap: 4px;
+    }
+
+    .chat-header-info {
+        display: flex !important;
+        align-items: center !important;
+        flex: 1;
+        overflow: hidden;
     }
 
     .mobile-back-btn {
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
-        width: 40px;
-        height: 40px;
-        margin-right: 12px;
-        color: var(--text-normal);
-        font-size: 18px;
-        background: rgba(255,255,255,0.05);
+        display: grid !important;
+        place-items: center !important; /* Perfect Universal Centering */
+        flex-shrink: 0;
+        width: 34px;
+        height: 34px;
+        margin-right: 8px;
+        color: white;
+        font-size: 14px;
+        background: rgba(255,255,255,0.07);
         border-radius: 50%;
+        transition: background 0.25s ease;
     }
 
-    .search-header {
-        padding: 12px 16px !important;
-        background: transparent !important;
-    }
+    .mobile-back-btn:active { background: rgba(255,255,255,0.15); }
 
-    .search-container {
-        border-radius: 12px !important;
-        background: var(--input-bg) !important;
-        border: 1px solid var(--glass-border) !important;
-    }
-
-    .search-input {
-        font-size: 16px !important; /* Prevents auto-zoom */
-        padding: 10px 10px 10px 35px !important;
+    #current-channel-name {
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        color: white !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 60vw; /* Prevent title from pushing off-screen icons */
     }
 
     /* --- 5. CHAT LIST --- */
-    .channel-list {
-        padding: 10px !important;
-    }
+    .channel-list { padding: 8px !important; }
 
     .chat-list-item {
-        border-radius: 16px !important;
-        margin-bottom: 8px !important;
-        padding: 12px !important;
-        background: rgba(255,255,255,0.02) !important;
-        border: 1px solid transparent !important;
+        border-radius: 10px !important;
+        margin-bottom: 5px !important;
+        padding: 9px 12px !important;
+        background: var(--container-bg) !important;
+        border: 1px solid rgba(255,255,255,0.03) !important;
     }
 
     .chat-list-item.active {
-        background: rgba(88, 101, 242, 0.1) !important;
-        border-color: rgba(88, 101, 242, 0.2) !important;
+        background: rgba(88, 101, 242, 0.15) !important;
+        border-color: rgba(88, 101, 242, 0.3) !important;
     }
 
-    /* --- 6. SETTINGS (MODAL OVERHAUL) --- */
-    .settings-full-screen {
-        width: 100vw !important;
-        height: 100vh !important;
+    /* --- 6. FRIENDS PAGE REDESIGN (ZERO PURPLE) --- */
+    .friends-page {
+        background: var(--app-bg) !important;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .friends-header-bar {
+        background: transparent !important;
+        border: none !important;
+        padding: 5px 12px !important;
+        margin-bottom: 5px !important;
+    }
+
+    .fh-tabs {
+        display: flex !important;
+        overflow-x: auto !important;
+        gap: 6px !important;
+        padding: 2px 0 !important;
+        scrollbar-width: none;
+    }
+
+    .fh-tabs::-webkit-scrollbar { display: none; }
+
+    .fh-tab {
+        white-space: nowrap !important;
+        padding: 5px 14px !important;
+        font-size: 12.5px !important;
+        font-weight: 600 !important;
+        border-radius: 100px !important;
+        background: rgba(255,255,255,0.06) !important;
+        color: rgba(255,255,255,0.6) !important;
+        border: 1px solid rgba(255,255,255,0.03) !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .fh-tab.active {
+        background: var(--primary) !important;
+        color: white !important;
+        filter: var(--primary-glow);
+    }
+
+    .friends-search-bar {
+        margin: 5px 12px !important;
+        padding: 0 10px !important;
+        height: 38px !important;
+        border-radius: 8px !important;
+        background: rgba(255,255,255,0.05) !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
+    }
+
+    .friends-search-bar input { font-size: 14.5px !important; }
+
+    /* --- 7. CHAT BUBBLES (Compact Smooth) --- */
+    .chat-messages {
+        padding: 8px 12px !important;
+        padding-bottom: calc(var(--nav-h) + 10px) !important;
+    }
+
+    .dm-bubble { margin-bottom: 8px !important; }
+
+    .message-bubble, .dm-bubble-content {
+        max-width: 90% !important;
+        border-radius: 14px !important;
+        padding: 8px 12px !important;
+        font-size: 14.5px !important;
+        line-height: 1.4 !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
+    }
+
+    .dm-bubble.own .dm-bubble-content {
+        background: linear-gradient(135deg, #5865f2, #4752c4) !important;
+        border-bottom-right-radius: 3px !important;
+    }
+
+    .dm-bubble.other .dm-bubble-content {
+        background: rgba(255,255,255,0.1) !important;
+        border-bottom-left-radius: 3px !important;
+    }
+
+    .dm-bubble-avatar { width: 30px !important; height: 30px !important; margin-right: 8px !important; }
+
+    /* --- 8. INPUT AREA (Ttight Sleek) --- */
+    .message-input-container, .chat-input-area {
+        min-height: 50px !important;
+        padding: 6px 10px calc(6px + env(safe-area-inset-bottom)) 10px !important;
+        background: rgba(13, 14, 16, 0.85) !important;
+        backdrop-filter: var(--glass-blur) !important;
+        border-top: 1px solid rgba(255,255,255,0.07) !important;
+    }
+
+    .message-input-wrapper {
+        border-radius: 18px !important;
+        background: rgba(255,255,255,0.05) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        min-height: 36px !important;
+    }
+
+    .message-input, #global-input {
+        font-size: 14.5px !important;
+        padding: 7px 10px !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Center Placeholder Fix */
+    #global-input::placeholder { line-height: 20px !important; }
+
+    .input-btn, .send-btn { width: 34px !important; height: 34px !important; font-size: 16px !important; }
+
+    /* --- 9. ADMIN PANEL (Responsive Cards) --- */
+    #admin-view-overview .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+        padding: 8px !important;
+    }
+
+    .stat-card {
+        padding: 12px 10px !important;
+        border-radius: 12px !important;
+        background: var(--container-bg) !important;
+    }
+
+    .stat-value { font-size: 18px !important; }
+    .stat-label { font-size: 10px !important; }
+    .stat-icon { font-size: 14px !important; top: 10px !important; right: 10px !important; }
+
+    .admin-card {
+        margin: 10px !important;
+        border-radius: 12px !important;
+        background: var(--container-bg) !important;
+        border: 1px solid rgba(255,255,255,0.03) !important;
+    }
+
+    .admin-card-header { padding: 12px !important; }
+    .admin-card-header h3 { font-size: 15px !important; }
+
+    .admin-table-container { 
+        overflow-x: auto !important; 
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-table { font-size: 12px !important; }
+    .admin-table th, .admin-table td { padding: 10px 8px !important; }
+
+    /* --- 10. SETTINGS & MODALS (Full Screen Compact) --- */
+    .modal-backdrop {
+        padding: 0 !important;
+        background: var(--app-bg) !important;
+    }
+
+    .discord-modal, .settings-full-screen {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        max-height: none !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
         top: 0 !important;
         left: 0 !important;
         transform: none !important;
-        border-radius: 0 !important;
-        z-index: 2000 !important;
+        display: flex;
+        flex-direction: column;
     }
 
     .settings-sidebar-col {
         width: 100% !important;
-        background: var(--body-bg) !important;
-        padding: 20px !important;
-        padding-top: calc(20px + env(safe-area-inset-top)) !important;
+        height: 100% !important;
+        background: var(--app-bg) !important;
+        padding-top: env(safe-area-inset-top) !important;
     }
 
     .settings-content-col {
-        position: absolute;
-        top: 0;
-        left: 100%;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
         width: 100% !important;
         height: 100% !important;
-        z-index: 100;
-        background: var(--body-bg) !important;
+        background: var(--app-bg) !important;
+        z-index: 100 !important;
+        transform: translateX(100%);
         transition: transform 0.3s ease;
-        padding: 20px !important;
-        padding-top: calc(20px + env(safe-area-inset-top)) !important;
+        padding-top: env(safe-area-inset-top) !important;
     }
 
-    .active-mobile-settings {
-        transform: translateX(-100%);
+    .settings-content-col.active-mobile-settings { transform: translateX(0); }
+
+    .settings-mobile-back {
+        display: flex !important;
+        align-items: center;
+        padding: 12px 16px;
+        font-weight: 700;
+        background: rgba(255,255,255,0.03);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
     }
 
-    .hidden-mobile-settings {
-        opacity: 0;
-        pointer-events: none;
-    }
+    /* --- 11. HIDE DESKTOP CRAP --- */
+    .user-bar, .member-sidebar, .fh-label, .fh-divider { display: none !important; }
 
-    /* --- 7. MISC --- */
-    .user-bar {
-        display: none !important; /* Moved to Settings & Bottom Nav icon */
-    }
-
-    .member-sidebar {
-        display: none !important;
-    }
-
-    .message-input-container {
-        padding: 12px 16px calc(12px + env(safe-area-inset-bottom)) 16px !important;
-        background: var(--glass-bg) !important;
-        backdrop-filter: var(--glass-blur) !important;
-        border-top: 1px solid var(--glass-border) !important;
-    }
-
-    .message-input-wrapper {
-        border-radius: 24px !important;
-        min-height: 48px !important;
-    }
-
-    .message-bubble {
-        max-width: 85% !important;
-        border-radius: 20px !important;
-        padding: 12px 16px !important;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        border: 1px solid rgba(255,255,255,0.05) !important;
-        font-size: 15px !important;
-        line-height: 1.4 !important;
-    }
-
-    .message-group.sent .message-bubble {
-        border-bottom-right-radius: 4px !important;
-        background: linear-gradient(135deg, var(--primary), #4752c4) !important;
-    }
-
-    .message-group.received .message-bubble {
-        border-bottom-left-radius: 4px !important;
-        background: rgba(255,255,255,0.08) !important;
-        backdrop-filter: blur(5px);
-    }
-
-    /* Modern Scrollbars for Mobile */
-    ::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: rgba(255,255,255,0.1);
-        border-radius: 10px;
-    }
-}
-
-/* Hide navigation on desktop */
-@media screen and (min-width: 769px) {
-    .mobile-bottom-nav {
-        display: none !important;
-    }
+    /* --- 12. CLEAN SCROLLBARS --- */
+    ::-webkit-scrollbar { width: 0 !important; }
 }

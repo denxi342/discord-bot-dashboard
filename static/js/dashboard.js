@@ -1616,18 +1616,13 @@ const DiscordModule = {
 
         container.innerHTML = `
         <div class="friends-page">
-            <!-- Header Bar with Tabs -->
+            <!-- Simplified Compact Header (Tabs Only) -->
             <div class="friends-header-bar">
-                <div class="fh-left">
-                    <i class="fa-solid fa-user-group"></i>
-                    <span class="fh-label">Друзья</span>
-                    <div class="fh-divider"></div>
-                    <div class="fh-tabs">
-                        <div class="fh-tab ${activeTab === 'online' ? 'active' : ''}" onclick="DiscordModule.filterFriends('online')">В сети</div>
-                        <div class="fh-tab ${activeTab === 'all' ? 'active' : ''}" onclick="DiscordModule.filterFriends('all')">Все</div>
-                        <div class="fh-tab ${activeTab === 'pending' ? 'active' : ''}" onclick="DiscordModule.filterFriends('pending')">Ожидание</div>
-                        <div class="fh-tab add-friend ${activeTab === 'add' ? 'active' : ''}" onclick="DiscordModule.filterFriends('add')">Добавить в друзья</div>
-                    </div>
+                <div class="fh-tabs">
+                    <div class="fh-tab ${activeTab === 'online' ? 'active' : ''}" onclick="DiscordModule.filterFriends('online')">В сети</div>
+                    <div class="fh-tab ${activeTab === 'all' ? 'active' : ''}" onclick="DiscordModule.filterFriends('all')">Все</div>
+                    <div class="fh-tab ${activeTab === 'pending' ? 'active' : ''}" onclick="DiscordModule.filterFriends('pending')">Ожидание</div>
+                    <div class="fh-tab add-friend ${activeTab === 'add' ? 'active' : ''}" onclick="DiscordModule.filterFriends('add')">Добавить</div>
                 </div>
             </div>
             
