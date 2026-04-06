@@ -1957,34 +1957,33 @@ body::before {
     transform: translateX(16px);
 }
 
-/* FIXES FOR FOOTER UI */
+/* FIXES FOR FOOTER UI - user bar avatar */
 .user-bar .avatar-wrapper {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
     margin-right: 8px;
     position: relative;
+    overflow: hidden;
 }
 
+/* Override the global 48px !important specifically for user-bar */
 .user-bar .avatar-wrapper img {
-    width: 100%;
-    height: 100%;
+    width: 32px !important;
+    height: 32px !important;
     border-radius: 50%;
     object-fit: cover;
+    border: 2px solid #747f8d;
 }
 
 .user-bar .avatar-wrapper .status-indicator {
-    /* Hidden - status shown as ring around avatar */
     display: none;
-}
-
-.user-bar .avatar-wrapper img {
-    border: 2px solid #747f8d;
-    /* Default: offline gray ring */
 }
 
 .user-bar .avatar-wrapper.is-online img {
     border: 2px solid var(--success);
-    box-shadow: 0 0 12px var(--success);
+    box-shadow: 0 0 10px var(--success);
 }
 
 /* --- HOME SIDEBAR (DM VIEW) STYLES --- */
@@ -4925,4 +4924,12 @@ body::before {
     height: 1px;
     background: var(--border-color);
     margin: 4px 0;
+}
+
+/* ===== HOME VIEW MODE: hide main-area chrome on welcome screen ===== */
+body.home-view .chat-header,
+body.home-view .header-toolbar,
+body.home-view .chat-input-area,
+body.home-view #member-sidebar {
+    display: none !important;
 }

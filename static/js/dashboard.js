@@ -210,6 +210,9 @@ const DiscordModule = {
     },
 
     init: async () => {
+        // Mark as home view immediately (CSS hides toolbar/header/input/sidebar)
+        document.body.classList.add('home-view');
+        
         // For messenger mode, load the DM list into the home sidebar
         await DiscordModule.loadDMList();
         await DiscordModule.loadUserStatuses();
@@ -223,36 +226,7 @@ const DiscordModule = {
 
         // Load servers in background for backward compatibility
         await DiscordModule.loadServers();
-        
-        // Hide main-menu-only elements when on home welcome screen
-        DiscordModule.applyHomeViewState();
     },
-    
-    // Applies or removes home-view specific UI (hide toolbar, input, member sidebar)
-    applyHomeViewState: () => {
-        const welcomeView = document.getElementById('personal-welcome-view');
-        // Home view is shown when welcome view exists and hasn't been hidden by navigation
-        const isHomeView = welcomeView && welcomeView.style.display !== 'none';
-        
-        const toolbar = document.querySelector('.header-toolbar');
-        const chatInput = document.querySelector('.chat-input-area');
-        const memberSidebar = document.getElementById('member-sidebar');
-        const chatHeader = document.querySelector('.chat-header');
-        
-        if (isHomeView) {
-            if (toolbar) toolbar.style.display = 'none';
-            if (chatInput) chatInput.style.display = 'none';
-            if (memberSidebar) memberSidebar.style.display = 'none';
-            // Fully hide the header bar on home welcome screen
-            if (chatHeader) chatHeader.style.display = 'none';
-        } else {
-            if (toolbar) toolbar.style.display = 'flex';
-            if (chatInput) chatInput.style.display = 'flex';
-            if (memberSidebar) memberSidebar.style.display = 'flex';
-            if (chatHeader) chatHeader.style.display = 'flex';
-        }
-    },
-
 
 
     loadServers: async () => {
@@ -645,7 +619,10 @@ const DiscordModule = {
         // Hide all views first to ensure a clean state
         document.querySelectorAll('.channel-view, .main-view-section, .personal-welcome-view').forEach(v => v.style.display = 'none');
         
-        // Restore standard layout elements
+        // Remove home-view mode (CSS class that hides toolbar/header/input/sidebar)
+        document.body.classList.remove('home-view');
+        
+        // Restore standard layout elements (clear any inline style overrides)
         const app = document.querySelector('.discord-app');
         if (app) app.classList.remove('admin-mode-layout');
         
@@ -654,10 +631,10 @@ const DiscordModule = {
         const memberSidebar = document.getElementById('member-sidebar');
         const chatHeader = document.querySelector('.chat-header');
         
-        if (toolbar) toolbar.style.display = 'flex';
-        if (chatInput) chatInput.style.display = 'flex';
-        if (memberSidebar) memberSidebar.style.display = 'flex';
-        if (chatHeader) chatHeader.style.display = 'flex';
+        if (toolbar) toolbar.style.display = '';
+        if (chatInput) chatInput.style.display = '';
+        if (memberSidebar) memberSidebar.style.display = '';
+        if (chatHeader) chatHeader.style.display = '';
 
         // Close Admin Dashboard specific overlays if open
         if (typeof StaffDashboard !== 'undefined') {
