@@ -3611,13 +3611,16 @@ def api_get_dms():
     if 'user' not in session: return jsonify({'success': False}), 401
     my_id = int(session['user']['id'])
     
-    # Combined query to fetch DMs, other user info, and last message in one go
-    # Using a CASE for other_id to handle both normal and self-DMs correctly
+    # Combined query to fetch DMs, other user info, last message, and unread count
     rows = execute_query("""
         SELECT 
             dm.id, dm.user_id_1, dm.user_id_2, dm.last_message_at,
             u.id as other_id, u.username, u.avatar, u.display_name,
-            m.content as last_content, m.timestamp as last_timestamp
+            m.content as last_content, m.timestamp as last_timestamp,
+            (SELECT COUNT(*) FROM dm_messages 
+             WHERE dm_id = dm.id AND author_id != %s
+             AND id > COALESCE((SELECT last_read_message_id FROM read_receipts WHERE dm_id = dm.id AND user_id = %s), 0)
+            ) as unread_count
         FROM direct_messages dm
         JOIN users u ON u.id = (CASE WHEN dm.user_id_1 = %s AND dm.user_id_2 != %s THEN dm.user_id_2 ELSE dm.user_id_1 END)
         LEFT JOIN (
@@ -3627,11 +3630,11 @@ def api_get_dms():
         ) m ON m.dm_id = dm.id
         WHERE dm.user_id_1 = %s OR dm.user_id_2 = %s
         ORDER BY dm.last_message_at DESC
-    """, (my_id, my_id, my_id, my_id), fetch_all=True)
+    """, (my_id, my_id, my_id, my_id, my_id, my_id), fetch_all=True)
     
     dms = []
     for r in rows or []:
-        dm_id, u1, u2, ts, other_id, other_username, other_avatar, other_display_name, last_content, last_ts = r
+        dm_id, u1, u2, ts, other_id, other_username, other_avatar, other_display_name, last_content, last_ts, unread_count = r
         
         display_name = other_display_name or other_username
         if int(other_id) == my_id:
@@ -3652,7 +3655,7 @@ def api_get_dms():
             'last_message_at': ts,
             'last_message_text': last_message_text,
             'last_message_timestamp': last_ts or ts,
-            'unread_count': 0  # Placeholder as before
+            'unread_count': unread_count
         })
         
     return jsonify({'success': True, 'dms': dms})

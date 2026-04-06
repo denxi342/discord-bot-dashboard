@@ -500,14 +500,16 @@ const DiscordModule = {
                         const u = dm.other_user;
                         const timeStr = Utils.formatMessageTime(dm.last_message_timestamp);
                         const preview = dm.last_message_text || 'Начните беседу';
-                        const unreadBadge = dm.unread_count > 0 ? `<div class="unread-badge">${dm.unread_count}</div>` : '';
+                        const unreadCountDisplay = dm.unread_count > 99 ? '99+' : dm.unread_count;
+                        const unreadBadge = dm.unread_count > 0 ? `<div class="unread-badge">${unreadCountDisplay}</div>` : '';
+                        const unreadClass = dm.unread_count > 0 ? 'unread' : '';
 
                         // Check if user is online
                         const isOnline = DiscordModule.userStatuses && DiscordModule.userStatuses[u.id] === 'online';
                         const onlineClass = isOnline ? 'is-online' : '';
 
                         html += `
-                        <div class="chat-list-item" id="btn-ch-dm-${dm.id}" onclick="DiscordModule.selectChannel('dm-${dm.id}', 'dm')">
+                        <div class="chat-list-item ${unreadClass}" id="btn-ch-dm-${dm.id}" onclick="DiscordModule.selectChannel('dm-${dm.id}', 'dm')">
                             <div class="avatar-wrapper ${onlineClass}">
                                 <img src="${u.avatar}" class="chat-avatar" onerror="this.src=DEFAULT_AVATAR">
                                 <div class="status-indicator"></div>
@@ -593,9 +595,19 @@ const DiscordModule = {
         if (chanId.startsWith('dm-')) {
             const realId = chanId.split('-')[1];
             DiscordModule.loadDM(realId);
-            // Ensure sidebar item gets active class correctly
+            
+            // Mark as read when selecting
+            if (typeof AdvancedFeatures !== 'undefined') {
+                AdvancedFeatures.markAsRead(realId);
+            }
+            
+            // Immediately clear unread UI for responsiveness
             const dmBtn = document.getElementById(`btn-ch-${chanId}`);
             if (dmBtn) {
+                dmBtn.classList.remove('unread');
+                const badge = dmBtn.querySelector('.unread-badge');
+                if (badge) badge.remove();
+                
                 document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active'));
                 dmBtn.classList.add('active');
                 
@@ -2218,6 +2230,21 @@ const DiscordModule = {
         DiscordModule.fetchDMMessages(dmId);
     },
 
+    handleDMScroll: (event, dmId) => {
+        const el = event.target;
+        // Check if user is near the bottom (within 50px)
+        if (el.scrollHeight - el.scrollTop - el.clientHeight < 50) {
+            if (typeof AdvancedFeatures !== 'undefined') {
+                // Throttle to avoid spamming the server
+                const now = Date.now();
+                if (!DiscordModule.lastMarkRead || now - DiscordModule.lastMarkRead > 2000) {
+                    AdvancedFeatures.markAsRead(dmId);
+                    DiscordModule.lastMarkRead = now;
+                }
+            }
+        }
+    },
+
     fetchDMMessages: async (dmId) => {
         console.log('[DEBUG fetchDMMessages] dmId:', dmId);
         const lockKey = `fetching_${dmId}`;
@@ -2240,6 +2267,9 @@ const DiscordModule = {
                 box.innerHTML = '';
             }
             box.classList.add('dm-bubbles-container');
+            
+            // Add scroll listener for auto-read
+            box.onscroll = (e) => DiscordModule.handleDMScroll(e, dmId);
 
             const myUsername = window.currentUsername || '';
 
@@ -3301,7 +3331,16 @@ const WebSocketModule = {
         // DM Messages
         socket.on('new_dm_message', (data) => {
             console.log('[DEBUG WS] Received new_dm_message:', data);
+            
+            // If message is for active DM, mark as read immediately
+            if (DiscordModule.activeDM && String(DiscordModule.activeDM) === String(data.dm_id)) {
+                if (typeof AdvancedFeatures !== 'undefined') {
+                    AdvancedFeatures.markAsRead(data.dm_id);
+                }
+            }
+
             if (DiscordModule.currentServer === 'home') {
+                // Refresh list to show new unread counts/previews
                 DiscordModule.loadDMList();
             }
 

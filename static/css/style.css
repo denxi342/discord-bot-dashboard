@@ -274,15 +274,43 @@ body::before {
     gap: 4px;
 }
 
+/* Unread States */
+.chat-list-item.unread {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+.chat-list-item.unread .chat-name {
+    font-weight: 700 !important;
+    color: #FFFFFF !important;
+}
+.chat-list-item.unread .chat-preview {
+    font-weight: 600;
+    color: #FFFFFF;
+}
+.chat-list-item.unread::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 32px;
+    background-color: var(--primary);
+    border-radius: 0 4px 4px 0;
+}
+
 .unread-badge {
     background: var(--primary);
     color: white;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     padding: 2px 6px;
-    border-radius: 10px;
-    min-width: 20px;
-    text-align: center;
+    border-radius: 12px;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 /* Old channel item styles for backward compatibility */
