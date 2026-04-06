@@ -2228,9 +2228,11 @@ body::before {
     border-radius: 50%;
     background: #43b581; /* Default online */
     border: 3px solid var(--sidebar-bg);
+    display: none; /* 🚀 Hidden by default */
 }
 
 .avatar-wrapper.is-online .status-indicator {
+    display: block !important;
     background: #43b581;
 }
 
