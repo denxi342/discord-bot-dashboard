@@ -944,6 +944,28 @@
             </div>
             <div id="dm-profile-container" style="display: none; height: 100%;"></div>
         </div>
+
+        <!-- 5. MOBILE BOTTOM NAVIGATION -->
+        <nav class="mobile-bottom-nav">
+            <div class="mobile-nav-item active" id="nav-item-chats" onclick="MobileModule.switchTab('chats')">
+                <i class="fa-solid fa-comment-dots"></i>
+                <span>Чаты</span>
+            </div>
+            <div class="mobile-nav-item" id="nav-item-friends" onclick="MobileModule.switchTab('friends')">
+                <i class="fa-solid fa-user-group"></i>
+                <span>Друзья</span>
+            </div>
+            {% if user.role in ['admin', 'developer'] %}
+            <div class="mobile-nav-item" id="nav-item-admin" onclick="MobileModule.switchTab('admin')">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Админ</span>
+            </div>
+            {% endif %}
+            <div class="mobile-nav-item" id="nav-item-settings" onclick="MobileModule.switchTab('settings')">
+                <i class="fa-solid fa-gear"></i>
+                <span>Настройки</span>
+            </div>
+        </nav>
     </div>
 
     <!-- Create Server Modal -->

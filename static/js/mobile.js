@@ -1,73 +1,119 @@
-/* mobile.js - Mobile interactions and sidebar toggling logic */
+/* mobile.js - Premium Mobile interactions and navigation */
 
 const MobileModule = {
+    currentTab: 'chats',
+
     init: function() {
-        console.log("[MobileModule] Initialized for mobile optimizations.");
+        console.log("[MobileModule] Initializing Premium Mobile UI...");
         this.bindEvents();
+        // Set initial state
+        if (window.innerWidth <= 768) {
+            this.switchTab('chats');
+        }
     },
 
     bindEvents: function() {
-        // Intercept clicks on the chat list to hide sidebar on mobile
-        document.addEventListener('click', (e) => {
-            const chatItem = e.target.closest('.chat-list-item') || e.target.closest('.channel-item') || e.target.closest('.folder-item');
-            if (chatItem) {
-                this.hideSidebar();
-            }
+        // Handle window resize to reset views if needed
+        window.addEventListener('resize', this.handleResize.bind(this));
 
-            // Handle Settings Navigation
+        // Swipe gestures for navigation
+        this.initSwipes();
+
+        // Intercept channel/chat clicks to show the chat view
+        document.addEventListener('click', (e) => {
+            const chatItem = e.target.closest('.chat-list-item') || e.target.closest('.channel-item') || e.target.closest('.dm-item') || e.target.closest('.friend-item');
+            if (chatItem && window.innerWidth <= 768) {
+                // Ensure we are not clicking a button inside
+                if (!e.target.closest('button') && !e.target.closest('.user-controls')) {
+                    this.enterChat();
+                }
+            }
+            
+            // Handle Settings Navigation in Mobile
             const settingsNavItem = e.target.closest('.settings-sidebar-nav .nav-item') || e.target.closest('.settings-sidebar-nav .nav-link-item');
             if (settingsNavItem && window.innerWidth <= 768) {
                 this.showSettingsContent();
             }
-        });
-
-        // Handle Back button in settings
-        document.addEventListener('click', (e) => {
+            
+            // Back button in settings
             if (e.target.closest('.settings-mobile-back')) {
                 this.showSettingsSidebar();
             }
         });
-
-        // Prevent body scrolling when the sidebar is open on mobile
-        window.addEventListener('resize', this.handleResize.bind(this));
-        
-        // Add swipe gesture listener on chat area to go back
-        this.initSwipes();
     },
 
-    hideSidebar: function() {
-        if (window.innerWidth <= 768) {
-            const sidebar = document.querySelector('.channel-sidebar');
-            if (sidebar && !sidebar.classList.contains('hidden-mobile')) {
-                sidebar.classList.add('hidden-mobile');
-            }
+    switchTab: function(tab) {
+        console.log("[MobileModule] Switching to tab:", tab);
+        this.currentTab = tab;
+
+        // Update Nav UI
+        document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.remove('active'));
+        const activeNav = document.getElementById(`nav-item-${tab}`);
+        if (activeNav) activeNav.classList.add('active');
+
+        // Reset Chat View
+        this.exitChat();
+
+        // Close any open modals that might interfere
+        if (window.DiscordModule) {
+            DiscordModule.closeSettings();
+            DiscordModule.closeServerSettings();
+            DiscordModule.closeModal();
         }
+
+        // Handle specific views
+        switch(tab) {
+            case 'chats':
+                // Main chat list is handled by channel-sidebar
+                this.showSidebar();
+                break;
+            case 'friends':
+                // Enter Chat view but with Friends content
+                if (window.DiscordModule) {
+                    this.enterChat(); // Treat it as a "Detail" view for now
+                    DiscordModule.selectChannel('friends', 'channel');
+                }
+                break;
+            case 'settings':
+                if (window.DiscordModule) DiscordModule.openSettings();
+                break;
+            case 'admin':
+                if (window.AdminModule) AdminModule.openAdminPanel();
+                break;
+        }
+    },
+
+    enterChat: function() {
+        console.log("[MobileModule] Entering Chat View");
+        const chatArea = document.querySelector('.chat-area');
+        const sidebar = document.querySelector('.channel-sidebar');
+        const bottomNav = document.querySelector('.mobile-bottom-nav');
+
+        if (chatArea) chatArea.classList.add('active-mobile');
+        if (sidebar) sidebar.classList.add('sidebar-hidden-mobile');
+        if (bottomNav) bottomNav.classList.add('nav-hidden-mobile');
+        
+        document.body.classList.add('in-chat-mobile');
+    },
+
+    exitChat: function() {
+        console.log("[MobileModule] Exiting Chat View");
+        const chatArea = document.querySelector('.chat-area');
+        const sidebar = document.querySelector('.channel-sidebar');
+        const bottomNav = document.querySelector('.mobile-bottom-nav');
+
+        if (chatArea) chatArea.classList.remove('active-mobile');
+        if (sidebar) sidebar.classList.remove('sidebar-hidden-mobile');
+        if (bottomNav) bottomNav.classList.remove('nav-hidden-mobile');
+        
+        document.body.classList.remove('in-chat-mobile');
     },
 
     showSidebar: function() {
-        const sidebar = document.querySelector('.channel-sidebar');
-        if (sidebar) {
-            sidebar.classList.remove('hidden-mobile');
-        }
+        this.exitChat();
     },
 
-    handleResize: function() {
-        // Restore sidebar visibility if resized back to desktop constraints
-        if (window.innerWidth > 768) {
-            const sidebar = document.querySelector('.channel-sidebar');
-            if (sidebar) {
-                sidebar.classList.remove('hidden-mobile');
-            }
-            
-            // Reset settings view
-            const settingsSidebar = document.querySelector('.settings-sidebar-col');
-            const settingsContent = document.querySelector('.settings-content-col');
-            if (settingsSidebar) settingsSidebar.style.display = '';
-            if (settingsContent) settingsContent.style.display = '';
-        }
-    },
-    
-    // Settings Mobile Toggling
+    // Settings Specifics
     showSettingsContent: function() {
         const sidebar = document.querySelector('.settings-sidebar-col');
         const content = document.querySelector('.settings-content-col');
@@ -85,41 +131,39 @@ const MobileModule = {
             content.classList.remove('active-mobile-settings');
         }
     },
-    
+
+    handleResize: function() {
+        if (window.innerWidth > 768) {
+            this.exitChat();
+            // Reset settings
+            this.showSettingsSidebar();
+        }
+    },
+
     initSwipes: function() {
         let touchStartX = 0;
         let touchEndX = 0;
         
-        const chatArea = document.querySelector('.chat-area');
-        if(!chatArea) return;
-
-        chatArea.addEventListener('touchstart', e => {
+        document.addEventListener('touchstart', e => {
             touchStartX = e.changedTouches[0].screenX;
         }, {passive: true});
 
-        chatArea.addEventListener('touchend', e => {
+        document.addEventListener('touchend', e => {
             touchEndX = e.changedTouches[0].screenX;
             this.handleSwipe(touchStartX, touchEndX);
         }, {passive: true});
     },
-    
+
     handleSwipe: function(startX, endX) {
         if (window.innerWidth > 768) return;
         
-        // Right swipe (opening sidebar)
-        if (endX - startX > 80 && startX < 50) { 
-            // Only trigger if swipe starts from the left edge (startX < 50px)
-            this.showSidebar();
-        }
-
-        // Left swipe (closing sidebar)
-        if (startX - endX > 80) {
-            this.hideSidebar();
+        // Right swipe (opening sidebar or going back)
+        if (endX - startX > 100) {
+            if (document.body.classList.contains('in-chat-mobile')) {
+                this.exitChat();
+            }
         }
     }
 };
 
-// Auto-init on load
-document.addEventListener('DOMContentLoaded', () => {
-    MobileModule.init();
-});
+document.addEventListener('DOMContentLoaded', () => MobileModule.init());
