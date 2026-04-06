@@ -15,7 +15,11 @@
         align-items: center;
         padding: 14px 16px;
         gap: 12px;
-        background: var(--app-bg);
+        background: var(--app-bg) !important; /* Force opaque background */
+        position: sticky !important;
+        top: 0;
+        z-index: 2100 !important; /* Above everything */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .mobile-header-avatar {
@@ -81,7 +85,9 @@
     .dm-header i { cursor: pointer; color: white; opacity: 0.6; }
 
     /* --- 4. CHAT LIST CARDS --- */
-    .channel-list { padding: 0 12px !important; }
+    .channel-list { 
+        padding: 0 12px 100px !important; /* Bottom padding for the fixed nav */
+    }
 
     .chat-list-item {
         margin-bottom: 8px !important;
@@ -143,9 +149,21 @@
 
     /* --- 5. BOTTOM NAVIGATION (Updated Style) --- */
     .mobile-bottom-nav {
-        background: rgba(10, 11, 13, 0.96) !important;
-        border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
-        height: 64px !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-around;
+        align-items: center;
+        background: rgba(10, 11, 13, 0.98) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+        height: 68px !important;
+        z-index: 9999 !important;
+        padding-bottom: env(safe-area-inset-bottom);
     }
 
     .mobile-nav-item i { font-size: 20px !important; margin-bottom: 3px !important; }
@@ -483,7 +501,10 @@
     }
 
     /* --- 11. HIDE DESKTOP CRAP --- */
-    .user-bar, .member-sidebar, .fh-label, .fh-divider { display: none !important; }
+    .user-bar, .member-sidebar, .fh-label, .fh-divider, .nav-item:not([id^="btn-ch-dm"]):not([id^="btn-cloud-sidebar"]) { display: none !important; }
+    
+    /* Extra check to hide legacy friends button in sidebar specifically on mobile */
+    #btn-ch-friends, #node-friends, .nav-item#btn-ch-friends { display: none !important; }
 
     /* --- 12. CLEAN SCROLLBARS --- */
     ::-webkit-scrollbar { width: 0 !important; }
