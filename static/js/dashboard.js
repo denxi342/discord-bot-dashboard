@@ -578,7 +578,18 @@ const DiscordModule = {
         if (chanId.startsWith('dm-')) {
             const realId = chanId.split('-')[1];
             DiscordModule.loadDM(realId);
-            // Ensure input is shown (loadDM handles ID 0 internally)
+            // Ensure sidebar item gets active class correctly
+            const dmBtn = document.getElementById(`btn-ch-${chanId}`);
+            if (dmBtn) {
+                document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active'));
+                dmBtn.classList.add('active');
+                
+                // Get name safely from .chat-name child
+                const nameEl = dmBtn.querySelector('.chat-name');
+                const header = document.getElementById('current-channel-name');
+                if (header && nameEl) header.innerText = nameEl.innerText.trim();
+            }
+            return; // 🚀 CRITICAL FIX: Stop execution for DMs to avoid fall-through UI reset
         }
         
         if (chanId === 'friends') {
