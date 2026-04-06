@@ -114,6 +114,17 @@
         height: 48px !important; 
         flex-shrink: 0 !important;
         position: relative !important;
+        border-radius: 50% !important;
+        overflow: hidden !important;
+    }
+
+    .chat-list-item .avatar-wrapper img,
+    .chat-list-item .chat-avatar {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        border-radius: 0 !important; /* parent handles clipping via overflow:hidden */
+        display: block !important;
     }
 
     .chat-list-item .avatar-wrapper .status-indicator {
