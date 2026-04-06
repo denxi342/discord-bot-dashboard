@@ -26,16 +26,17 @@
     /* --- 2. BOTTOM NAVIGATION (Sleek Obsidian) --- */
     .mobile-bottom-nav {
         display: flex !important;
+        flex-direction: row !important; /* Force horizontal */
         position: fixed;
         bottom: 0;
         left: 0;
-        width: 100%;
+        width: 100% !important; /* Ensure full width */
         height: var(--nav-h);
-        background: rgba(13, 14, 16, 0.9) !important;
+        background: rgba(13, 14, 16, 0.95) !important;
         backdrop-filter: var(--glass-blur);
         -webkit-backdrop-filter: var(--glass-blur);
-        border-top: 1px solid rgba(255, 255, 255, 0.06);
-        z-index: 2000;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        z-index: 9999; /* Ensure it stays above everything */
         justify-content: space-around;
         align-items: center;
         padding-bottom: env(safe-area-inset-bottom);
