@@ -1673,6 +1673,23 @@
         // Delay check slightly to ensure app is loaded
         setTimeout(checkCookiesGlobal, 2000);
     </script>
+    <!-- Admin 2FA Modal -->
+    <div id="admin-2fa-modal" class="modal-backdrop" style="display:none;">
+        <div class="discord-modal">
+            <h2 style="margin-bottom:8px;">Требуется авторизация</h2>
+            <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">Введите системный PIN-код для доступа к панели администратора.</p>
+            
+            <div class="form-group" style="margin-bottom: 24px;">
+                <input type="password" id="admin-2fa-pin" style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; font-size: 16px; text-align: center; letter-spacing: 4px;" placeholder="****" onkeydown="if(event.key === 'Enter') AdminModule.verify2FA()">
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:12px;">
+                <button class="btn-secondary" onclick="AdminModule.close2FA()">Отмена</button>
+                <button class="btn-primary" onclick="AdminModule.verify2FA()">Подтвердить</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Report Abuse Modal -->
     <div id="report-modal" class="modal-backdrop" style="display:none;">
         <div class="discord-modal report-modal">
