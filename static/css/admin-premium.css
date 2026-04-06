@@ -444,3 +444,58 @@
     background: #c03537;
     box-shadow: 0 8px 16px rgba(237, 66, 69, 0.3);
 }
+
+/* 📱 MOBILE RESPONSIVENESS FOR ADMIN PANEL */
+@media screen and (max-width: 768px) {
+    .admin-dashboard {
+        padding: 15px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+
+    .admin-header h1 {
+        font-size: 24px;
+    }
+
+    .admin-sections {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .admin-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-table th, .admin-table td {
+        padding: 12px 15px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .report-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .report-actions {
+        flex-wrap: wrap;
+    }
+
+    .admin-tab-btns {
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}

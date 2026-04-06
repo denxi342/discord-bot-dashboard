@@ -1067,6 +1067,9 @@
             </div>
 
             <div class="settings-content-col">
+                <div class="settings-mobile-back" onclick="MobileModule.showSettingsSidebar()">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </div>
                 <div class="settings-close-btn-wrapper">
                     <div class="close-btn-circle" onclick="DiscordModule.closeSettings()">
                         <i class="fa-solid fa-xmark"></i>
@@ -1473,6 +1476,7 @@
     <script src="{{ url_for('static', filename='js/attachments.js') }}?v=100"></script>
     <script src="{{ url_for('static', filename='js/emoji-module.js') }}?v=100"></script>
     <script src="{{ url_for('static', filename='js/edit_field_fix.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/mobile.js') }}?v=101"></script>
 
     <!-- 🎨 LOADING SCREEN SCRIPT -->
     <script>

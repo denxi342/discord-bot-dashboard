@@ -13,6 +13,19 @@ const MobileModule = {
             if (chatItem) {
                 this.hideSidebar();
             }
+
+            // Handle Settings Navigation
+            const settingsNavItem = e.target.closest('.settings-sidebar-nav .nav-item') || e.target.closest('.settings-sidebar-nav .nav-link-item');
+            if (settingsNavItem && window.innerWidth <= 768) {
+                this.showSettingsContent();
+            }
+        });
+
+        // Handle Back button in settings
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.settings-mobile-back')) {
+                this.showSettingsSidebar();
+            }
         });
 
         // Prevent body scrolling when the sidebar is open on mobile
@@ -45,6 +58,31 @@ const MobileModule = {
             if (sidebar) {
                 sidebar.classList.remove('hidden-mobile');
             }
+            
+            // Reset settings view
+            const settingsSidebar = document.querySelector('.settings-sidebar-col');
+            const settingsContent = document.querySelector('.settings-content-col');
+            if (settingsSidebar) settingsSidebar.style.display = '';
+            if (settingsContent) settingsContent.style.display = '';
+        }
+    },
+    
+    // Settings Mobile Toggling
+    showSettingsContent: function() {
+        const sidebar = document.querySelector('.settings-sidebar-col');
+        const content = document.querySelector('.settings-content-col');
+        if (sidebar && content) {
+            sidebar.classList.add('hidden-mobile-settings');
+            content.classList.add('active-mobile-settings');
+        }
+    },
+
+    showSettingsSidebar: function() {
+        const sidebar = document.querySelector('.settings-sidebar-col');
+        const content = document.querySelector('.settings-content-col');
+        if (sidebar && content) {
+            sidebar.classList.remove('hidden-mobile-settings');
+            content.classList.remove('active-mobile-settings');
         }
     },
     
@@ -72,6 +110,11 @@ const MobileModule = {
         if (endX - startX > 80 && startX < 50) { 
             // Only trigger if swipe starts from the left edge (startX < 50px)
             this.showSidebar();
+        }
+
+        // Left swipe (closing sidebar)
+        if (startX - endX > 80) {
+            this.hideSidebar();
         }
     }
 };
