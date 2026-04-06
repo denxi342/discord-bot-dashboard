@@ -405,24 +405,14 @@ eventlet.spawn(cleanup_expired_messages)
 print("[*] Disappearing messages cleanup thread started")
 
 def fix_existing_avatars():
-    """Helper to replace broken CDN avatars with local default"""
+    """Helper to force all users to use the local default silhouette avatar"""
     try:
-        # Check for broken avatars using parameterized queries to avoid format string issues
-        # Postgres uses %s, SQLite uses ? (handled by wrapper)
-        check_query = "SELECT id FROM users WHERE avatar LIKE %s AND avatar LIKE %s"
-        update_query = "UPDATE users SET avatar = %s WHERE avatar LIKE %s AND avatar LIKE %s"
-        
-        # Note: We pass wildcards as parameters
-        params_check = ('http%', '%cdn.discordapp.com%')
-        params_update = (DEFAULT_AVATAR, 'http%', '%cdn.discordapp.com%')
-        
-        rows = execute_query(check_query, params_check, fetch_all=True)
-        if rows:
-            print(f"[!] Found {len(rows)} users with external avatars. Fixing...")
-            execute_query(update_query, params_update, commit=True)
-            print("[+] Avatars fixed.")
+        print("[!] Forcing default avatar for ALL users...")
+        # Update everyone to use the new DEFAULT_AVATAR
+        execute_query("UPDATE users SET avatar = %s", (DEFAULT_AVATAR,), commit=True)
+        print("[+] All avatars updated to default silhouette.")
     except Exception as e:
-        print(f"Error fixing avatars: {e}")
+        print(f"Error forcing avatars: {e}")
 
 fix_existing_avatars()
 
