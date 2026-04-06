@@ -73,6 +73,15 @@ const MobileModule = {
                     this.enterChat(); // Treat it as a "Detail" view for now
                     DiscordModule.selectChannel('friends', 'channel');
                 }
+                // Friends Page
+                if (tab === 'friends') {
+                    document.querySelector('.chat-area').classList.add('in-friends-view');
+                    if (typeof DiscordModule !== 'undefined') {
+                        DiscordModule.loadFriends();
+                    }
+                } else {
+                    document.querySelector('.chat-area').classList.remove('in-friends-view');
+                }
                 break;
             case 'settings':
                 if (window.DiscordModule) DiscordModule.openSettings();
@@ -98,15 +107,17 @@ const MobileModule = {
 
     exitChat: function() {
         console.log("[MobileModule] Exiting Chat View");
+        document.body.classList.remove('in-chat-mobile');
         const chatArea = document.querySelector('.chat-area');
         const sidebar = document.querySelector('.channel-sidebar');
         const bottomNav = document.querySelector('.mobile-bottom-nav');
 
-        if (chatArea) chatArea.classList.remove('active-mobile');
+        if (chatArea) {
+            chatArea.classList.remove('active-mobile');
+            chatArea.classList.remove('in-friends-view'); // Reset friends view
+        }
         if (sidebar) sidebar.classList.remove('sidebar-hidden-mobile');
         if (bottomNav) bottomNav.classList.remove('nav-hidden-mobile');
-        
-        document.body.classList.remove('in-chat-mobile');
     },
 
     showSidebar: function() {

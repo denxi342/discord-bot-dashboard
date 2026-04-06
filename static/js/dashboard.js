@@ -1665,6 +1665,7 @@ const DiscordModule = {
     filterFriends: (tab) => {
         const container = document.getElementById('friends-list-content');
         const label = document.getElementById('friends-section-label');
+        if (!container) return;
         container.innerHTML = '';
 
         // Update tabs visual
@@ -1681,11 +1682,11 @@ const DiscordModule = {
              <div class="add-friend-section">
                 <h3 class="add-friend-title">ДОБАВИТЬ В ДРУЗЬЯ</h3>
                 <p class="add-friend-subtitle">Вы можете добавить друзей по имени пользователя.</p>
-                
                 <div class="add-friend-input-row">
                     <input type="text" id="add-friend-input" class="add-friend-input" placeholder="Введите имя пользователя" autocomplete="off" onkeyup="if(event.key === 'Enter') DiscordModule.sendFriendRequest()">
                     <button class="add-friend-btn" onclick="DiscordModule.sendFriendRequest()">Отправить запрос</button>
                 </div>
+                <div id="user-search-results" class="search-results-popout" style="display:none; margin-top:10px; background: rgba(0,0,0,0.2); border-radius:8px;"></div>
              </div>`;
             return;
         }
@@ -1701,7 +1702,10 @@ const DiscordModule = {
         if (!data) return;
 
         let list = [];
-        if (tab === 'online' || tab === 'all') list = data.friends || [];
+        if (tab === 'online' || tab === 'all') {
+            list = data.friends || [];
+            if (tab === 'online') list = list.filter(u => DiscordModule.userStatuses[u.id] === 'online');
+        }
         if (tab === 'pending') list = [...(data.incoming || []), ...(data.outgoing || [])];
 
         if (list.length === 0) {
@@ -1718,18 +1722,16 @@ const DiscordModule = {
                 if (isIncoming) {
                     actions = `<div class="friend-action accept" onclick="DiscordModule.acceptFriend(${u.id})" title="Принять"><i class="fa-solid fa-check"></i></div>`;
                 } else {
-                    actions = `<span class="friend-status-text">РСЃС…РѕРґСЏС‰РёР№ Р·Р°РїСЂРѕСЃ</span>`;
+                    actions = `<span class="friend-status-text">Исходящий запрос</span>`;
                 }
             } else {
                 actions = `
                 <div class="friend-action" onclick="DiscordModule.startDM(${u.id})" title="Сообщение"><i class="fa-solid fa-message"></i></div>
-                <div class="friend-action danger" title="Удалить"><i class="fa-solid fa-trash"></i></div>
+                <div class="friend-action danger" onclick="DiscordModule.removeFriend(${u.id})" title="Удалить"><i class="fa-solid fa-trash"></i></div>
                 `;
             }
 
-            // Check real online status from memory
             const isOnline = DiscordModule.userStatuses[u.id] === 'online';
-            const statusText = isPending ? 'Запрос в друзья' : (isOnline ? 'В сети' : 'РќРµ РІ СЃРµС‚и');
             const statusColor = isOnline ? '#23A559' : '#80848E';
 
             container.innerHTML += `
@@ -1740,7 +1742,6 @@ const DiscordModule = {
                 </div>
                 <div class="friend-info">
                     <div class="friend-name">${u.username}</div>
-                    <div class="friend-status">${statusText}</div>
                 </div>
                 <div class="friend-actions">${actions}</div>
             </div>`;

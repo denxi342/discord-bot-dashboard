@@ -126,6 +126,11 @@
         align-items: center !important;
         flex: 1;
         overflow: hidden;
+        gap: 12px; /* Fixed Spacing from Back Button */
+    }
+
+    .in-friends-view .header-toolbar {
+        display: none !important; /* Hide call/video icons in Friends list */
     }
 
     .mobile-back-btn {
