@@ -2,7 +2,9 @@
     /* Core Palette - Clean Indigo */
     --primary: #4b5ef6;
     --primary-hover: #3a4ad9;
+    --primary-gradient: linear-gradient(135deg, #4b5ef6, #7b5cf6);
     --accent: #4b5ef6;
+    --secondary: #7b5cf6;
 
     /* Backgrounds - Midnight Dark */
     --body-bg: #0c0c0e;
@@ -12,7 +14,7 @@
     --input-bg: #1e1e20;
     --modal-bg: #161618;
 
-    /* Message Bubbles - 3rd Screen Reference */
+    /* Message Bubbles */
     --bubble-sent: #4b5ef6;
     --bubble-received: #1e1e20;
     --bubble-sent-text: #ffffff;
@@ -20,11 +22,36 @@
 
     /* Text */
     --text-primary: #ffffff;
+    --text-normal: #e4e4e6;
     --text-secondary: #8e8e93;
     --text-muted: #636366;
 
+    /* Borders & Dividers */
+    --border-color: rgba(255,255,255,0.06);
+
+    /* Chat list hover/active states */
+    --chat-hover: rgba(255,255,255,0.05);
+    --chat-active: rgba(75, 94, 246, 0.18);
+    --item-hover: rgba(255,255,255,0.05);
+    --item-active: rgba(75, 94, 246, 0.20);
+
+    /* Channel sidebar */
+    --channel-hover: rgba(255,255,255,0.05);
+    --channel-active: rgba(75, 94, 246, 0.2);
+
+    /* Unread badge */
+    --unread-badge: #f23f42;
+
     /* Status Colors */
     --online-green: #30d158;
+    --idle-yellow: #faa61a;
+    --dnd-red: #f23f42;
+
+    /* Misc */
+    --glass-bg: rgba(255,255,255,0.05);
+    --glass-border: rgba(255,255,255,0.08);
+    --glow-primary: 0 0 20px rgba(75,94,246,0.3);
+    --success: #30d158;
 }
 
 /* Clean White Background */
@@ -2184,27 +2211,33 @@ body::before {
 /* Fix for giant avatars on desktop */
 .avatar-wrapper {
     position: relative;
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    min-height: 32px;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
     flex-shrink: 0;
     border-radius: 50%;
-    margin-right: -4px; /* Slight overlap compensation */
+    contain: layout style;
 }
 
 .avatar-wrapper img, .chat-avatar {
-    width: 32px !important;
-    height: 32px !important;
+    width: 48px !important;
+    height: 48px !important;
     border-radius: 50%;
     object-fit: cover;
+    display: block;
+    will-change: auto;
 }
 
 .nav-icon-circle {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.08);
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 50%;
 }
 
 .chat-info {
@@ -2247,19 +2280,20 @@ body::before {
 
 .status-indicator {
     position: absolute;
-    bottom: -1px;
-    right: -1px;
-    width: 12px;
-    height: 12px;
+    bottom: 1px;
+    right: 1px;
+    width: 13px;
+    height: 13px;
     border-radius: 50%;
-    background: #43b581; /* Default online */
+    background: #43b581;
     border: 3px solid var(--sidebar-bg);
-    display: none; /* 🚀 Hidden by default */
+    display: none;
+    z-index: 2;
 }
 
 .avatar-wrapper.is-online .status-indicator {
     display: block !important;
-    background: #43b581;
+    background: #30d158;
 }
 
 /* User List Item Overrides (Legacy fallback) */

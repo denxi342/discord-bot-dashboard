@@ -373,6 +373,9 @@ const DiscordModule = {
         // Clear container
         container.innerHTML = '';
         
+        // Reset rendered flag so next patchDMList call does full render
+        DiscordModule._dmListRendered = false;
+
         // 1. Unified DM List Container
         // This container will be populated by loadDMList() for both desktop and mobile
         container.innerHTML = `<div id="home-dm-list"></div>`;
@@ -510,18 +513,18 @@ const DiscordModule = {
 
                         html += `
                         <div class="chat-list-item ${unreadClass}" id="btn-ch-dm-${dm.id}" onclick="DiscordModule.selectChannel('dm-${dm.id}', 'dm')">
-                            <div class="avatar-wrapper ${onlineClass}">
+                            <div class="avatar-wrapper ${onlineClass}" id="av-${dm.id}">
                                 <img src="${u.avatar}" class="chat-avatar" onerror="this.src=DEFAULT_AVATAR">
                                 <div class="status-indicator"></div>
                             </div>
                             <div class="chat-info">
                                 <div class="chat-name-row">
                                     <span class="chat-name">${Utils.escapeHtml(u.display_name || u.username)}</span>
-                                    <span class="chat-time">${timeStr}</span>
+                                    <span class="chat-time" id="t-${dm.id}">${timeStr}</span>
                                 </div>
-                                <div class="chat-preview">${Utils.escapeHtml(preview)}</div>
+                                <div class="chat-preview" id="p-${dm.id}">${Utils.escapeHtml(preview)}</div>
                             </div>
-                            ${unreadBadge}
+                            <div id="badge-${dm.id}">${unreadBadge}</div>
                         </div>`;
                     });
 
@@ -539,7 +542,68 @@ const DiscordModule = {
                 }
                 
                 container.innerHTML = html;
+                DiscordModule._dmListRendered = true;
             }
+        } catch (e) { console.error(e); }
+    },
+
+    // Patch DM list without flickering - only updates dynamic fields, doesn't touch <img>
+    patchDMList: async () => {
+        const container = document.getElementById('home-dm-list');
+        if (!container || !DiscordModule._dmListRendered) {
+            return DiscordModule.loadDMList();
+        }
+
+        try {
+            const res = await fetch('/api/dms');
+            const data = await res.json();
+            if (!data.success) return;
+
+            DiscordModule.dmList = data.dms || [];
+
+            // If DM count changed, do full re-render
+            const existingItems = container.querySelectorAll('[id^="btn-ch-dm-"]');
+            if (existingItems.length !== data.dms.length) {
+                DiscordModule._dmListRendered = false;
+                return DiscordModule.loadDMList();
+            }
+
+            data.dms.forEach(dm => {
+                const u = dm.other_user;
+                const itemEl = document.getElementById(`btn-ch-dm-${dm.id}`);
+                if (!itemEl) {
+                    DiscordModule._dmListRendered = false;
+                    DiscordModule.loadDMList();
+                    return;
+                }
+
+                // Update badge
+                const badgeContainer = document.getElementById(`badge-${dm.id}`);
+                if (badgeContainer) {
+                    const cnt = dm.unread_count > 99 ? '99+' : dm.unread_count;
+                    badgeContainer.innerHTML = dm.unread_count > 0 ? `<div class="unread-badge">${cnt}</div>` : '';
+                }
+
+                // Update unread class
+                if (dm.unread_count > 0) itemEl.classList.add('unread');
+                else itemEl.classList.remove('unread');
+
+                // Update preview text
+                const previewEl = document.getElementById(`p-${dm.id}`);
+                if (previewEl) previewEl.textContent = dm.last_message_text || 'Начните беседу';
+
+                // Update time
+                const timeEl = document.getElementById(`t-${dm.id}`);
+                if (timeEl) timeEl.textContent = Utils.formatMessageTime(dm.last_message_timestamp);
+
+                // Update online status class only - no img touching
+                const avEl = document.getElementById(`av-${dm.id}`);
+                if (avEl) {
+                    const isOnline = DiscordModule.userStatuses && DiscordModule.userStatuses[u.id] === 'online';
+                    if (isOnline) avEl.classList.add('is-online');
+                    else avEl.classList.remove('is-online');
+                }
+            });
         } catch (e) { console.error(e); }
     },
 
@@ -1862,20 +1926,8 @@ const DiscordModule = {
     },
 
     refreshDMs: async () => {
-        // Fetch real DMs and update sidebar
-        try {
-            const res = await fetch('/api/dms');
-            const data = await res.json();
-            if (data.success) {
-                const container = document.getElementById('channels-list');
-                // We need to only update the DM section part, but currently renderHomeSidebar redraws everything.
-                // Simpler: re-render sidebar but with fetched DM data inject.
-                // NOTE: simpler hack -> Just find the .dm-user-item elements and replace them.
-                // Or better: Store DM data in DiscordModule and re-call renderHomeSidebar.
-                DiscordModule.dmList = data.dms;
-                DiscordModule.renderHomeSidebar(container);
-            }
-        } catch (e) { console.error(e); }
+        // Use patchDMList to update sidebar without flickering avatar images
+        DiscordModule.patchDMList();
     },
 
     // --- DM Logic moves to consolidated startDM below ---
@@ -3313,8 +3365,8 @@ const WebSocketModule = {
             }
 
             if (DiscordModule.currentServer === 'home') {
-                // Refresh list to show new unread counts/previews
-                DiscordModule.loadDMList();
+                // Patch list to show new unread counts/previews WITHOUT flickering avatars
+                DiscordModule.patchDMList();
             }
 
             if (DiscordModule.activeDM && String(DiscordModule.activeDM) === String(data.dm_id)) {
