@@ -551,7 +551,7 @@ const DiscordModule = {
         if (welcomeView) welcomeView.classList.remove('active');
 
         // Define views that should NOT have a chat input field (read-only or pure UI)
-        const noInputViews = ['friends', 'admin', 'settings', 'leaderboard', 'my-profile', 'discovery', 'nitro', 'shop'];
+        const noInputViews = ['friends', 'admin', 'admin_v2', 'settings', 'leaderboard', 'my-profile', 'discovery', 'nitro', 'shop'];
         
         const chatInput = document.querySelector('.chat-input-area');
         if (chatInput) {
@@ -612,16 +612,26 @@ const DiscordModule = {
         // Hide all views
         document.querySelectorAll('.channel-view, .main-view-section, .personal-welcome-view').forEach(v => v.style.display = 'none');
         
+        // Persistent UI elements to hide in Admin Dashboard
+        const toolbar = document.querySelector('.header-toolbar');
+        
         if (chanId === 'admin_v2') {
             const adminView = document.getElementById('admin-v2-view');
             if (adminView) {
                 adminView.style.display = 'block';
                 StaffDashboard.init();
             }
+            if (toolbar) toolbar.style.display = 'none';
+            if (chatInput) chatInput.style.display = 'none';
+
             // Update active state in sidebar
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById('node-admin-v2')?.classList.add('active');
             return;
+        } else {
+            // Restore for normal channels
+            if (toolbar) toolbar.style.display = 'flex';
+            if (chatInput) chatInput.style.display = 'flex';
         }
         if (chNameData && mappedViews[chNameData.name]) viewKey = mappedViews[chNameData.name];
         else if (mappedViews[chanId]) viewKey = mappedViews[chanId];

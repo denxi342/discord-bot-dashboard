@@ -1896,7 +1896,7 @@ def add_admin_log(admin_id, ip, action, details=""):
 
 @app.route('/api/admin/dashboard-v2')
 def api_admin_dashboard_v2():
-    if 'user' not in session or session['user'].get('role') not in ['admin', 'moderator', 'support']:
+    if 'user' not in session or session['user'].get('role') not in ['admin', 'moderator', 'support', 'developer']:
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
     
     try:
@@ -1933,7 +1933,7 @@ def api_admin_dashboard_v2():
 
 @app.route('/api/admin/users/search-v2')
 def api_admin_user_search_v2():
-    if 'user' not in session or session['user'].get('role') not in ['admin', 'moderator', 'support']:
+    if 'user' not in session or session['user'].get('role') not in ['admin', 'moderator', 'support', 'developer']:
         return jsonify({'success': False}), 403
     
     q = request.args.get('query', '')
@@ -1965,7 +1965,7 @@ def api_admin_user_search_v2():
 
 @app.route('/api/admin/users/<int:uid>/profile')
 def api_admin_user_profile(uid):
-    if 'user' not in session or session['user'].get('role') not in ['admin', 'moderator', 'support']:
+    if 'user' not in session or session['user'].get('role') not in ['admin', 'moderator', 'support', 'developer']:
         return jsonify({'success': False}), 403
     
     try:
@@ -2000,7 +2000,7 @@ def api_admin_user_profile(uid):
 @app.route('/api/admin/users/remediate', methods=['POST'])
 def api_admin_user_remediate():
     staff_role = session['user'].get('role')
-    if 'user' not in session or staff_role not in ['admin', 'moderator', 'support']:
+    if 'user' not in session or staff_role not in ['admin', 'moderator', 'support', 'developer']:
         return jsonify({'success': False}), 403
     
     data = request.json
@@ -2036,7 +2036,7 @@ def api_admin_user_remediate():
 
 @app.route('/api/admin/inspector/messages')
 def api_admin_inspector():
-    if 'user' not in session or session['user'].get('role') not in ['admin', 'moderator']:
+    if 'user' not in session or session['user'].get('role') not in ['admin', 'moderator', 'developer']:
         return jsonify({'success': False, 'error': 'Inaccessible to current role'}), 403
     
     user_id = request.args.get('user_id')
