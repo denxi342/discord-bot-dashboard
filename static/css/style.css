@@ -2214,8 +2214,8 @@ body::before {
     min-height: 48px;
     flex-shrink: 0;
     border-radius: 50%;
-    overflow: hidden;
-    background: #2b2d31; /* neutral fallback so broken images don't show as color bleed */
+    overflow: visible;
+    background: transparent;
 }
 
 .avatar-wrapper img, .chat-avatar {
