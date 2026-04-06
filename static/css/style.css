@@ -1,54 +1,30 @@
-/* --- DARK DISCORD THEME --- */
 :root {
-    /* Core Palette - Discord Dark */
-    --primary: #5865f2;
-    --primary-hover: #4752c4;
-    --secondary: #5865f2;
-    --accent: #22d3ee;
+    /* Core Palette - Clean Indigo */
+    --primary: #4b5ef6;
+    --primary-hover: #3a4ad9;
+    --accent: #4b5ef6;
 
-    /* Backgrounds - Discord Dark (Refined Soft Dark) */
-    --body-bg: #313338;
-    --sidebar-bg: #2B2D31;
-    --chat-bg: #313338;
-    --header-bg: #2B2D31;
-    --input-bg: #1E1F22;
-    --modal-bg: #313338;
+    /* Backgrounds - Midnight Dark */
+    --body-bg: #0c0c0e;
+    --sidebar-bg: #161618;
+    --chat-bg: #0c0c0e;
+    --header-bg: #161618;
+    --input-bg: #1e1e20;
+    --modal-bg: #161618;
 
-    /* Message Bubbles */
-    --bubble-sent: #5865F2;
-    --bubble-received: #383A40;
+    /* Message Bubbles - 3rd Screen Reference */
+    --bubble-sent: #4b5ef6;
+    --bubble-received: #1e1e20;
+    --bubble-sent-text: #ffffff;
+    --bubble-received-text: #ffffff;
 
-    /* Interactive & Selection */
-    --item-hover: rgba(255, 255, 255, 0.06);
-    --item-active: rgba(255, 255, 255, 0.1);
-    --channel-hover: rgba(255, 255, 255, 0.06);
-    --channel-active: rgba(88, 101, 242, 0.15);
-    --item-active-border: #5865F2;
-
-    /* Text Contrast */
-    --text-primary: #F2F3F5;
-    --text-secondary: #B5BAC1;
-    --text-muted: #949BA4;
-    --text-normal: #DBDEE1;
-    --text-sidebar: #949BA4;
-
-    /* Borders & Dividers */
-    --border-color: rgba(255, 255, 255, 0.05);
-    --divider-color: rgba(255, 255, 255, 0.05);
-
-    /* Shadows */
-    --shadow-light: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.4);
+    /* Text */
+    --text-primary: #ffffff;
+    --text-secondary: #8e8e93;
+    --text-muted: #636366;
 
     /* Status Colors */
-    --online-green: #23A559;
-    --idle-yellow: #F0B232;
-    --dnd-red: #F23F43;
-    --danger: #F23F43;
-    --success: #23A559;
-
-    /* Unread Badge */
-    --unread-badge: #ED4245;
+    --online-green: #30d158;
 }
 
 /* Clean White Background */
@@ -599,9 +575,10 @@ body::before {
 
 .message-bubble {
     padding: 10px 16px;
-    box-shadow: var(--shadow-light);
+    box-shadow: none;
     word-wrap: break-word;
     position: relative;
+    border-radius: 16px !important;
 }
 
 .message-avatar {

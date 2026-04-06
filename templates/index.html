@@ -581,20 +581,18 @@
             <header class="chat-header">
                 <div class="chat-header-info">
                     <i class="fa-solid fa-chevron-left mobile-back-btn" onclick="MobileModule.showSidebar()"></i>
-                    <h3 id="current-channel-name">Чаты</h3>
-                    <span class="chat-header-status" id="chat-header-status" style="display: none;">в сети</span>
+                    <div class="header-avatar-container">
+                        <img src="{{ user.avatar }}" class="header-avatar" onerror="this.src=DEFAULT_AVATAR">
+                        <div class="header-status-dot"></div>
+                    </div>
+                    <div class="header-text">
+                        <h3 id="current-channel-name">Чаты</h3>
+                        <span class="chat-header-status" id="chat-header-status">в сети</span>
+                    </div>
                 </div>
                 <div class="header-toolbar">
-                    <div class="encryption-toggle" id="e2ee-toggle" onclick="EncryptionModule.toggleEncryptionInfo()"
-                        style="display: none;">
-                        <i class="fa-solid fa-lock encryption-toggle-icon"></i>
-                        <span class="encryption-toggle-text">E2EE</span>
-                    </div>
-                    <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.1); margin: 0 8px;"></div>
-                    <i class="fa-solid fa-phone" onclick="DiscordModule.fakeCall()" data-tooltip="Start Voice Call"></i>
-                    <i class="fa-solid fa-video" onclick="DiscordModule.fakeCall()" data-tooltip="Start Video Call"></i>
-                    <i class="fa-solid fa-circle-info" onclick="DiscordModule.toggleMemberList()"
-                        data-tooltip="Toggle Member List"></i>
+                    <i class="fa-solid fa-phone" onclick="DiscordModule.fakeCall()"></i>
+                    <i class="fa-solid fa-video" onclick="DiscordModule.fakeCall()"></i>
                 </div>
             </header>
 
