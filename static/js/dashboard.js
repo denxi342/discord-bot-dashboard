@@ -488,40 +488,73 @@ const DiscordModule = {
             const res = await fetch('/api/dms');
             const data = await res.json();
 
-            if (data.success && data.dms.length > 0) {
-                DiscordModule.dmList = data.dms; // Store for later access
-                container.innerHTML = '';
-                data.dms.forEach(dm => {
-                    const u = dm.other_user;
-                    const timeStr = Utils.formatMessageTime(dm.last_message_timestamp);
-                    const preview = dm.last_message_text || 'Начните беседу';
-                    const unreadBadge = dm.unread_count > 0 ? `<div class="unread-badge">${dm.unread_count}</div>` : '';
+            if (data.success) {
+                DiscordModule.dmList = data.dms || [];
+                let html = '';
 
-                    // Check if user is online
-                    const isOnline = DiscordModule.userStatuses && DiscordModule.userStatuses[u.id] === 'online';
-                    const onlineClass = isOnline ? 'is-online' : '';
-
-                    container.innerHTML += `
-                    <div class="chat-list-item" id="btn-ch-dm-${dm.id}" onclick="DiscordModule.selectChannel('dm-${dm.id}', 'dm')">
-                        <div class="member-avatar ${onlineClass}">
-                            <img src="${u.avatar}" class="chat-avatar" onerror="this.src=DEFAULT_AVATAR">
-                            <div class="status-indicator"></div>
+                // ☁️ 1. Special "Моё Облако" (My Cloud) Entry - First Item
+                html += `
+                <div class="chat-list-item" id="btn-cloud-sidebar" onclick="CloudModule.enterCloudMode()">
+                    <div class="avatar-wrapper" style="background: rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; border-radius:14px;">
+                        <i class="fa-solid fa-cloud" style="color: #fff; font-size: 20px;"></i>
+                    </div>
+                    <div class="chat-info">
+                        <div class="chat-name-row">
+                            <span class="chat-name">Моё Облако</span>
+                            <span class="chat-time"></span>
                         </div>
-                        <div class="chat-info">
-                            <div class="chat-info-header">
-                                <span class="chat-name">${Utils.escapeHtml(u.display_name || u.username)}</span>
-                                <span class="chat-time">${timeStr}</span>
+                        <div class="chat-preview">Ваше личное хранилище</div>
+                    </div>
+                </div>
+                
+                <div class="dm-header">
+                    <span>ЛИЧНЫЕ СООБЩЕНИЯ</span>
+                    <i class="fa-solid fa-plus" onclick="DiscordModule.openAddFriend()"></i>
+                </div>
+                `;
+
+                if (data.dms.length > 0) {
+                    data.dms.forEach(dm => {
+                        const u = dm.other_user;
+                        const timeStr = Utils.formatMessageTime(dm.last_message_timestamp);
+                        const preview = dm.last_message_text || 'Начните беседу';
+                        const unreadBadge = dm.unread_count > 0 ? `<div class="unread-badge">${dm.unread_count}</div>` : '';
+
+                        // Check if user is online
+                        const isOnline = DiscordModule.userStatuses && DiscordModule.userStatuses[u.id] === 'online';
+                        const onlineClass = isOnline ? 'is-online' : '';
+
+                        html += `
+                        <div class="chat-list-item" id="btn-ch-dm-${dm.id}" onclick="DiscordModule.selectChannel('dm-${dm.id}', 'dm')">
+                            <div class="avatar-wrapper ${onlineClass}">
+                                <img src="${u.avatar}" class="chat-avatar" onerror="this.src=DEFAULT_AVATAR">
+                                <div class="status-indicator"></div>
                             </div>
-                            <div class="chat-preview">${Utils.escapeHtml(preview)}</div>
-                        </div>
-                        ${unreadBadge}
-                    </div>`;
-                });
-            } else {
-                container.innerHTML = `
-                <div style="padding: 20px; text-align: center; color: #949BA4; font-size: 13px;">
-                    Пока нет личных сообщений
-                </div>`;
+                            <div class="chat-info">
+                                <div class="chat-name-row">
+                                    <span class="chat-name">${Utils.escapeHtml(u.display_name || u.username)}</span>
+                                    <span class="chat-time">${timeStr}</span>
+                                </div>
+                                <div class="chat-preview">${Utils.escapeHtml(preview)}</div>
+                            </div>
+                            ${unreadBadge}
+                        </div>`;
+                    });
+
+                    // 👥 3. Add "МОИ КОНТАКТЫ" Section
+                    html += `
+                    <div class="dm-header" style="margin-top: 15px;">
+                        <span>МОИ КОНТАКТЫ</span>
+                    </div>
+                    <div id="mobile-contacts-preview" style="display: flex; gap: 10px; padding: 10px 4px; overflow-x: auto;">
+                        <!-- Small circle variants can go here if needed -->
+                    </div>
+                    `;
+                } else {
+                    html += `<div style="padding: 20px; text-align: center; color: rgba(255,255,255,0.2); font-size: 13px;">Нет активных диалогов</div>`;
+                }
+                
+                container.innerHTML = html;
             }
         } catch (e) { console.error(e); }
     },

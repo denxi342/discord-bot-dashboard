@@ -9,39 +9,148 @@
 }
 
 @media screen and (max-width: 768px) {
-    /* --- 1. CORE LAYOUT (Compact & Stable) --- */
-    .discord-app {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh; /* Stable viewport for bottom nav */
+    /* --- 2. MOBILE SIDEBAR HEADER (Avatar + Search) --- */
+    .mobile-sidebar-header {
         display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        background: var(--app-bg) !important;
+        align-items: center;
+        padding: 14px 16px;
+        gap: 12px;
+        background: var(--app-bg);
     }
 
-    /* --- 2. BOTTOM NAVIGATION (Sleek Obsidian) --- */
-    .mobile-bottom-nav {
-        display: flex !important;
-        flex-direction: row !important; /* Force horizontal */
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100% !important; /* Ensure full width */
-        height: var(--nav-h);
-        background: rgba(13, 14, 16, 0.95) !important;
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        z-index: 9999; /* Ensure it stays above everything */
-        justify-content: space-around;
-        align-items: center;
-        padding-bottom: env(safe-area-inset-bottom);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    .mobile-header-avatar {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        flex-shrink: 0;
     }
+
+    .mobile-header-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid transparent;
+        transition: border-color 0.3s;
+    }
+
+    .mobile-header-avatar .status-indicator {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        border: 2.5px solid var(--app-bg);
+        border-radius: 50%;
+        background: var(--online-green);
+    }
+
+    .mobile-search-bar {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+    }
+
+    .mobile-search-bar input {
+        background: transparent;
+        border: none;
+        color: white;
+        width: 100%;
+        font-size: 15px;
+        outline: none;
+        font-weight: 500;
+    }
+
+    /* --- 3. SECTION HEADERS --- */
+    .dm-header {
+        padding: 20px 16px 10px !important;
+        font-size: 12px !important;
+        font-weight: 800 !important;
+        color: rgba(255, 255, 255, 0.4) !important;
+        letter-spacing: 0.1em !important;
+        text-transform: uppercase !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+    }
+
+    .dm-header i { cursor: pointer; color: white; opacity: 0.6; }
+
+    /* --- 4. CHAT LIST CARDS --- */
+    .channel-list { padding: 0 12px !important; }
+
+    .chat-list-item {
+        margin-bottom: 8px !important;
+        padding: 14px !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.02) !important;
+        border-radius: 16px !important;
+        display: flex !important;
+        gap: 14px !important;
+        align-items: center !important;
+        transition: transform 0.2s, background 0.2s !important;
+    }
+
+    .chat-list-item:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.08) !important; }
+    .chat-list-item.active { border-color: var(--primary) !important; background: rgba(88, 101, 242, 0.1) !important; }
+
+    .chat-list-item .avatar-wrapper { 
+        width: 48px !important; 
+        height: 48px !important; 
+        flex-shrink: 0 !important;
+    }
+
+    .chat-list-item .chat-info {
+        flex: 1 !important;
+        min-width: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+    }
+
+    .chat-list-item .chat-name-row {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: baseline !important;
+    }
+
+    .chat-list-item .chat-name {
+        font-size: 16.5px !important;
+        font-weight: 700 !important;
+        color: white !important;
+    }
+
+    .chat-list-item .chat-time {
+        font-size: 12px !important;
+        color: rgba(255, 255, 255, 0.3) !important;
+        font-weight: 500 !important;
+    }
+
+    .chat-list-item .chat-preview {
+        font-size: 14px !important;
+        color: rgba(255, 255, 255, 0.4) !important;
+        line-height: 1.2 !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 1 !important;
+        line-clamp: 1 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+    }
+
+    /* --- 5. BOTTOM NAVIGATION (Updated Style) --- */
+    .mobile-bottom-nav {
+        background: rgba(10, 11, 13, 0.96) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+        height: 64px !important;
+    }
+
+    .mobile-nav-item i { font-size: 20px !important; margin-bottom: 3px !important; }
+    .mobile-nav-item span { font-size: 10px !important; font-weight: 600 !important; opacity: 0.5 !important; }
+    .mobile-nav-item.active span { opacity: 1 !important; color: white !important; }
 
     .nav-hidden-mobile { transform: translateY(100%); }
 

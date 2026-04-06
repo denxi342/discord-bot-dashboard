@@ -59,11 +59,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 99999;
+            z-index: 99911; /* higher than anything */
             transition: opacity 0.8s ease, visibility 0.8s ease;
             overflow: hidden;
         }
 
+        /* Responsive Visibility Helpers */
+        .mobile-only { display: none !important; }
+        .desktop-only { display: flex !important; }
+
+        @media screen and (max-width: 768px) {
+            .mobile-only { display: flex !important; }
+            .desktop-only { display: none !important; }
+        }
         #loading-screen.hidden {
             opacity: 0;
             visibility: hidden;
@@ -449,8 +457,19 @@
         
         <!-- 2. CHANNEL SIDEBAR -->
         <div class="channel-sidebar">
-            <!-- Search Header -->
-            <div class="search-header">
+            <!-- 📱 MOBILE SIDEBAR HEADER (Avatar + Search) -->
+            <div class="mobile-sidebar-header mobile-only">
+                <div class="mobile-header-avatar" onclick="DiscordModule.openSettings()">
+                    <img src="{{ user.avatar }}" alt="User" onerror="this.src=DEFAULT_AVATAR">
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="mobile-search-bar">
+                    <input type="text" placeholder="Найти или начать беседу" onfocus="DiscordModule.openSearch()">
+                </div>
+            </div>
+
+            <!-- Search Header (Desktop Only) -->
+            <div class="search-header desktop-only">
                 <div class="search-container">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" class="search-input" placeholder="Поиск" id="chat-search-input">
@@ -979,7 +998,7 @@
             <div id="dm-profile-container" style="display: none; height: 100%;"></div>
         </div>
 
-        <!-- 5. MOBILE BOTTOM NAVIGATION -->
+        <!-- 5. MOBILE BOTTOM NAVIGATION (Updated Labels) -->
         <nav class="mobile-bottom-nav">
             <div class="mobile-nav-item active" id="nav-item-chats" onclick="MobileModule.switchTab('chats')">
                 <i class="fa-solid fa-comment-dots"></i>
