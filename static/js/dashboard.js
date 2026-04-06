@@ -2426,6 +2426,11 @@ const DiscordModule = {
             }
 
             box.scrollTop = box.scrollHeight;
+
+            // Mark as read after loading messages
+            if (typeof AdvancedFeatures !== 'undefined') {
+                AdvancedFeatures.markAsRead(dmId);
+            }
         } catch (e) {
             console.error(`[DM] Fetch error: `, e);
         } finally {

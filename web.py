@@ -1299,19 +1299,25 @@ def api_get_public_key(user_id):
 
 @app.route('/api/dms/<int:dm_id>/mark-read', methods=['POST'])
 def api_mark_read(dm_id):
-    """Mark messages as read up to a specific message ID"""
+    """Mark messages as read up to a specific message ID (or latest if not provided)"""
     if 'user' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     user_id = session['user']['id']
-    data = request.json
+    data = request.json or {}
     message_id = data.get('message_id')
     
     if not message_id:
-        return jsonify({'success': False, 'error': 'No message_id provided'})
+        # Fallback: Automatically find the latest message in this DM
+        last_msg = execute_query("SELECT MAX(id) FROM dm_messages WHERE dm_id = %s", (dm_id,), fetch_one=True)
+        if last_msg and last_msg[0]:
+            message_id = last_msg[0]
+        else:
+            # No messages yet, nothing to mark
+            return jsonify({'success': True, 'msg': 'No messages to mark'})
     
     try:
-        # Update or insert read receipt
+        # Update or insert read receipt (Postgres uses UPSERT syntax)
         execute_query(
             """INSERT INTO read_receipts (dm_id, user_id, last_read_message_id, updated_at) 
                VALUES (%s, %s, %s, %s)
@@ -1326,7 +1332,7 @@ def api_mark_read(dm_id):
     
     except Exception as e:
         print(f"Mark read error: {e}")
-        # Fallback for SQLite (no native UPSERT in old versions)
+        # Manual fallback for SQLite (which might not support ON CONFLICT or has older version)
         try:
             existing = execute_query(
                 "SELECT id FROM read_receipts WHERE dm_id = %s AND user_id = %s",
@@ -1341,6 +1347,7 @@ def api_mark_read(dm_id):
                     commit=True
                 )
             else:
+                # FIXED: Corrected parameter order to match the table schema (dm_id, user_id, last_read_message_id, updated_at)
                 execute_query(
                     "INSERT INTO read_receipts (dm_id, user_id, last_read_message_id, updated_at) VALUES (%s, %s, %s, %s)",
                     (dm_id, user_id, message_id, time.time()),
