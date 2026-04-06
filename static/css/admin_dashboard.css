@@ -213,3 +213,35 @@
     .admin-search-input { width: 100%; }
     .admin-stats-grid { grid-template-columns: 1fr 1fr; }
 }
+
+/* 🚀 ADMIN FULL-WIDTH OVERRIDES */
+.admin-mode-layout .member-sidebar {
+    display: none !important;
+    width: 0 !important;
+    flex: 0 !important;
+}
+
+.admin-mode-layout #member-sidebar {
+    display: none !important;
+    width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.admin-mode-layout .chat-area {
+    width: 100% !important;
+    max-width: none !important;
+    flex: 1 !important;
+}
+
+.admin-mode-layout .chat-scroll-area {
+    padding: 0 !important;
+    overflow-x: hidden;
+}
+
+.admin-mode-layout .admin-v2-container {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 24px;
+    box-sizing: border-box;
+}

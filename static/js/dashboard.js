@@ -618,6 +618,9 @@ const DiscordModule = {
         
         if (chanId === 'admin_v2') {
             const adminView = document.getElementById('admin-v2-view');
+            const app = document.querySelector('.discord-app');
+            if (app) app.classList.add('admin-mode-layout');
+            
             if (adminView) {
                 adminView.style.display = 'block';
                 StaffDashboard.init();
@@ -632,6 +635,9 @@ const DiscordModule = {
             return;
         } else {
             // Restore for normal channels
+            const app = document.querySelector('.discord-app');
+            if (app) app.classList.remove('admin-mode-layout');
+            
             if (toolbar) toolbar.style.display = 'flex';
             if (chatInput) chatInput.style.display = 'flex';
             if (memberSidebar) memberSidebar.style.display = 'flex';
