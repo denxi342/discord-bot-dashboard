@@ -370,47 +370,39 @@ const DiscordModule = {
     },
 
     renderHomeSidebar: (container) => {
-        // Очистить контейнер
+        // Clear container
         container.innerHTML = '';
 
-        // 1. Поиск (Messenger Style)
-        container.innerHTML += `
-        <div style="padding: 10px 10px 0 10px;">
-            <button class="search-bar-styled">
-                Найти или начать беседу
-            </button>
-        </div>
-        <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 8px 10px;"></div>
-        `;
-
-        // 2. Навигация (Messenger Style)
-        const navItems = [
-            { id: 'friends', icon: 'user-group', label: 'Друзья', badge: null },
-            { id: 'cloud', icon: 'cloud', label: 'Моё Облако', badge: null }
-        ];
-
-        navItems.forEach(item => {
-            let badgeHtml = '';
-            if (item.badge) {
-                badgeHtml = `<div class="dm-badge ${item.badgeClass || ''}">${item.badge}</div>`;
-            }
+        // 1. Desktop Search (Hidden on Mobile via CSS, but let's be safe here too)
+        const isMobile = window.innerWidth <= 768;
+        
+        if (!isMobile) {
             container.innerHTML += `
-            <div class="nav-item ${item.id === 'friends' ? 'active' : ''}" id="btn-ch-${item.id}" onclick="DiscordModule.selectChannel('${item.id}', 'channel')">
-                <i class="fa-solid fa-${item.icon}"></i>
-                <span>${item.label}</span>
-                ${badgeHtml}
-            </div>`;
-        });
+            <div class="desktop-only" style="padding: 10px 10px 0 10px;">
+                <button class="search-bar-styled" onclick="DiscordModule.openSearch()">
+                    Найти или начать беседу
+                </button>
+            </div>
+            <div class="desktop-only" style="height: 1px; background: rgba(255,255,255,0.06); margin: 8px 10px;"></div>
+            `;
 
-        // 3. Личные сообщения Header
-        container.innerHTML += `
-        <div class="dm-header">
-            <span>Личные сообщения</span>
-            <i class="fa-solid fa-plus" style="cursor:pointer;" onclick="DiscordModule.openAddFriend()" title="Создать DM"></i>
-        </div>`;
+            // 2. Desktop Navigation (Friends/Cloud)
+            const navItems = [
+                { id: 'friends', icon: 'user-group', label: 'Друзья', badge: null },
+                { id: 'cloud', icon: 'cloud', label: 'Моё Облако', badge: null }
+            ];
 
-        // 4. Список чатов
-        container.innerHTML += `<div id="home-dm-list" style="margin-top:20px;"></div>`;
+            navItems.forEach(item => {
+                container.innerHTML += `
+                <div class="nav-item desktop-only ${item.id === 'friends' ? 'active' : ''}" id="btn-ch-${item.id}" onclick="DiscordModule.selectChannel('${item.id}', 'channel')">
+                    <i class="fa-solid fa-${item.icon}"></i>
+                    <span>${item.label}</span>
+                </div>`;
+            });
+        }
+
+        // 3. DM List Container (This handles headers/Cloud row dynamically now)
+        container.innerHTML += `<div id="home-dm-list"></div>`;
         DiscordModule.loadDMList();
     },
 
