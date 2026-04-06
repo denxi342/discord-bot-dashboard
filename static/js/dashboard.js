@@ -614,6 +614,7 @@ const DiscordModule = {
         
         // Persistent UI elements to hide in Admin Dashboard
         const toolbar = document.querySelector('.header-toolbar');
+        const memberSidebar = document.getElementById('member-sidebar');
         
         if (chanId === 'admin_v2') {
             const adminView = document.getElementById('admin-v2-view');
@@ -623,6 +624,7 @@ const DiscordModule = {
             }
             if (toolbar) toolbar.style.display = 'none';
             if (chatInput) chatInput.style.display = 'none';
+            if (memberSidebar) memberSidebar.style.display = 'none';
 
             // Update active state in sidebar
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -632,6 +634,7 @@ const DiscordModule = {
             // Restore for normal channels
             if (toolbar) toolbar.style.display = 'flex';
             if (chatInput) chatInput.style.display = 'flex';
+            if (memberSidebar) memberSidebar.style.display = 'flex';
         }
         if (chNameData && mappedViews[chNameData.name]) viewKey = mappedViews[chNameData.name];
         else if (mappedViews[chanId]) viewKey = mappedViews[chanId];
