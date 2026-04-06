@@ -26,8 +26,8 @@
         crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         crossorigin="anonymous">
-    <!-- Asset Versions Bumped to v=100 for Cache Refresh -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=100">
+    <!-- Asset Versions Bumped to v=110 for Cache Refresh -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=110">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/features.css') }}?v=100">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-premium.css') }}?v=100">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/telegram-input.css') }}?v=100">
@@ -511,9 +511,11 @@
                 </div>
             </div>
 
-            <div class="channel-list" id="channels-list">
-                <!-- Dynamic Content -->
-                <div style="padding:20px; text-align:center; color:gray;">Loading context...</div>
+            <div class="channel-list" id="channels-list" data-dm-list="home-dm-list">
+                <!-- Dynamic Content populated by loadDMList() -->
+                <div id="home-dm-list">
+                    <div style="padding:20px; text-align:center; color:gray;">Loading context...</div>
+                </div>
             </div>
 
             {% if user.role in ['admin', 'developer'] %}
@@ -1546,9 +1548,7 @@
     <script src="{{ url_for('static', filename='js/advanced-features.js') }}?v=100"></script>
     <script src="{{ url_for('static', filename='js/voice-recorder.js') }}?v=100"></script>
     <script src="{{ url_for('static', filename='js/encryption.js') }}?v=100"></script>
-    <script src="{{ url_for('static', filename='js/utils.js') }}?v=100"></script>
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=100"></script>
-    <script src="{{ url_for('static', filename='js/legal-consent.js') }}?v=100"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=110"></script>
     <script src="{{ url_for('static', filename='js/attachments.js') }}?v=100"></script>
     <script src="{{ url_for('static', filename='js/emoji-module.js') }}?v=100"></script>
     <script src="{{ url_for('static', filename='js/edit_field_fix.js') }}?v=100"></script>

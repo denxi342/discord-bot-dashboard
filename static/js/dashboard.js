@@ -210,8 +210,8 @@ const DiscordModule = {
     },
 
     init: async () => {
-        // For messenger mode, load DMs instead of servers
-        await DiscordModule.refreshDMs();
+        // For messenger mode, load the DM list into the home sidebar
+        await DiscordModule.loadDMList();
         await DiscordModule.loadUserStatuses();
 
         // Fetch Me for context
@@ -223,7 +223,37 @@ const DiscordModule = {
 
         // Load servers in background for backward compatibility
         await DiscordModule.loadServers();
+        
+        // Hide main-menu-only elements when on home welcome screen
+        DiscordModule.applyHomeViewState();
     },
+    
+    // Applies or removes home-view specific UI (hide toolbar, input, member sidebar)
+    applyHomeViewState: () => {
+        const welcomeView = document.getElementById('personal-welcome-view');
+        // Home view is shown when welcome view exists and hasn't been hidden by navigation
+        const isHomeView = welcomeView && welcomeView.style.display !== 'none';
+        
+        const toolbar = document.querySelector('.header-toolbar');
+        const chatInput = document.querySelector('.chat-input-area');
+        const memberSidebar = document.getElementById('member-sidebar');
+        const chatHeader = document.querySelector('.chat-header');
+        
+        if (isHomeView) {
+            if (toolbar) toolbar.style.display = 'none';
+            if (chatInput) chatInput.style.display = 'none';
+            if (memberSidebar) memberSidebar.style.display = 'none';
+            // Fully hide the header bar on home welcome screen
+            if (chatHeader) chatHeader.style.display = 'none';
+        } else {
+            if (toolbar) toolbar.style.display = 'flex';
+            if (chatInput) chatInput.style.display = 'flex';
+            if (memberSidebar) memberSidebar.style.display = 'flex';
+            if (chatHeader) chatHeader.style.display = 'flex';
+        }
+    },
+
+
 
     loadServers: async () => {
         try {
@@ -622,10 +652,12 @@ const DiscordModule = {
         const toolbar = document.querySelector('.header-toolbar');
         const chatInput = document.querySelector('.chat-input-area');
         const memberSidebar = document.getElementById('member-sidebar');
+        const chatHeader = document.querySelector('.chat-header');
         
         if (toolbar) toolbar.style.display = 'flex';
         if (chatInput) chatInput.style.display = 'flex';
         if (memberSidebar) memberSidebar.style.display = 'flex';
+        if (chatHeader) chatHeader.style.display = 'flex';
 
         // Close Admin Dashboard specific overlays if open
         if (typeof StaffDashboard !== 'undefined') {

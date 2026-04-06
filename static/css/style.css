@@ -1959,8 +1959,8 @@ body::before {
 
 /* FIXES FOR FOOTER UI */
 .user-bar .avatar-wrapper {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     margin-right: 8px;
     position: relative;
 }
@@ -1978,13 +1978,13 @@ body::before {
 }
 
 .user-bar .avatar-wrapper img {
-    border: 3px solid #747f8d;
+    border: 2px solid #747f8d;
     /* Default: offline gray ring */
 }
 
 .user-bar .avatar-wrapper.is-online img {
-    border: 3px solid var(--success);
-    box-shadow: 0 0 15px var(--success);
+    border: 2px solid var(--success);
+    box-shadow: 0 0 12px var(--success);
 }
 
 /* --- HOME SIDEBAR (DM VIEW) STYLES --- */
