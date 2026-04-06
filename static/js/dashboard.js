@@ -545,93 +545,33 @@ const DiscordModule = {
 
 
     selectChannel: (chanId, type = 'channel') => {
+        console.log(`[Navigation] Selecting channel: ${chanId} (${type})`);
 
+        // --- 1. GLOBAL UI RESET (Fix: Always reset layout when navigating) ---
+        // Hide all views first to ensure a clean state
+        document.querySelectorAll('.channel-view, .main-view-section, .personal-welcome-view').forEach(v => v.style.display = 'none');
+        
+        // Restore standard layout elements
+        const app = document.querySelector('.discord-app');
+        if (app) app.classList.remove('admin-mode-layout');
+        
+        const toolbar = document.querySelector('.header-toolbar');
+        const chatInput = document.querySelector('.chat-input-area');
+        const memberSidebar = document.getElementById('member-sidebar');
+        
+        if (toolbar) toolbar.style.display = 'flex';
+        if (chatInput) chatInput.style.display = 'flex';
+        if (memberSidebar) memberSidebar.style.display = 'flex';
+
+        // Close Admin Dashboard specific overlays if open
+        if (typeof StaffDashboard !== 'undefined') {
+            if (StaffDashboard.closeDrawer) StaffDashboard.closeDrawer();
+            StaffDashboard.isAdminPanelOpen = false;
+        }
+
+        // --- 2. SPECIAL CHANNEL TYPES ---
         if (type === 'voice') {
             DiscordModule.connectVoice(chanId);
-            return;
-        }
-
-        if (String(chanId).startsWith('dm-')) {
-            const realId = chanId.split('-')[1];
-
-            document.querySelectorAll('.channel-view').forEach(el => el.classList.remove('active'));
-            const targetView = document.getElementById('channel-view-general');
-            if (targetView) targetView.classList.add('active');
-
-            // DiscordModule.loadDM(realId); // This will be handled after the common view logic below
-        }
-
-        DiscordModule.currentChannel = chanId;
-        DiscordModule.activeDM = null; // Clear DM context when switching to normal channel
-
-        // Hide welcome screen
-        const welcomeView = document.getElementById('personal-welcome-view');
-        if (welcomeView) welcomeView.classList.remove('active');
-
-        // Define views that should NOT have a chat input field (read-only or pure UI)
-        const noInputViews = ['friends', 'admin', 'admin_v2', 'settings', 'leaderboard', 'my-profile', 'discovery', 'nitro', 'shop'];
-        
-        const chatInput = document.querySelector('.chat-input-area');
-        if (chatInput) {
-            // Hide input for special UI-only views
-            if (noInputViews.includes(chanId)) {
-                chatInput.style.display = 'none';
-                console.log(`[UI] Hiding chat input for view: ${chanId}`);
-            } else {
-                chatInput.style.display = 'flex';
-                console.log(`[UI] Showing chat input for view: ${chanId}`);
-            }
-        }
-
-        document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); // For friend btn
-
-        const btn = document.getElementById(`btn-ch-${chanId}`);
-        if (btn) {
-            btn.classList.add('active');
-            document.getElementById('current-channel-name').innerText = btn.innerText.trim();
-        }
-
-        if (chanId.startsWith('dm-')) {
-            const realId = chanId.split('-')[1];
-            DiscordModule.loadDM(realId);
-            
-            // Mark as read when selecting
-            if (typeof AdvancedFeatures !== 'undefined') {
-                AdvancedFeatures.markAsRead(realId);
-            }
-            
-            // Immediately clear unread UI for responsiveness
-            const dmBtn = document.getElementById(`btn-ch-${chanId}`);
-            if (dmBtn) {
-                dmBtn.classList.remove('unread');
-                const badge = dmBtn.querySelector('.unread-badge');
-                if (badge) badge.remove();
-                
-                document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active'));
-                dmBtn.classList.add('active');
-                
-                // Get name safely from .chat-name child
-                const nameEl = dmBtn.querySelector('.chat-name');
-                const header = document.getElementById('current-channel-name');
-                if (header && nameEl) header.innerText = nameEl.innerText.trim();
-            }
-            return; // 🚀 CRITICAL FIX: Stop execution for DMs to avoid fall-through UI reset
-        }
-        
-        if (chanId === 'friends') {
-            document.querySelectorAll('.channel-view').forEach(el => el.classList.remove('active'));
-            const targetView = document.getElementById('channel-view-general');
-            if (targetView) targetView.classList.add('active');
-            
-            DiscordModule.loadFriends();
-            // Highlight sidebar item
-            const fBtn = document.getElementById('btn-ch-friends');
-            if (fBtn) fBtn.classList.add('active');
-            
-            // Hide cloud sidebar
-            document.getElementById('cloud-folders-sidebar').style.display = 'none';
-            document.getElementById('channels-list').style.display = 'block';
             return;
         }
 
@@ -639,82 +579,114 @@ const DiscordModule = {
             CloudModule.openCloud();
             return;
         }
+        
+        // --- 3. STATE UPDATE ---
+        DiscordModule.currentChannel = chanId;
+        DiscordModule.activeDM = null;
 
+        // --- 4. VIEW MAPPING & VISIBILITY ---
         const mappedViews = {
             'news': 'news', 'leaderboard': 'community', 'video-feed': 'general',
-            'chat-gpt': 'helper', 'search-rules': 'search', 'ad-editor': 'smi', 'users': 'admin', 'my-profile': 'profile',
-            'admin': 'admin'
+            'chat-gpt': 'helper', 'search-rules': 'search', 'ad-editor': 'smi', 
+            'users': 'admin', 'my-profile': 'profile', 'admin': 'admin', 'friends': 'general'
         };
 
-        let viewKey = 'general';
-        const chNameData = DiscordModule.serverData[DiscordModule.currentServer].channels.find(c => c.id === chanId);
-        // Hide all views
-        document.querySelectorAll('.channel-view, .main-view-section, .personal-welcome-view').forEach(v => v.style.display = 'none');
-        
-        // Persistent UI elements to hide in Admin Dashboard
-        const toolbar = document.querySelector('.header-toolbar');
-        const memberSidebar = document.getElementById('member-sidebar');
-        
+        // Handle Admin Dashboard (v2) specifically
         if (chanId === 'admin_v2') {
             const adminView = document.getElementById('admin-v2-view');
-            const app = document.querySelector('.discord-app');
             if (app) app.classList.add('admin-mode-layout');
             
             if (adminView) {
                 adminView.style.display = 'block';
                 StaffDashboard.init();
+                StaffDashboard.isAdminPanelOpen = true;
             }
+            
             if (toolbar) toolbar.style.display = 'none';
             if (chatInput) chatInput.style.display = 'none';
             if (memberSidebar) memberSidebar.style.display = 'none';
 
-            // Update active state in sidebar
+            // Sidebar highlight
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById('node-admin-v2')?.classList.add('active');
-            return;
-        } else {
-            // Restore for normal channels
-            const app = document.querySelector('.discord-app');
-            if (app) app.classList.remove('admin-mode-layout');
             
-            if (toolbar) toolbar.style.display = 'flex';
-            if (chatInput) chatInput.style.display = 'flex';
-            if (memberSidebar) memberSidebar.style.display = 'flex';
+            document.getElementById('current-channel-name').innerText = "Trust & Safety Dashboard";
+            return;
         }
+
+        // Handle DMs logic...
+        if (String(chanId).startsWith('dm-')) {
+            const realId = chanId.split('-')[1];
+            const targetView = document.getElementById('channel-view-general');
+            if (targetView) {
+                targetView.style.display = 'block';
+                targetView.classList.add('active');
+            }
+            
+            DiscordModule.loadDM(realId);
+            
+            if (typeof AdvancedFeatures !== 'undefined') {
+                AdvancedFeatures.markAsRead(realId);
+            }
+            
+            const dmBtn = document.getElementById(`btn-ch-${chanId}`);
+            if (dmBtn) {
+                dmBtn.classList.remove('unread');
+                dmBtn.querySelector('.unread-badge')?.remove();
+                document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active'));
+                dmBtn.classList.add('active');
+                
+                const nameEl = dmBtn.querySelector('.chat-name');
+                const header = document.getElementById('current-channel-name');
+                if (header && nameEl) header.innerText = nameEl.innerText.trim();
+            }
+            return;
+        }
+
+        // Handle Friends logic...
+        if (chanId === 'friends') {
+            const targetView = document.getElementById('channel-view-general');
+            if (targetView) {
+                targetView.style.display = 'block';
+                targetView.classList.add('active');
+            }
+            DiscordModule.loadFriends();
+            const fBtn = document.getElementById('btn-ch-friends');
+            if (fBtn) fBtn.classList.add('active');
+            document.getElementById('current-channel-name').innerText = "Друзья";
+            return;
+        }
+
+        // Handle standard channels...
+        let viewKey = 'general';
+        const chNameData = DiscordModule.serverData[DiscordModule.currentServer]?.channels?.find(c => c.id === chanId);
+        
         if (chNameData && mappedViews[chNameData.name]) viewKey = mappedViews[chNameData.name];
         else if (mappedViews[chanId]) viewKey = mappedViews[chanId];
-        else if (chanId === 'general') viewKey = 'general';
 
-        document.querySelectorAll('.channel-view').forEach(el => el.classList.remove('active'));
-        let targetView = document.getElementById(`channel-view-${viewKey}`);
-
-        if (!targetView) {
-            targetView = document.getElementById('channel-view-general');
-            const welcome = targetView.querySelector('h1');
-            if (welcome) welcome.textContent = `Welcome to #${chNameData ? chNameData.name : 'channel'}`;
+        document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+        const btn = document.getElementById(`btn-ch-${chanId}`);
+        if (btn) {
+            btn.classList.add('active');
+            document.getElementById('current-channel-name').innerText = btn.innerText.trim();
         }
 
+        let targetView = document.getElementById(`channel-view-${viewKey}`);
+        if (!targetView) targetView = document.getElementById('channel-view-general');
+
         if (targetView) {
+            targetView.style.display = 'block';
             targetView.classList.add('active');
-
-            // --- Sidebar Visibility Logic ---
-            const memberSidebar = document.getElementById('member-sidebar');
-            const serverListContainer = document.getElementById('server-member-list-container');
+            
             const dmProfileContainer = document.getElementById('dm-profile-container');
-
-            // Always clear DM profile when switching to server channel
             if (dmProfileContainer) {
                 dmProfileContainer.style.display = 'none';
                 dmProfileContainer.innerHTML = '';
             }
 
             if (viewKey === 'general') {
-                // Show Server Member List for chat channels
-                if (memberSidebar) memberSidebar.style.display = 'flex';
-                if (serverListContainer) serverListContainer.style.display = 'block';
                 DiscordModule.loadChannelMessages(chanId);
             } else {
-                // Hide Sidebar for non-chat views (AI, News, etc.)
                 if (memberSidebar) memberSidebar.style.display = 'none';
             }
 
@@ -724,6 +696,7 @@ const DiscordModule = {
             if (viewKey === 'profile') DiscordModule.loadProfile();
         }
     },
+
 
     connectVoice: (chanId) => {
         document.querySelector('.user-controls i.fa-microphone').style.color = '#23a559';

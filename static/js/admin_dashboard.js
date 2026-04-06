@@ -7,6 +7,7 @@ const StaffDashboard = {
     activeTab: 'dashboard',
     userData: [],
     selectedUserId: null,
+    isAdminPanelOpen: false,
 
     init: async () => {
         console.log("[StaffDashboard] Initializing T&S Panel...");
@@ -229,7 +230,11 @@ const StaffDashboard = {
     },
 
     closeDrawer: () => {
-        document.getElementById('ts-profile-drawer')?.classList.remove('active');
+        const drawer = document.getElementById('ts-profile-drawer');
+        if (drawer) {
+            drawer.classList.remove('active');
+            StaffDashboard.selectedUserId = null;
+        }
     },
 
     remediate: async (action) => {

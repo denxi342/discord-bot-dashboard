@@ -666,7 +666,10 @@
                 <div id="admin-v2-view" class="channel-view" style="display:none; padding: 0;">
                     <div class="admin-v2-container">
                         <div class="admin-v2-header">
-                            <h2>Trust & Safety Dashboard</h2>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <i class="fa-solid fa-chevron-left admin-close-btn" onclick="DiscordModule.selectChannel('friends')" style="cursor:pointer; font-size: 20px; color: var(--text-muted); padding: 5px;"></i>
+                                <h2 style="margin: 0;">Trust & Safety Dashboard</h2>
+                            </div>
                             <div class="admin-nav-tabs">
                                 <div class="admin-nav-btn active" data-tab="dashboard" onclick="StaffDashboard.switchTab('dashboard')">Overview</div>
                                 <div class="admin-nav-btn" data-tab="users" onclick="StaffDashboard.switchTab('users')">Users</div>
