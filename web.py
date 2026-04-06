@@ -338,24 +338,23 @@ def run_db_migration():
                 print(f"  [!] Skip {column} on {table}: {e}")
                 conn.rollback()
 
-        # Users updates
-        add_col("users", "last_seen", "DOUBLE PRECISION" if not is_sqlite else "REAL")
-        add_col("users", "admin_pin", "TEXT")
-        add_col("users", "custom_status", "TEXT")
-        add_col("users", "status_emoji", "TEXT")
-        add_col("users", "public_key", "TEXT")
-        add_col("users", "private_key_enc", "TEXT")
+        # Admin & Reports updates
+        add_col("users", "ip_address", "TEXT")
+        add_col("users", "device_id", "TEXT")
+        add_col("users", "is_banned", "INTEGER DEFAULT 0")
+        add_col("users", "ban_expires", "REAL")
+        add_col("users", "ban_reason", "TEXT")
+        add_col("users", "is_muted", "INTEGER DEFAULT 0")
+        add_col("users", "mute_expires", "REAL")
+        add_col("users", "risk_score", "INTEGER DEFAULT 0") # 0-100
+        
+        add_col("reports", "status", "TEXT DEFAULT 'pending'") # pending, in_review, resolved
+        add_col("reports", "assigned_to", "INTEGER")
+        add_col("reports", "staff_note", "TEXT")
 
-        # DM messages updates
-        add_col("dm_messages", "reply_to_id", "INTEGER")
-        add_col("dm_messages", "is_pinned", "INTEGER DEFAULT 0")
-        add_col("dm_messages", "edited_at", "REAL")
-        add_col("dm_messages", "attachments", "TEXT")
-        add_col("dm_messages", "expires_at", "REAL")
-        add_col("dm_messages", "voice_duration", "INTEGER")
-
-        # Tables
-        cursor.execute(f"CREATE TABLE IF NOT EXISTS admin_logs (id {pk_type}, admin_id INTEGER, ip_address TEXT, action TEXT, timestamp REAL)")
+        # New Staff only tables
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS admin_logs (id {pk_type}, admin_id INTEGER, ip_address TEXT, action TEXT, details TEXT, timestamp REAL)")
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS risk_alerts (id {pk_type}, user_id INTEGER, type TEXT, details TEXT, risk_level TEXT, timestamp REAL)")
         cursor.execute(f"CREATE TABLE IF NOT EXISTS message_reactions (id {pk_type}, message_id INTEGER, user_id INTEGER, emoji TEXT, created_at REAL, UNIQUE(message_id, user_id, emoji))")
         cursor.execute(f"CREATE TABLE IF NOT EXISTS read_receipts (id {pk_type}, dm_id INTEGER, user_id INTEGER, last_read_message_id INTEGER, updated_at REAL, UNIQUE(dm_id, user_id))")
 
@@ -1886,7 +1885,189 @@ def api_admin_logs():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# --- END ADVANCED ADMIN SYSTEM ---
+# --- START ADVANCED T&S SYSTEM ---
+
+def add_admin_log(admin_id, ip, action, details=""):
+    """Helper to log staff actions"""
+    execute_query(
+        "INSERT INTO admin_logs (admin_id, ip_address, action, details, timestamp) VALUES (%s, %s, %s, %s, %s)",
+        (admin_id, ip, action, details, time.time()), commit=True
+    )
+
+@app.route('/api/admin/dashboard-v2')
+def api_admin_dashboard_v2():
+    if 'user' not in session or session['user'].get('role') not in ['admin', 'moderator', 'support']:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    try:
+        # 1. Active Users (Online in last 5 mins)
+        now = time.time()
+        online_count = len(online_users)
+        
+        # 2. New Registrations (Last 24h)
+        day_ago = now - 86400
+        new_regs = execute_query("SELECT COUNT(*) FROM users WHERE created_at >= %s", (day_ago,), fetch_one=True)[0]
+        
+        # 3. Reports Count (Pending)
+        pending_reports = execute_query("SELECT COUNT(*) FROM reports WHERE status = 'pending'", fetch_one=True)[0]
+        
+        # 4. Risk Alerts (Recent)
+        recent_alerts = execute_query("SELECT COUNT(*) FROM risk_alerts WHERE timestamp >= %s", (day_ago,), fetch_one=True)[0]
+        
+        # 5. User Roles distribution
+        roles = execute_query("SELECT role, COUNT(*) FROM users GROUP BY role", fetch_all=True)
+        role_map = {r[0]: r[1] for r in roles}
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'online': online_count,
+                'new_regs': new_regs,
+                'pending_reports': pending_reports,
+                'risk_alerts': recent_alerts,
+                'roles': role_map
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/admin/users/search-v2')
+def api_admin_user_search_v2():
+    if 'user' not in session or session['user'].get('role') not in ['admin', 'moderator', 'support']:
+        return jsonify({'success': False}), 403
+    
+    q = request.args.get('query', '')
+    try:
+        if q:
+            # Search by username, ID, or IP
+            query = """
+                SELECT id, username, avatar, role, created_at, ip_address, risk_score, is_banned, is_muted
+                FROM users 
+                WHERE username LIKE %s OR id = %s OR ip_address LIKE %s
+                ORDER BY created_at DESC LIMIT 50
+            """
+            search_param = f"%{q}%"
+            users = execute_query(query, (search_param, q if q.isdigit() else -1, search_param), fetch_all=True)
+        else:
+            # Recent users
+            users = execute_query("SELECT id, username, avatar, role, created_at, ip_address, risk_score, is_banned, is_muted FROM users ORDER BY created_at DESC LIMIT 20", fetch_all=True)
+            
+        result = []
+        for u in users:
+            result.append({
+                'id': u[0], 'username': u[1], 'avatar': get_valid_avatar(u[2]),
+                'role': u[3], 'created_at': u[4], 'ip': u[5], 'risk': u[6],
+                'is_banned': bool(u[7]), 'is_muted': bool(u[8])
+            })
+        return jsonify({'success': True, 'users': result})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/admin/users/<int:uid>/profile')
+def api_admin_user_profile(uid):
+    if 'user' not in session or session['user'].get('role') not in ['admin', 'moderator', 'support']:
+        return jsonify({'success': False}), 403
+    
+    try:
+        user = execute_query("SELECT id, username, email, phone, role, created_at, ip_address, risk_score, is_banned, ban_expires, is_muted, mute_expires, ban_reason FROM users WHERE id = %s", (uid,), fetch_one=True)
+        if not user: return jsonify({'success': False, 'error': 'User not found'})
+        
+        # Reports against this user
+        reports = execute_query("""
+            SELECT r.id, r.reason, r.timestamp, u.username as reporter 
+            FROM reports r JOIN users u ON r.reporter_id = u.id 
+            JOIN dm_messages m ON r.message_id = m.id
+            WHERE m.author_id = %s
+        """, (uid,), fetch_all=True)
+        
+        # Risk Alerts
+        alerts = execute_query("SELECT id, type, details, risk_level, timestamp FROM risk_alerts WHERE user_id = %s ORDER BY timestamp DESC", (uid,), fetch_all=True)
+        
+        return jsonify({
+            'success': True,
+            'profile': {
+                'id': user[0], 'username': user[1], 'email': user[2], 'phone': user[3],
+                'role': user[4], 'created_at': user[5], 'ip': user[6], 'risk': user[7],
+                'ban': {'active': bool(user[8]), 'expires': user[9], 'reason': user[12]},
+                'mute': {'active': bool(user[10]), 'expires': user[11]}
+            },
+            'reports': [{'id': r[0], 'reason': r[1], 'time': r[2], 'from': r[3]} for r in reports],
+            'alerts': [{'id': a[0], 'type': a[1], 'details': a[2], 'level': a[3], 'time': a[4]} for a in alerts]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/admin/users/remediate', methods=['POST'])
+def api_admin_user_remediate():
+    staff_role = session['user'].get('role')
+    if 'user' not in session or staff_role not in ['admin', 'moderator', 'support']:
+        return jsonify({'success': False}), 403
+    
+    data = request.json
+    uid = data.get('user_id')
+    action = data.get('action') # ban, mute, warn, unban, unmute
+    reason = data.get('reason', 'Violation of terms')
+    duration = data.get('duration') # hours, null for perm
+    
+    if staff_role == 'support' and action in ['ban', 'role_change']:
+        return jsonify({'success': False, 'error': 'Support cannot ban users'}), 403
+    
+    try:
+        staff_id = session['user']['id']
+        staff_ip = request.remote_addr
+        expires = time.time() + (float(duration) * 3600) if duration else None
+        
+        if action == 'ban':
+            execute_query("UPDATE users SET is_banned = 1, ban_expires = %s, ban_reason = %s WHERE id = %s", (expires, reason, uid), commit=True)
+            add_admin_log(staff_id, staff_ip, "BAN", f"User {uid} banned for {duration or 'PERM'}. Reason: {reason}")
+        elif action == 'mute':
+            execute_query("UPDATE users SET is_muted = 1, mute_expires = %s WHERE id = %s", (expires, uid), commit=True)
+            add_admin_log(staff_id, staff_ip, "MUTE", f"User {uid} muted for {duration or 'PERM'}")
+        elif action == 'unban':
+            execute_query("UPDATE users SET is_banned = 0, ban_expires = NULL WHERE id = %s", (uid,), commit=True)
+            add_admin_log(staff_id, staff_ip, "UNBAN", f"User {uid} unbanned")
+        elif action == 'unmute':
+            execute_query("UPDATE users SET is_muted = 0, mute_expires = NULL WHERE id = %s", (uid,), commit=True)
+            add_admin_log(staff_id, staff_ip, "UNMUTE", f"User {uid} unmuted")
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/admin/inspector/messages')
+def api_admin_inspector():
+    if 'user' not in session or session['user'].get('role') not in ['admin', 'moderator']:
+        return jsonify({'success': False, 'error': 'Inaccessible to current role'}), 403
+    
+    user_id = request.args.get('user_id')
+    keyword = request.args.get('keyword', '')
+    try:
+        staff_id = session['user']['id']
+        staff_ip = request.remote_addr
+        
+        query = "SELECT m.id, m.content, m.timestamp, u.username, m.dm_id FROM dm_messages m JOIN users u ON m.author_id = u.id WHERE 1=1"
+        params = []
+        if user_id:
+            query += " AND m.author_id = %s"
+            params.append(user_id)
+        if keyword:
+            query += " AND m.content LIKE %s"
+            params.append(f"%{keyword}%")
+            
+        query += " ORDER BY m.timestamp DESC LIMIT 100"
+        msgs = execute_query(query, tuple(params), fetch_all=True)
+        
+        # Log inspection access for accountability
+        add_admin_log(staff_id, staff_ip, "INSPECT_CHAT", f"Inspected messages for User:{user_id or 'ALL'} Keyword:{keyword or 'NONE'}")
+        
+        result = []
+        for m in msgs:
+            result.append({'id': m[0], 'content': m[1], 'time': m[2], 'author': m[3], 'dm_id': m[4]})
+        return jsonify({'success': True, 'messages': result})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# --- END ADVANCED T&S SYSTEM ---
 
 @app.route('/callback')
 def callback():

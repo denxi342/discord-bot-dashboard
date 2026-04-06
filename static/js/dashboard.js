@@ -609,6 +609,20 @@ const DiscordModule = {
 
         let viewKey = 'general';
         const chNameData = DiscordModule.serverData[DiscordModule.currentServer].channels.find(c => c.id === chanId);
+        // Hide all views
+        document.querySelectorAll('.channel-view, .main-view-section, .personal-welcome-view').forEach(v => v.style.display = 'none');
+        
+        if (chanId === 'admin_v2') {
+            const adminView = document.getElementById('admin-v2-view');
+            if (adminView) {
+                adminView.style.display = 'block';
+                StaffDashboard.init();
+            }
+            // Update active state in sidebar
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('node-admin-v2')?.classList.add('active');
+            return;
+        }
         if (chNameData && mappedViews[chNameData.name]) viewKey = mappedViews[chNameData.name];
         else if (mappedViews[chanId]) viewKey = mappedViews[chanId];
         else if (chanId === 'general') viewKey = 'general';
@@ -1233,7 +1247,7 @@ const DiscordModule = {
                 if (onlineUsers.length > 0) {
                     container.innerHTML += `
                         <div class="member-group">
-                            <div class="group-name">Р’ РЎР•РўР вЂ” ${onlineUsers.length}</div>
+                            <div class="group-name">Р’ РЎР•РўР˜ вЂ” ${onlineUsers.length}</div>
                         </div>`;
 
                     onlineUsers.forEach(u => {
@@ -1252,7 +1266,7 @@ const DiscordModule = {
                 if (offlineUsers.length > 0) {
                     container.innerHTML += `
                         <div class="member-group">
-                            <div class="group-name">РќР• Р’ РЎР•РўР вЂ” ${offlineUsers.length}</div>
+                            <div class="group-name">РќР• Р’ РЎР•РўР˜ вЂ” ${offlineUsers.length}</div>
                         </div>`;
 
                     offlineUsers.forEach(u => {
@@ -1573,8 +1587,10 @@ const DiscordModule = {
     },
 
     updateAvatar: () => {
-        // Redirect to new modal
-        DiscordModule.uiEditProfile();
+        // 🛠️ Staff Only Visibility
+        if (['admin', 'moderator', 'support', 'developer'].includes(window.currentUserRole)) {
+            document.querySelectorAll('.staff-only').forEach(el => el.style.display = 'flex');
+        }
     },
 
     updateUser: async (payload) => {

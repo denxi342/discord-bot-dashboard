@@ -34,14 +34,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/advanced-features.css') }}?v=100">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/voice-messages.css') }}?v=100">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/encryption.css') }}?v=100">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}?v=105">
     <!-- Mobile Responsive Adjustments -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}?v=101">
     <script src="{{ url_for('static', filename='js/mobile.js') }}?v=101"></script>
+    <script src="{{ url_for('static', filename='js/admin_dashboard.js') }}?v=105"></script>
 
     <!-- Current User Data -->
     <script>
         window.currentUsername = "{{ user.username }}";
         window.currentUserId = "{{ user.id }}";
+        window.currentUserRole = "{{ user.role }}";
     </script>
 
     <style>
@@ -500,8 +503,13 @@
                 <span>АДМИНИСТРИРОВАНИЕ</span>
             </div>
             <div class="nav-item" id="btn-ch-admin" onclick="AdminModule.openAdminPanel()">
-                <i class="fa-solid fa-shield-halved" style="color: #faa61a;"></i>
-                <span>Панель управления</span>
+                <i class="fa-solid fa-user-shield" style="color: #faa61a;"></i>
+                <span>Legacy Admin</span>
+            </div>
+            <div class="nav-item staff-only" id="node-admin-v2" onclick="DiscordModule.selectChannel('admin_v2', 'special')" 
+                 style="color:var(--danger); border-left: 2px solid var(--danger); margin-top: 5px;">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>T&S Dashboard</span>
             </div>
             {% endif %}
             
@@ -626,6 +634,25 @@
                         <p>Latest updates from the server.</p>
                     </div>
                     <div id="stream-news"></div>
+                </div>
+
+                <!-- Trust & Safety Dashboard View -->
+                <div id="admin-v2-view" class="channel-view" style="display:none; padding: 0;">
+                    <div class="admin-v2-container">
+                        <div class="admin-v2-header">
+                            <h2>Trust & Safety Dashboard</h2>
+                            <div class="admin-nav-tabs">
+                                <div class="admin-nav-btn active" data-tab="dashboard" onclick="StaffDashboard.switchTab('dashboard')">Overview</div>
+                                <div class="admin-nav-btn" data-tab="users" onclick="StaffDashboard.switchTab('users')">Users</div>
+                                <div class="admin-nav-btn" data-tab="inspector" onclick="StaffDashboard.switchTab('inspector')">Inspector</div>
+                                <div class="admin-nav-btn" data-tab="audit" onclick="StaffDashboard.switchTab('audit')">Audit Logs</div>
+                            </div>
+                        </div>
+                        <div id="admin-v2-main-content">
+                            <!-- Injected by StaffDashboard.js -->
+                        </div>
+                    </div>
+                    <div id="ts-profile-drawer" class="ts-drawer"></div>
                 </div>
 
                 <!-- AI Data Base -->
