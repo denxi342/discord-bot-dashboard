@@ -42,7 +42,7 @@ window.DEFAULT_AVATAR = DEFAULT_AVATAR;
 
 // Global avatar error handler - catches all broken avatar images
 document.addEventListener('error', function (e) {
-    if (e.target.tagName === 'IMG' && e.target.src.includes('/static/avatars/')) {
+    if (e.target.tagName === 'IMG') {
         e.target.onerror = null; // Prevent infinite loop
         e.target.src = DEFAULT_AVATAR;
     }

@@ -441,7 +441,7 @@ body::before {
 }
 
 .chat-header {
-    height: 60px;
+    height: 70px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
@@ -449,40 +449,64 @@ body::before {
     padding: 0 20px;
     flex-shrink: 0;
     background: var(--header-bg);
+    z-index: 100;
 }
 
 .chat-header-info {
     display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-avatar-container {
+    position: relative;
+    width: 40px;
+    height: 40px;
+}
+
+.header-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.header-status-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    background: var(--online-green);
+    border: 2px solid var(--header-bg);
+    border-radius: 50%;
+}
+
+.header-text {
+    display: flex;
     flex-direction: column;
-    gap: 2px;
 }
 
-.chat-header-info h3 {
+.header-text h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
-    color: var(--text-primary);
-}
-
-.chat-header-status {
-    font-size: 13px;
-    color: var(--online-green);
-    font-weight: 400;
-}
-
-.topic-divider {
-    height: 24px;
-    width: 1px;
-    background: var(--border-color);
-    margin: 0 16px;
 }
 
 .header-toolbar {
-    margin-left: auto;
     display: flex;
-    gap: 16px;
-    color: var(--text-secondary);
-    align-items: center;
+    gap: 20px;
+    color: var(--primary);
+    font-size: 20px;
+}
+
+.header-toolbar i {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.header-toolbar i:hover {
+    opacity: 0.7;
 }
 
 /* CHAT STREAMS (Replacement for Tabs) */
@@ -496,10 +520,7 @@ body::before {
 
 .channel-view {
     display: none;
-    /* Hidden by default */
     flex-direction: column;
-    justify-content: flex-end;
-    /* Chat starts at bottom */
     flex-grow: 1;
     padding-bottom: 24px;
 }
@@ -718,7 +739,7 @@ body::before {
     justify-content: center;
     height: 100%;
     padding: 20px;
-    background: radial-gradient(circle at center, rgba(88, 101, 242, 0.05) 0%, transparent 70%);
+    background: radial-gradient(circle at center, rgba(75, 94, 246, 0.05) 0%, transparent 70%);
     text-align: center;
     animation: welcome-fade-in 0.8s ease-out;
 }
@@ -748,7 +769,7 @@ body::before {
     align-items: center;
     justify-content: center;
     margin-bottom: 24px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(88, 101, 242, 0.4);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(75, 94, 246, 0.4);
     position: relative;
     overflow: hidden;
 }
@@ -819,12 +840,12 @@ body::before {
 .welcome-btn.primary {
     background: var(--primary);
     color: white;
-    box-shadow: 0 8px 16px rgba(88, 101, 242, 0.3);
+    box-shadow: 0 8px 16px rgba(75, 94, 246, 0.3);
 }
 
 .welcome-btn.primary:hover {
     transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 12px 20px rgba(88, 101, 242, 0.4);
+    box-shadow: 0 12px 20px rgba(75, 94, 246, 0.4);
 }
 
 .welcome-btn.secondary {
@@ -1006,8 +1027,8 @@ body::before {
 
 .chat-input-wrapper:focus-within {
     background: rgba(45, 48, 62, 0.9);
-    border-color: rgba(88, 101, 242, 0.5);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(88, 101, 242, 0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+    border-color: rgba(75, 94, 246, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(75, 94, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .input-btn {
@@ -1029,7 +1050,7 @@ body::before {
 
 .input-btn:hover {
     color: var(--primary);
-    background: rgba(88, 101, 242, 0.1);
+    background: rgba(75, 94, 246, 0.1);
 }
 
 .input-field-container {
@@ -1124,7 +1145,7 @@ body::before {
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #5865F2 0%, #4752C4 100%);
+    background: linear-gradient(135deg, #4b5ef6 0%, #3a4ad9 100%);
     border: none;
     color: white;
     display: flex;
@@ -1132,15 +1153,15 @@ body::before {
     justify-content: center;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+    box-shadow: 0 4px 12px rgba(75, 94, 246, 0.4);
     flex-shrink: 0;
     margin-left: 4px;
 }
 
 .send-btn:hover {
     transform: scale(1.12) rotate(-8deg);
-    box-shadow: 0 6px 20px rgba(88, 101, 242, 0.55);
-    background: linear-gradient(135deg, #6c79f5 0%, #5865f2 100%);
+    box-shadow: 0 6px 20px rgba(75, 94, 246, 0.55);
+    background: linear-gradient(135deg, #6c79f5 0%, #4b5ef6 100%);
 }
 
 .send-btn:active {
@@ -1227,7 +1248,7 @@ body::before {
 }
 
 .disappearing-dropdown .dropdown-item.active {
-    background: rgba(88, 101, 242, 0.2);
+    background: rgba(75, 94, 246, 0.2);
     color: var(--primary);
 }
 
@@ -1526,12 +1547,12 @@ body::before {
 }
 
 .footer-btn.primary {
-    background: #5865F2;
+    background: #4b5ef6;
     color: white;
 }
 
 .footer-btn.primary:hover {
-    background: #4752C4;
+    background: #3a4ad9;
 }
 
 .footer-btn.secondary {
@@ -1704,7 +1725,7 @@ body::before {
 }
 
 .dropdown-item:hover {
-    background: #4752C4;
+    background: #3a4ad9;
     color: white;
 }
 
@@ -1743,9 +1764,9 @@ body::before {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 12px;
-    background: linear-gradient(135deg, rgba(88, 101, 242, 0.15) 0%, rgba(114, 137, 218, 0.1) 100%);
+    background: linear-gradient(135deg, rgba(75, 94, 246, 0.15) 0%, rgba(114, 137, 218, 0.1) 100%);
     border-radius: 8px;
-    border-left: 3px solid #5865F2;
+    border-left: 3px solid #4b5ef6;
 }
 
 .settings-item {
@@ -1769,9 +1790,9 @@ body::before {
 }
 
 .settings-item.active {
-    background: linear-gradient(135deg, rgba(88, 101, 242, 0.3) 0%, rgba(88, 101, 242, 0.15) 100%);
+    background: linear-gradient(135deg, rgba(75, 94, 246, 0.3) 0%, rgba(75, 94, 246, 0.15) 100%);
     color: #fff;
-    border-left: 3px solid #5865F2;
+    border-left: 3px solid #4b5ef6;
     font-weight: 600;
 }
 
@@ -3653,7 +3674,7 @@ body::before {
 }
 
 .friend-item:hover {
-    background: rgba(88, 101, 242, 0.15);
+    background: rgba(75, 94, 246, 0.15);
 }
 
 .friend-avatar {
@@ -3725,7 +3746,7 @@ body::before {
 }
 
 .friend-action:hover {
-    background: rgba(88, 101, 242, 0.5);
+    background: rgba(75, 94, 246, 0.5);
     color: white;
 }
 
@@ -3794,7 +3815,7 @@ body::before {
 }
 
 .add-friend-btn {
-    background: #5865f2;
+    background: #4b5ef6;
     color: white;
     border: none;
     padding: 12px 20px;
@@ -3805,7 +3826,7 @@ body::before {
 }
 
 .add-friend-btn:hover {
-    background: #4752c4;
+    background: #3a4ad9;
 }
 
 /* ========================================
@@ -3910,7 +3931,7 @@ body::before {
 
 .dm-profile-banner {
     height: 120px;
-    background: linear-gradient(135deg, #5865f2, #eb459e);
+    background: linear-gradient(135deg, #4b5ef6, #eb459e);
 }
 
 .dm-profile-avatar-wrapper {
@@ -4809,8 +4830,8 @@ body::before {
     }
 
     50% {
-        background: rgba(88, 101, 242, 0.25);
-        box-shadow: 0 0 20px rgba(88, 101, 242, 0.3);
+        background: rgba(75, 94, 246, 0.25);
+        box-shadow: 0 0 20px rgba(75, 94, 246, 0.3);
     }
 }
 
