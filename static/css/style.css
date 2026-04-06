@@ -2132,7 +2132,109 @@ body::before {
     color: var(--text-normal);
 }
 
-/* User List Item Overrides */
+/* --- 🚀 NEW PREMIUM SIDEBAR (DESKTOP) --- */
+.chat-list-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 1px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    gap: 12px;
+    position: relative;
+    transition: background 0.1s;
+    overflow: hidden;
+}
+
+.chat-list-item:hover {
+    background: var(--channel-hover);
+}
+
+.chat-list-item.active {
+    background: var(--channel-active);
+    color: white !important;
+}
+
+/* Fix for giant avatars on desktop */
+.avatar-wrapper {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    margin-right: -4px; /* Slight overlap compensation */
+}
+
+.avatar-wrapper img, .chat-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.nav-icon-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.chat-info {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.chat-name-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0px;
+}
+
+.chat-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-time {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.chat-preview, .chat-last-msg {
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.status-indicator {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #43b581; /* Default online */
+    border: 3px solid var(--sidebar-bg);
+}
+
+.avatar-wrapper.is-online .status-indicator {
+    background: #43b581;
+}
+
+/* User List Item Overrides (Legacy fallback) */
 .dm-user-item {
     display: flex;
     align-items: center;

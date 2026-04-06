@@ -372,37 +372,10 @@ const DiscordModule = {
     renderHomeSidebar: (container) => {
         // Clear container
         container.innerHTML = '';
-
-        // 1. Desktop Search (Hidden on Mobile via CSS, but let's be safe here too)
-        const isMobile = window.innerWidth <= 768;
         
-        if (!isMobile) {
-            container.innerHTML += `
-            <div class="desktop-only" style="padding: 10px 10px 0 10px;">
-                <button class="search-bar-styled" onclick="DiscordModule.openSearch()">
-                    Найти или начать беседу
-                </button>
-            </div>
-            <div class="desktop-only" style="height: 1px; background: rgba(255,255,255,0.06); margin: 8px 10px;"></div>
-            `;
-
-            // 2. Desktop Navigation (Friends/Cloud)
-            const navItems = [
-                { id: 'friends', icon: 'user-group', label: 'Друзья', badge: null },
-                { id: 'cloud', icon: 'cloud', label: 'Моё Облако', badge: null }
-            ];
-
-            navItems.forEach(item => {
-                container.innerHTML += `
-                <div class="nav-item desktop-only ${item.id === 'friends' ? 'active' : ''}" id="btn-ch-${item.id}" onclick="DiscordModule.selectChannel('${item.id}', 'channel')">
-                    <i class="fa-solid fa-${item.icon}"></i>
-                    <span>${item.label}</span>
-                </div>`;
-            });
-        }
-
-        // 3. DM List Container (This handles headers/Cloud row dynamically now)
-        container.innerHTML += `<div id="home-dm-list"></div>`;
+        // 1. Unified DM List Container
+        // This container will be populated by loadDMList() for both desktop and mobile
+        container.innerHTML = `<div id="home-dm-list"></div>`;
         DiscordModule.loadDMList();
     },
 
@@ -484,16 +457,33 @@ const DiscordModule = {
                 DiscordModule.dmList = data.dms || [];
                 let html = '';
 
-                // ☁️ 1. Special "Моё Облако" (My Cloud) Entry - First Item
+                const isMobile = window.innerWidth <= 768;
+
+                // 👥 1. "Friends" Entry (Desktop Only)
+                if (!isMobile) {
+                    html += `
+                    <div class="chat-list-item" id="btn-ch-friends" onclick="DiscordModule.selectChannel('friends', 'channel')">
+                        <div class="avatar-wrapper nav-icon-circle" style="background: rgba(255,255,255,0.05);">
+                            <i class="fa-solid fa-user-group" style="font-size: 14px; color: #fff;"></i>
+                        </div>
+                        <div class="chat-info">
+                            <div class="chat-name-row">
+                                <span class="chat-name">Друзья</span>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                }
+
+                // ☁️ 2. Special "Моё Облако" (My Cloud) Entry - First Item
                 html += `
                 <div class="chat-list-item" id="btn-cloud-sidebar" onclick="CloudModule.enterCloudMode()">
-                    <div class="avatar-wrapper" style="background: rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; border-radius:14px;">
-                        <i class="fa-solid fa-cloud" style="color: #fff; font-size: 20px;"></i>
+                    <div class="avatar-wrapper nav-icon-circle" style="background: rgba(255,255,255,0.05);">
+                        <i class="fa-solid fa-cloud" style="font-size: 14px; color: #fff;"></i>
                     </div>
                     <div class="chat-info">
                         <div class="chat-name-row">
                             <span class="chat-name">Моё Облако</span>
-                            <span class="chat-time"></span>
                         </div>
                         <div class="chat-preview">Ваше личное хранилище</div>
                     </div>
