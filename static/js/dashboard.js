@@ -518,7 +518,7 @@ const DiscordModule = {
                         html += `
                         <div class="chat-list-item ${unreadClass}" id="btn-ch-dm-${dm.id}" onclick="DiscordModule.selectChannel('dm-${dm.id}', 'dm')">
                             <div class="avatar-wrapper ${onlineClass}" id="av-${dm.id}">
-                                <img src="${u.avatar}" class="chat-avatar" onerror="this.src=DEFAULT_AVATAR">
+                                <img src="${u.avatar}" class="chat-avatar" loading="lazy" decoding="async" onerror="this.src=DEFAULT_AVATAR">
                                 <div class="status-indicator"></div>
                             </div>
                             <div class="chat-info">
@@ -551,7 +551,7 @@ const DiscordModule = {
         } catch (e) { console.error(e); }
     },
 
-    // Patch DM list without flickering - only updates dynamic fields, doesn't touch <img>
+    // Patch DM list without flickering - only updates dynamic fields, never touches <img>
     patchDMList: async () => {
         const container = document.getElementById('home-dm-list');
         if (!container || !DiscordModule._dmListRendered) {
@@ -565,42 +565,80 @@ const DiscordModule = {
 
             DiscordModule.dmList = data.dms || [];
 
-            // If DM count changed, do full re-render
-            const existingItems = container.querySelectorAll('[id^="btn-ch-dm-"]');
-            if (existingItems.length !== data.dms.length) {
+            let needsFullRender = false;
+            const existingIds = new Set(
+                [...container.querySelectorAll('[id^="btn-ch-dm-"]')].map(el => el.id)
+            );
+            const newIds = new Set(data.dms.map(dm => `btn-ch-dm-${dm.id}`));
+
+            // If any DM was removed, we need a full render
+            for (const id of existingIds) {
+                if (!newIds.has(id)) { needsFullRender = true; break; }
+            }
+
+            if (needsFullRender) {
                 DiscordModule._dmListRendered = false;
                 return DiscordModule.loadDMList();
             }
 
             data.dms.forEach(dm => {
                 const u = dm.other_user;
-                const itemEl = document.getElementById(`btn-ch-dm-${dm.id}`);
-                if (!itemEl) {
-                    DiscordModule._dmListRendered = false;
-                    DiscordModule.loadDMList();
+
+                // If item doesn't exist yet — create and append it (no full re-render)
+                if (!existingIds.has(`btn-ch-dm-${dm.id}`)) {
+                    const timeStr = Utils.formatMessageTime(dm.last_message_timestamp);
+                    const preview = dm.last_message_text || 'Начните беседу';
+                    const unreadCountDisplay = dm.unread_count > 99 ? '99+' : dm.unread_count;
+                    const unreadBadge = dm.unread_count > 0 ? `<div class="unread-badge">${unreadCountDisplay}</div>` : '';
+                    const unreadClass = dm.unread_count > 0 ? 'unread' : '';
+                    const isOnline = DiscordModule.userStatuses && DiscordModule.userStatuses[u.id] === 'online';
+                    const onlineClass = isOnline ? 'is-online' : '';
+
+                    const div = document.createElement('div');
+                    div.className = `chat-list-item ${unreadClass}`;
+                    div.id = `btn-ch-dm-${dm.id}`;
+                    div.onclick = () => DiscordModule.selectChannel(`dm-${dm.id}`, 'dm');
+                    div.innerHTML = `
+                        <div class="avatar-wrapper ${onlineClass}" id="av-${dm.id}">
+                            <img src="${u.avatar}" class="chat-avatar" loading="lazy" decoding="async" onerror="this.src=DEFAULT_AVATAR">
+                            <div class="status-indicator"></div>
+                        </div>
+                        <div class="chat-info">
+                            <div class="chat-name-row">
+                                <span class="chat-name">${Utils.escapeHtml(u.display_name || u.username)}</span>
+                                <span class="chat-time" id="t-${dm.id}">${timeStr}</span>
+                            </div>
+                            <div class="chat-preview" id="p-${dm.id}">${Utils.escapeHtml(preview)}</div>
+                        </div>
+                        <div id="badge-${dm.id}">${unreadBadge}</div>`;
+                    container.appendChild(div);
                     return;
                 }
 
-                // Update badge
+                // Item exists — only update text/badge/class, never touch <img>
+                const itemEl = document.getElementById(`btn-ch-dm-${dm.id}`);
+                if (!itemEl) return;
+
+                // Badge
                 const badgeContainer = document.getElementById(`badge-${dm.id}`);
                 if (badgeContainer) {
                     const cnt = dm.unread_count > 99 ? '99+' : dm.unread_count;
                     badgeContainer.innerHTML = dm.unread_count > 0 ? `<div class="unread-badge">${cnt}</div>` : '';
                 }
 
-                // Update unread class
+                // Unread class
                 if (dm.unread_count > 0) itemEl.classList.add('unread');
                 else itemEl.classList.remove('unread');
 
-                // Update preview text
+                // Preview text
                 const previewEl = document.getElementById(`p-${dm.id}`);
                 if (previewEl) previewEl.textContent = dm.last_message_text || 'Начните беседу';
 
-                // Update time
+                // Time
                 const timeEl = document.getElementById(`t-${dm.id}`);
                 if (timeEl) timeEl.textContent = Utils.formatMessageTime(dm.last_message_timestamp);
 
-                // Update online status class only - no img touching
+                // Online status — only toggle class, never reload img
                 const avEl = document.getElementById(`av-${dm.id}`);
                 if (avEl) {
                     const isOnline = DiscordModule.userStatuses && DiscordModule.userStatuses[u.id] === 'online';
@@ -610,6 +648,8 @@ const DiscordModule = {
             });
         } catch (e) { console.error(e); }
     },
+
+
 
 
     selectChannel: (chanId, type = 'channel') => {

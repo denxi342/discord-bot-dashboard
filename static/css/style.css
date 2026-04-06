@@ -2217,6 +2217,7 @@ body::before {
     flex-shrink: 0;
     border-radius: 50%;
     contain: layout style;
+    background: #3f4147; /* placeholder color while img loads — prevents white flash */
 }
 
 .avatar-wrapper img, .chat-avatar {
