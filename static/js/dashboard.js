@@ -503,12 +503,13 @@ const DiscordModule = {
 
                     container.innerHTML += `
                     <div class="chat-list-item" id="btn-ch-dm-${dm.id}" onclick="DiscordModule.selectChannel('dm-${dm.id}', 'dm')">
-                        <div class="member-avatar ${onlineClass}" style="width:48px; height:48px; position:relative;">
+                        <div class="member-avatar ${onlineClass}">
                             <img src="${u.avatar}" class="chat-avatar" onerror="this.src=DEFAULT_AVATAR">
+                            <div class="status-indicator"></div>
                         </div>
                         <div class="chat-info">
                             <div class="chat-info-header">
-                                <span class="chat-name">${Utils.escapeHtml(u.username)}</span>
+                                <span class="chat-name">${Utils.escapeHtml(u.display_name || u.username)}</span>
                                 <span class="chat-time">${timeStr}</span>
                             </div>
                             <div class="chat-preview">${Utils.escapeHtml(preview)}</div>

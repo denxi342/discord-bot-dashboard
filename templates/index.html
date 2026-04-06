@@ -530,21 +530,28 @@
                 </div>
             </div>
 
-            <!-- User Bar -->
+            <!-- User Bar (Modern Compact) -->
             <div class="user-bar">
-                <div class="avatar-wrapper is-online" id="user-bar-avatar">
-                    <img src="{{ user.avatar }}" alt="User">
-                    <div class="status-indicator" style="background-color: #23A559 !important;"></div>
-                </div>
-                <div class="user-info">
-                    <span class="username">{{ user.username }}</span>
-                    <span class="discriminator">#{{ user.id[-4:] }}</span>
+                <div class="user-bar-profile" onclick="DiscordModule.openSettings()">
+                    <div class="avatar-wrapper is-online" id="user-bar-avatar">
+                        <img src="{{ user.avatar }}" alt="User" onerror="this.src=DEFAULT_AVATAR">
+                        <div class="status-indicator"></div>
+                    </div>
+                    <div class="user-info">
+                        <span class="username">{{ user.username }}</span>
+                        <span class="discriminator">#{{ user.id[-4:] }}</span>
+                    </div>
                 </div>
                 <div class="user-controls">
-                    <i class="fa-solid fa-microphone" onclick="DiscordModule.toggleMic(this)" data-tooltip="Mute"></i>
-                    <i class="fa-solid fa-headphones" onclick="DiscordModule.toggleDeafen(this)"
-                        data-tooltip="Deafen"></i>
-                    <i class="fa-solid fa-gear" onclick="DiscordModule.openSettings()" data-tooltip="User Settings"></i>
+                    <div class="user-control-btn" onclick="DiscordModule.toggleMic(this)" data-tooltip="Mute">
+                        <i class="fa-solid fa-microphone"></i>
+                    </div>
+                    <div class="user-control-btn" onclick="DiscordModule.toggleDeafen(this)" data-tooltip="Deafen">
+                        <i class="fa-solid fa-headphones"></i>
+                    </div>
+                    <div class="user-control-btn" onclick="DiscordModule.openSettings()" data-tooltip="User Settings">
+                        <i class="fa-solid fa-gear"></i>
+                    </div>
                 </div>
             </div>
         </div>
