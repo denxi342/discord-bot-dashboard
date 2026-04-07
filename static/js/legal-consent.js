@@ -1,0 +1,1 @@
+// legal-consent.js - placeholder

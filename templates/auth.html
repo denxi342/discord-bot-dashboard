@@ -296,10 +296,10 @@
             <!-- Login Form -->
             <div id="login-form" style="display: {% if mode == 'login' %}block{% else %}none{% endif %}">
                 <div class="form-group">
-                    <label>Имя пользователя</label>
+                    <label>Никнейм или Email</label>
                     <div class="input-wrapper">
                         <i class="fa-regular fa-user"></i>
-                        <input type="text" id="login-user" placeholder="Введите никнейм">
+                        <input type="text" id="login-user" placeholder="Ваш никнейм">
                     </div>
                 </div>
                 <div class="form-group">
@@ -315,10 +315,10 @@
             <!-- Register Form -->
             <div id="register-form" style="display: {% if mode == 'register' %}block{% else %}none{% endif %}">
                 <div class="form-group">
-                    <label>Придумайте никнейм</label>
+                    <label>Никнейм (Логин)</label>
                     <div class="input-wrapper">
                         <i class="fa-regular fa-user"></i>
-                        <input type="text" id="reg-user" placeholder="Например: ArizonaUser">
+                        <input type="text" id="reg-user" placeholder="Введите ваш никнейм">
                     </div>
                 </div>
                 <div class="form-group">
@@ -344,8 +344,9 @@
                 <button class="btn-submit" onclick="handleRegister()">Создать аккаунт</button>
             </div>
 
+
             <div class="auth-footer-links">
-                <a href="/terms">Условия использования</a>
+                <a href="/terms">Условия</a>
                 <a href="/privacy">Конфиденциальность</a>
                 <a href="/cookies">Cookie</a>
             </div>
@@ -358,19 +359,13 @@
 
     <script>
         function switchTab(tab) {
-            // Visual toggle
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             if (tab === 'login') document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
             else document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
 
-            // Form toggle
             document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
             document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
-
-            // Clear errors
             document.getElementById('error-box').style.display = 'none';
-
-            // Update URL without reload
             window.history.pushState({}, '', '/' + tab);
         }
 
@@ -404,8 +399,8 @@
 
             if (!user || !pass) return showError('Заполните все поля');
             if (pass !== confirm) return showError('Пароли не совпадают');
-            if (pass.length < 3) return showError('Пароль слишком короткий');
-            if (!terms) return showError('Необходимо принять условия использования');
+            if (pass.length < 6) return showError('Пароль минимум 6 символов');
+            if (!terms) return showError('Примите условия');
 
             try {
                 const res = await fetch('/api/auth/register', {
@@ -415,8 +410,7 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    // Auto login after register
-                    await handleLoginCheck(user, pass);
+                    window.location.href = '/';
                 } else {
                     showError(data.error || 'Ошибка регистрации');
                 }
@@ -425,23 +419,13 @@
             }
         }
 
-        async function handleLoginCheck(user, pass) {
-            try {
-                const res = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: user, password: pass })
-                });
-                const data = await res.json();
-                if (data.success) window.location.href = '/';
-                else window.location.href = '/login';
-            } catch (e) { window.location.href = '/login'; }
-        }
-
-        function showError(msg) {
+        function showError(msg, isError = true) {
             const box = document.getElementById('error-box');
             document.getElementById('error-text').innerText = msg;
             box.style.display = 'flex';
+            box.style.background = isError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)';
+            box.style.borderColor = isError ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)';
+            box.style.color = isError ? '#fca5a5' : '#86efac';
         }
 
         function checkCookies() {
@@ -454,8 +438,6 @@
             localStorage.setItem('cookies-accepted', 'true');
             const banner = document.getElementById('cookie-banner');
             banner.style.opacity = '0';
-            banner.style.transform = 'translateY(20px)';
-            banner.style.transition = 'all 0.3s ease';
             setTimeout(() => { banner.style.display = 'none'; }, 300);
         }
 

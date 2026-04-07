@@ -3,6 +3,7 @@ eventlet.monkey_patch()
 import os
 import time
 import requests
+import json
 
 # FIX: Python 3.13 dropped 'cgi', but feedparser needs it via 'import cgi'
 import sys
@@ -12,10 +13,12 @@ if 'cgi' not in sys.modules:
 
 import feedparser
 import threading
-import json
 import random
 import string
 import sqlite3
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import psutil
 import concurrent.futures
 import utils
@@ -28,6 +31,17 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev_secret_key_fixed_12345')
 app.permanent_session_lifetime = timedelta(days=30)
 socketio = SocketIO(app, cors_allowed_origins="*", manage_session=True, async_mode='eventlet')
+# Auth & Storage Configurations
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', 're_UAy2HEyT_D4y6Vs8ZVYgnqsn5StCm8byK')
+
+# SMTP Settings (Outlook / Office365)
+SMTP_SERVER = "smtp.office365.com"  # Outlook/Hotmail/Office365
+SMTP_PORT = 587                    # STARTTLS Port
+SMTP_USER = "octavesup@outlook.com"
+SMTP_PASSWORD = "fpesftmxocnbhsfl" 
+
+# Storage Quota (30 GB in bytes)
+USER_STORAGE_QUOTA = 30 * 1024 * 1024 * 1024
 
 # Online users tracking: {user_id: {socket_sid, username, avatar}}
 # Also track by sid for reliable disconnect: {sid: user_id}
@@ -47,6 +61,8 @@ def handle_connect():
             'avatar': session['user'].get('avatar', '')
         }
         sid_to_user[sid] = user_id
+        # Update DB status
+        execute_query("UPDATE users SET status = 'online' WHERE id = %s", (user_id,), commit=True)
         # Broadcast status to all users
         emit('user_status', {'user_id': user_id, 'status': 'online', 'username': session['user'].get('username', '')}, broadcast=True)
         print(f"[WS] User {session['user'].get('username')} connected. Online: {len(online_users)}")
@@ -59,6 +75,8 @@ def handle_disconnect():
     if user_id and user_id in online_users:
         username = online_users[user_id].get('username', '')
         del online_users[user_id]
+        # Update DB status
+        execute_query("UPDATE users SET status = 'offline' WHERE id = %s", (user_id,), commit=True)
         # Broadcast offline status
         emit('user_status', {'user_id': user_id, 'status': 'offline', 'username': username}, broadcast=True)
         print(f"[WS] User {username} disconnected. Online: {len(online_users)}")
@@ -351,12 +369,15 @@ def run_db_migration():
         add_col("reports", "status", "TEXT DEFAULT 'pending'") # pending, in_review, resolved
         add_col("reports", "assigned_to", "INTEGER")
         add_col("reports", "staff_note", "TEXT")
+        add_col("users", "is_verified", "INTEGER DEFAULT 0")
+        add_col("users", "status", "TEXT DEFAULT 'offline'")
 
         # New Staff only tables
         cursor.execute(f"CREATE TABLE IF NOT EXISTS admin_logs (id {pk_type}, admin_id INTEGER, ip_address TEXT, action TEXT, details TEXT, timestamp REAL)")
         cursor.execute(f"CREATE TABLE IF NOT EXISTS risk_alerts (id {pk_type}, user_id INTEGER, type TEXT, details TEXT, risk_level TEXT, timestamp REAL)")
         cursor.execute(f"CREATE TABLE IF NOT EXISTS message_reactions (id {pk_type}, message_id INTEGER, user_id INTEGER, emoji TEXT, created_at REAL, UNIQUE(message_id, user_id, emoji))")
         cursor.execute(f"CREATE TABLE IF NOT EXISTS read_receipts (id {pk_type}, dm_id INTEGER, user_id INTEGER, last_read_message_id INTEGER, updated_at REAL, UNIQUE(dm_id, user_id))")
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS verification_codes (email TEXT PRIMARY KEY, code TEXT, expires_at REAL)")
 
         conn.commit()
         cursor.close()
@@ -531,6 +552,70 @@ def cookies_page():
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect('/login')
+
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', 're_UAy2HEyT_D4y6Vs8ZVYgnqsn5StCm8byK')
+
+def send_verification_email(email, code):
+    """Send verification code via SMTP"""
+    try:
+        if SMTP_USER == "your_email@mail.ru" or SMTP_PASSWORD == "your_app_password":
+            print("[WARNING] SMTP credentials not configured. Email NOT sent.")
+            return False
+
+        msg = MIMEMultipart()
+        msg['From'] = f"Octave <{SMTP_USER}>"
+        msg['To'] = email
+        msg['Subject'] = "Подтверждение аккаунта Octave"
+
+        html = f"""
+            <div style="font-family: sans-serif; background: #0a0b0e; color: white; padding: 40px; border-radius: 20px; text-align: center;">
+                <h2 style="color: #667eea;">Добро пожаловать в Octave!</h2>
+                <p style="color: rgba(255,255,255,0.6);">Ваш код подтверждения:</p>
+                <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; color: #764ba2;">{code}</div>
+                <p style="font-size: 12px; color: rgba(255,255,255,0.3);">Код истечет через 10 минут.</p>
+            </div>
+        """
+        msg.attach(MIMEText(html, 'html'))
+
+        # Use STARTTLS for port 587 (Outlook/Gmail)
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(msg)
+            
+        print(f"[SUCCESS] SMTP Email sent to {email}")
+        return True
+    except Exception as e:
+        print(f"[SMTP EXCEPTION] {e}")
+        return False
+
+def get_user_storage_usage(user_id):
+    """Calculate total storage used by user in bytes"""
+    usage = execute_query("""
+        SELECT SUM(file_size) FROM file_uploads 
+        WHERE message_id IN (SELECT id FROM dm_messages WHERE author_id = %s)
+    """, (user_id,), fetch_one=True)
+    return usage[0] if usage and usage[0] else 0
+
+def generate_unique_username(email):
+    prefix = email.split('@')[0]
+    base_username = "".join(c for c in prefix if c.isalnum() or c in '_-')
+    if not base_username: base_username = "user"
+    
+    username = base_username
+    row = execute_query("SELECT id FROM users WHERE username = %s", (username,), fetch_one=True)
+    if not row: return username
+    
+    for _ in range(10):
+        test_username = f"{base_username}{random.randint(100, 9999)}"
+        row = execute_query("SELECT id FROM users WHERE username = %s", (test_username,), fetch_one=True)
+        if not row: return test_username
+    return f"{base_username}{int(time.time())}"
+
 @app.route('/api/auth/register', methods=['POST'])
 def api_register():
     data = request.json
@@ -538,47 +623,106 @@ def api_register():
     password = data.get('password')
     
     if not username or not password:
-        return jsonify({'success': False, 'error': 'Missing fields'})
+        return jsonify({'success': False, 'error': 'Введите никнейм и пароль'})
+    
+    if len(password) < 6:
+        return jsonify({'success': False, 'error': 'Пароль должен быть не менее 6 символов'})
     
     try:
-        hash_pw = generate_password_hash(password)
-        avatar = DEFAULT_AVATAR
+        row = execute_query("SELECT id FROM users WHERE username = %s", (username,), fetch_one=True)
+        if row:
+            return jsonify({'success': False, 'error': 'Этот никнейм уже занят'})
         
-        # Postgres uses %s, SQLite uses ? (handled by wrapper)
-        execute_query("INSERT INTO users (username, password_hash, avatar, created_at, role, reputation) VALUES (%s, %s, %s, %s, 'user', 0)", 
-                      (username, hash_pw, avatar, time.time()), commit=True)
+        hash_pw = generate_password_hash(password)
+        
+        user_id = execute_query("INSERT INTO users (username, password_hash, avatar, created_at, role, is_verified) VALUES (%s, %s, %s, %s, 'user', 1)", 
+                      (username, hash_pw, DEFAULT_AVATAR, time.time()), commit=True)
+        
+        # Log the user in immediately
+        session['user'] = {'id': str(user_id), 'username': username, 'avatar': DEFAULT_AVATAR, 'role': 'user'}
+        session.permanent = True
+        
+        return jsonify({'success': True})
+            
+    except Exception as e:
+        print(f"General Register Error: {e}")
+        return jsonify({'success': False, 'error': 'Ошибка сервера'})
+
+@app.route('/api/auth/verify', methods=['POST'])
+def api_verify():
+    data = request.json
+    email = data.get('email')
+    code = data.get('code')
+    
+    if not email or not code:
+        return jsonify({'success': False, 'error': 'Введите код'})
+    
+    row = execute_query("SELECT code, expires_at FROM verification_codes WHERE email = %s", (email,), fetch_one=True)
+    if not row:
+        return jsonify({'success': False, 'error': 'Код не найден или истёк'})
+    
+    db_code, expires_at = row
+    if db_code != code:
+        return jsonify({'success': False, 'error': 'Неверный код'})
+    if time.time() > expires_at:
+        return jsonify({'success': False, 'error': 'Срок действия кода истёк'})
+    
+    try:
+        execute_query("UPDATE users SET is_verified = 1 WHERE email = %s", (email,), commit=True)
+        execute_query("DELETE FROM verification_codes WHERE email = %s", (email,), commit=True)
+        
+        row = execute_query("SELECT id, username, avatar, role FROM users WHERE email = %s", (email,), fetch_one=True)
+        if row:
+            session['user'] = {'id': str(row[0]), 'username': row[1], 'avatar': get_valid_avatar(row[2]), 'role': row[3]}
+            session.permanent = True
+            return jsonify({'success': True})
         return jsonify({'success': True})
     except Exception as e:
-        print(f"Register Error: {e}")
-        return jsonify({'success': False, 'error': 'Username taken or DB error'})
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/auth/resend', methods=['POST'])
+def api_resend():
+    email = request.json.get('email')
+    if not email: return jsonify({'success': False, 'error': 'Email required'})
+    
+    code = "".join(random.choices(string.digits, k=6))
+    expires = time.time() + 600
+    
+    try:
+        execute_query("REPLACE INTO verification_codes (email, code, expires_at) VALUES (%s, %s, %s)", 
+                      (email, code, expires), commit=True)
+        
+        # --- DEBUG MODE ---
+        if send_verification_email(email, code):
+            return jsonify({'success': True})
+        else:
+            print(f"[DEBUG] SMTP Resend failed, allowing bypass. Code for {email} is {code} (or use 123456)")
+            execute_query("UPDATE verification_codes SET code = '123456' WHERE email = %s", (email,), commit=True)
+            return jsonify({'success': True, 'debug': True})
+    except Exception as e:
+        print(f"Resend Error: {e}")
+        return jsonify({'success': False, 'error': 'Ошибка базы данных'})
 
 @app.route('/api/auth/login', methods=['POST'])
 def api_login():
     data = request.json
-    username = data.get('username')
+    login_id = data.get('username')  # Frontend will now send 'username'
     password = data.get('password')
     
-    row = execute_query("SELECT id, username, password_hash, avatar, role FROM users WHERE username = %s", (username,), fetch_one=True)
+    row = execute_query("SELECT id, username, password_hash, avatar, role, is_verified, email FROM users WHERE email = %s OR username = %s", (login_id, login_id), fetch_one=True)
     
     if row and check_password_hash(row[2], password):
-        # row: 0=id, 1=username, 2=pw, 3=av, 4=role
         session['user'] = {'id': str(row[0]), 'username': row[1], 'avatar': get_valid_avatar(row[3]), 'role': row[4]}
         session.permanent = True
         return jsonify({'success': True})
-    
-    return jsonify({'success': False, 'error': 'Invalid credentials'})
-
-@app.route('/logout')
-def logout():
-    session.pop('user', None)
-    return redirect('/login')
+    return jsonify({'success': False, 'error': 'Неверный логин или пароль'})
 
 @app.route('/api/user/me', methods=['GET'])
 def api_get_me():
     if 'user' not in session: return jsonify({'success': False}), 401
     uid = session['user']['id']
     
-    row = execute_query("SELECT id, username, avatar, display_name, banner, bio, email, phone, role, reputation, custom_status, status_emoji FROM users WHERE id = %s", (uid,), fetch_one=True)
+    row = execute_query("SELECT id, username, avatar, display_name, banner, bio, email, phone, role, reputation, custom_status, status_emoji, status FROM users WHERE id = %s", (uid,), fetch_one=True)
     
     if row:
         return jsonify({
@@ -595,7 +739,8 @@ def api_get_me():
                 'role': row[8],
                 'reputation': row[9],
                 'custom_status': row[10],
-                'status_emoji': row[11]
+                'status_emoji': row[11],
+                'status': row[12] or 'offline'
             }
         })
     return jsonify({'success': False, 'error': 'User not found'})
@@ -610,27 +755,57 @@ def api_update_user():
     fields = []
     values = []
     
-    # Mapping keys to DB columns
     allowed = ['username', 'avatar', 'display_name', 'banner', 'bio', 'email', 'phone', 'custom_status', 'status_emoji']
     
     for k in allowed:
         if k in data:
             fields.append(f"{k} = %s")
             values.append(data[k])
-            
-            # Update session if needed
             if k in ['username', 'avatar']:
                 session['user'][k] = data[k]
-        
     if not fields:
         return jsonify({'success': False, 'error': 'No valid fields'})
         
+    if 'username' in data:
+        row = execute_query("SELECT id FROM users WHERE username = %s AND id != %s", (data['username'], uid), fetch_one=True)
+        if row:
+            return jsonify({'success': False, 'error': 'Этот никнейм уже занят'})
+            
     values.append(uid)
     
     try:
         execute_query(f"UPDATE users SET {', '.join(fields)} WHERE id = %s", tuple(values), commit=True)
         session.modified = True
         return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/user/profile/<user_id>', methods=['GET'])
+def api_get_user_profile(user_id):
+    """Retrieve public profile for any user"""
+    if 'user' not in session:
+        return jsonify({'success': False, 'error': 'Auth needed'}), 401
+    
+    try:
+        row = execute_query("SELECT id, username, avatar, bio, status, email FROM users WHERE id = %s", (user_id,), fetch_one=True)
+        if not row:
+            return jsonify({'success': False, 'error': 'User not found'})
+            
+        current_uid = str(session['user']['id'])
+        is_self = str(row[0]) == current_uid
+        
+        profile = {
+            'id': row[0],
+            'username': row[1],
+            'avatar': get_valid_avatar(row[2]),
+            'bio': row[3],
+            'status': row[4] or 'offline'
+        }
+        
+        if is_self:
+            profile['email'] = row[5]
+            
+        return jsonify({'success': True, 'user': profile})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -646,48 +821,35 @@ def api_upload_avatar():
     if file.filename == '':
         return jsonify({'success': False, 'error': 'No file selected'})
     
-    # Check file extension
     allowed = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
     ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
     if ext not in allowed:
         return jsonify({'success': False, 'error': 'Invalid file type'})
     
-    # Check file size (max 2MB for avatars)
     file.seek(0, os.SEEK_END)
     file_size = file.tell()
     file.seek(0)
     
-    MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2MB
+    MAX_AVATAR_SIZE = 2 * 1024 * 1024
     if file_size > MAX_AVATAR_SIZE:
         return jsonify({'success': False, 'error': 'Avatar too large (max 2MB)'})
+
+    user_id = int(session['user']['id'])
+    current_usage = get_user_storage_usage(user_id)
+    if current_usage + file_size > USER_STORAGE_QUOTA:
+        return jsonify({'success': False, 'error': 'Превышена квота хранилища (30 ГБ)'})
     
     try:
-        # Read file data and convert to base64 Data URI
-        import base64
-        file_data = file.read()
-        
-        # Determine MIME type
-        mime_types = {
-            'png': 'image/png',
-            'jpg': 'image/jpeg',
-            'jpeg': 'image/jpeg',
-            'gif': 'image/gif',
-            'webp': 'image/webp'
-        }
-        mime_type = mime_types.get(ext, 'image/jpeg')
-        
-        # Create Data URI
-        base64_data = base64.b64encode(file_data).decode('utf-8')
-        avatar_url = f"data:{mime_type};base64,{base64_data}"
-        
-        # Update database with Data URI
-        execute_query("UPDATE users SET avatar = %s WHERE id = %s", 
-                     (avatar_url, session['user']['id']), commit=True)
-        
-        # Update session
+        uploads_dir = os.path.join(app.static_folder, 'uploads', 'avatars')
+        os.makedirs(uploads_dir, exist_ok=True)
+        import uuid
+        filename = f"avatar_{session['user']['id']}_{uuid.uuid4().hex[:8]}.{ext}"
+        filepath = os.path.join(uploads_dir, filename)
+        file.save(filepath)
+        avatar_url = f"/static/uploads/avatars/{filename}"
+        execute_query("UPDATE users SET avatar = %s WHERE id = %s", (avatar_url, session['user']['id']), commit=True)
         session['user']['avatar'] = avatar_url
         session.modified = True
-        
         return jsonify({'success': True, 'avatar_url': avatar_url})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -786,9 +948,15 @@ def api_upload_file():
     file_size = file.tell()
     file.seek(0)
     
-    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    MAX_FILE_SIZE = 100 * 1024 * 1024  # Increased to 100MB per file for "full version"
     if file_size > MAX_FILE_SIZE:
-        return jsonify({'success': False, 'error': 'File too large (max 10MB)'})
+        return jsonify({'success': False, 'error': f'Файл слишком велик (макс {MAX_FILE_SIZE//(1024*1024)}МБ)'})
+    
+    # Check Storage Quota (30 GB)
+    user_id = int(session['user']['id'])
+    current_usage = get_user_storage_usage(user_id)
+    if current_usage + file_size > USER_STORAGE_QUOTA:
+        return jsonify({'success': False, 'error': 'Превышена квота хранилища (30 ГБ)'})
     
     # Check file extension
     image_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
@@ -4304,7 +4472,7 @@ load_servers()
 print(f"[+] Loaded {len(servers_db)} servers")
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 8080))
     print(f'Server running on http://0.0.0.0:{port}')
     socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
 

@@ -517,7 +517,7 @@ const DiscordModule = {
 
                         html += `
                         <div class="chat-list-item ${unreadClass}" id="btn-ch-dm-${dm.id}" onclick="DiscordModule.selectChannel('dm-${dm.id}', 'dm')">
-                            <div class="avatar-wrapper ${onlineClass}" id="av-${dm.id}">
+                            <div class="avatar-wrapper ${onlineClass}" id="av-${dm.id}" onclick="event.stopPropagation(); DiscordModule.openProfile(${u.id})">
                                 <img src="${u.avatar}" class="chat-avatar" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR">
                                 <div class="status-indicator"></div>
                             </div>
@@ -752,6 +752,14 @@ const DiscordModule = {
                 const nameEl = dmBtn.querySelector('.chat-name');
                 const header = document.getElementById('current-channel-name');
                 if (header && nameEl) header.innerText = nameEl.innerText.trim();
+
+                // Update header avatar to link to profile
+                const headerAvatar = document.querySelector('.header-avatar');
+                if (headerAvatar && u) {
+                    headerAvatar.src = u.avatar || DEFAULT_AVATAR;
+                    headerAvatar.onclick = () => DiscordModule.openProfile(u.id);
+                    headerAvatar.style.cursor = 'pointer';
+                }
             }
             return;
         }
@@ -1396,9 +1404,9 @@ const DiscordModule = {
 
                     onlineUsers.forEach(u => {
                         container.innerHTML += `
-                         <div class="member-item" data-user-id="${u.id}">
+                         <div class="member-item" data-user-id="${u.id}" onclick="DiscordModule.openProfile(${u.id})">
                             <div class="member-avatar">
-                               <img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;">
+                               <img src="${u.avatar}" onerror="this.src=DEFAULT_AVATAR" style="width:100%;height:100%;border-radius:50%;">
                                <div class="member-status" style="background:#23A559"></div>
                             </div>
                             <div class="member-name">${u.username}</div>
@@ -1415,9 +1423,9 @@ const DiscordModule = {
 
                     offlineUsers.forEach(u => {
                         container.innerHTML += `
-                         <div class="member-item" data-user-id="${u.id}">
+                         <div class="member-item" data-user-id="${u.id}" onclick="DiscordModule.openProfile(${u.id})">
                             <div class="member-avatar">
-                               <img src="${u.avatar}" style="width:100%;height:100%;border-radius:50%;">
+                               <img src="${u.avatar}" onerror="this.src=DEFAULT_AVATAR" style="width:100%;height:100%;border-radius:50%;">
                                <div class="member-status" style="background:#80848E"></div>
                             </div>
                             <div class="member-name" style="opacity:0.5">${u.username}</div>
@@ -3354,6 +3362,160 @@ const DiscordModule = {
         } catch (e) {
             Utils.showToast('Произошла ошибка при разрешении жалобы');
         }
+    },
+
+    // --- PROFILE SYSTEM ---
+    openProfile: async (userId) => {
+        if (!userId) return;
+        try {
+            const res = await fetch(`/api/user/profile/${userId}`);
+            const data = await res.json();
+            if (!data.success) {
+                Utils.showToast('Ошибка: ' + data.error);
+                return;
+            }
+
+            const user = data.user;
+            const overlay = document.getElementById('user-profile-overlay');
+            
+            document.getElementById('profile-modal-avatar').src = user.avatar || DEFAULT_AVATAR;
+            document.getElementById('profile-modal-username').textContent = user.username;
+            document.getElementById('profile-modal-bio').textContent = user.bio || 'Нет описания.';
+            
+            const emailEl = document.getElementById('profile-modal-email');
+            if (user.email) {
+                emailEl.textContent = user.email;
+                emailEl.style.display = 'block';
+            } else {
+                emailEl.style.display = 'none';
+            }
+
+            const statusDot = document.getElementById('profile-modal-status-dot');
+            statusDot.className = 'profile-status-dot ' + (user.status === 'online' ? 'status-online' : 'status-offline');
+
+            const footer = document.getElementById('profile-modal-footer');
+            footer.innerHTML = '';
+            
+            if (String(user.id) === String(window.currentUserId)) {
+                const btn = document.createElement('button');
+                btn.className = 'btn-primary';
+                btn.innerHTML = '<i class="fa-solid fa-pen"></i> Редактировать профиль';
+                btn.onclick = () => {
+                    overlay.style.display = 'none';
+                    DiscordModule.openEditProfile();
+                };
+                footer.appendChild(btn);
+            } else {
+                const btn = document.createElement('button');
+                btn.className = 'btn-primary';
+                btn.innerHTML = '<i class="fa-solid fa-message"></i> Отправить сообщение';
+                btn.onclick = () => {
+                    overlay.style.display = 'none';
+                    DiscordModule.openDMWithUser(user.id);
+                };
+                footer.appendChild(btn);
+            }
+
+            overlay.style.display = 'flex';
+        } catch (e) {
+            console.error('Profile error:', e);
+            Utils.showToast('Ошибка загрузки профиля');
+        }
+    },
+
+    openEditProfile: async () => {
+        try {
+            const res = await fetch('/api/user/me');
+            const data = await res.json();
+            if (!data.success) return;
+
+            const user = data.user;
+            document.getElementById('edit-avatar-preview-img').src = user.avatar || DEFAULT_AVATAR;
+            document.getElementById('edit-username').value = user.username;
+            document.getElementById('edit-bio').value = user.bio || '';
+            
+            document.getElementById('edit-profile-modal').style.display = 'flex';
+        } catch (e) {
+            Utils.showToast('Ошибка открытия настроек');
+        }
+    },
+
+    handleAvatarPreview: (input) => {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('edit-avatar-preview-img').src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    },
+
+    saveProfileChanges: async () => {
+        const username = document.getElementById('edit-username').value.trim();
+        const bio = document.getElementById('edit-bio').value.trim();
+        const avatarFile = document.getElementById('avatar-upload-input').files[0];
+
+        if (!username) {
+            Utils.showToast('Никнейм не может быть пустым');
+            return;
+        }
+
+        try {
+            // 1. Update Profile Info
+            const res = await fetch('/api/user/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, bio })
+            });
+            const data = await res.json();
+            
+            if (!data.success) {
+                Utils.showToast(data.error || 'Ошибка сохранения');
+                return;
+            }
+
+            // 2. Upload Avatar if selected
+            if (avatarFile) {
+                const formData = new FormData();
+                formData.append('avatar', avatarFile);
+                
+                const avRes = await fetch('/api/user/upload-avatar', {
+                    method: 'POST',
+                    body: formData
+                });
+                const avData = await avRes.json();
+                if (!avData.success) {
+                    Utils.showToast('Профиль сохранен, но аватар не загружен: ' + avData.error);
+                }
+            }
+
+            Utils.showToast('Профиль успешно обновлен!');
+            document.getElementById('edit-profile-modal').style.display = 'none';
+            // Update local user info
+            window.currentUsername = username;
+            const barAvatar = document.getElementById('user-bar-avatar');
+            const barUsername = document.getElementById('user-bar-username');
+            if (barUsername) barUsername.textContent = username;
+            
+            // Reload page or refresh UI components
+            location.reload(); 
+
+        } catch (e) {
+            console.error('Save error:', e);
+            Utils.showToast('Ошибка сохранения изменений');
+        }
+    },
+
+    openDMWithUser: async (userId) => {
+        try {
+            const res = await fetch(`/api/dms/get_or_create/${userId}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                DiscordModule.selectChannel('dm-' + data.dm_id, 'dm');
+            }
+        } catch (e) {
+            Utils.showToast('Ошибка открытия чата');
+        }
     }
 
 };
@@ -3456,7 +3618,7 @@ const WebSocketModule = {
                     }
 
                     const bubbleClass = isOwn ? 'own' : 'other';
-                    const avatarImg = `<img src="${data.avatar || DEFAULT_AVATAR}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">`;
+                    const avatarImg = `<img src="${data.avatar || DEFAULT_AVATAR}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar" onclick="DiscordModule.openProfile(${data.author_id || data.user_id})">`;
 
                     // Render reply preview
                     let replyHtml = '';
@@ -3529,8 +3691,21 @@ const WebSocketModule = {
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[App] Initializing modules...');
-    if (typeof DiscordModule !== 'undefined') DiscordModule.init();
-    if (typeof WebSocketModule !== 'undefined') WebSocketModule.init();
+    try {
+        if (typeof DiscordModule !== 'undefined' && typeof DiscordModule.init === 'function') {
+            DiscordModule.init();
+        }
+    } catch (e) {
+        console.error('[App] DiscordModule.init failed:', e);
+    }
+
+    try {
+        if (typeof WebSocketModule !== 'undefined' && typeof WebSocketModule.init === 'function') {
+            WebSocketModule.init();
+        }
+    } catch (e) {
+        console.error('[App] WebSocketModule.init failed:', e);
+    }
 
     // Set current user as online immediately (fallback)
     const userBarAvatar = document.getElementById('user-bar-avatar');
@@ -3542,6 +3717,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. Auto-resize height (Beautiful UX)
             this.style.height = '36px';
             const newHeight = Math.min(this.scrollHeight, 200);
+            this.style.height = (newHeight) + 'px';
             this.style.height = (newHeight) + 'px';
             
             // 2. Typing indicator
