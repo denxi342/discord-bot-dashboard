@@ -463,8 +463,12 @@ body::before {
 }
 
 /* 📱 MOBILE NAV HIDING FOR DESKTOP */
-.mobile-bottom-nav {
+.mobile-bottom-nav, .mobile-only {
     display: none !important;
+}
+
+.desktop-only {
+    display: block !important;
 }
 
 .chat-header {
