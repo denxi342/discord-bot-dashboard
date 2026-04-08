@@ -55,17 +55,19 @@ def handle_connect():
         sid = request.sid
         join_room(user_id)
         # Track online user
-        online_users[user_id] = {
-            'sid': sid,
-            'username': session['user'].get('username', ''),
-            'avatar': session['user'].get('avatar', '')
-        }
+        if user_id:
+            username = session['user'].get('username', 'Unknown')
+            online_users[user_id] = {
+                'sid': sid,
+                'username': username,
+                'avatar': session['user'].get('avatar', DEFAULT_AVATAR)
+            }
         sid_to_user[sid] = user_id
         # Update DB status
         execute_query("UPDATE users SET status = 'online' WHERE id = %s", (user_id,), commit=True)
-        # Broadcast status to all users
-        emit('user_status', {'user_id': user_id, 'status': 'online', 'username': session['user'].get('username', '')}, broadcast=True)
-        print(f"[WS] User {session['user'].get('username')} connected. Online: {len(online_users)}")
+        # Queue status update for batching
+        enqueue_status_update(user_id, username, 'online')
+        print(f"[WS] User {username} connected. Online: {len(online_users)}")
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -78,8 +80,62 @@ def handle_disconnect():
         # Update DB status
         execute_query("UPDATE users SET status = 'offline' WHERE id = %s", (user_id,), commit=True)
         # Broadcast offline status
-        emit('user_status', {'user_id': user_id, 'status': 'offline', 'username': username}, broadcast=True)
+        # Queue status update for batching instead of immediate broadcast
+        enqueue_status_update(user_id, username, 'offline')
         print(f"[WS] User {username} disconnected. Online: {len(online_users)}")
+
+# --- WebSocket Batching Logic ---
+status_queue = []
+typing_queue = []
+batch_lock = threading.Lock()
+
+def enqueue_status_update(user_id, username, status):
+    with batch_lock:
+        # Keep only the last status for a user in this batch
+        status_queue[:] = [q for q in status_queue if q['user_id'] != user_id]
+        status_queue.append({'user_id': user_id, 'username': username, 'status': status})
+
+def enqueue_typing_event(dm_id, recipient_id, user_id, username, action):
+    with batch_lock:
+        # Keep only the last action for a user in a specific DM in this batch
+        typing_queue[:] = [q for q in typing_queue if not (q['dm_id'] == dm_id and q['user_id'] == user_id)]
+        typing_queue.append({
+            'dm_id': dm_id, 
+            'recipient_id': recipient_id, 
+            'user_id': user_id, 
+            'username': username, 
+            'action': action,
+            'timestamp': time.time()
+        })
+
+def bg_socket_batcher():
+    """Background task to emit batched events every 500ms"""
+    while True:
+        socketio.sleep(0.5)
+        
+        with batch_lock:
+            current_status = list(status_queue)
+            current_typing = list(typing_queue)
+            status_queue.clear()
+            typing_queue.clear()
+            
+        if current_status:
+            # Broadcast multiple status updates in one message
+            socketio.emit('batched_user_status', {'updates': current_status})
+            
+        if current_typing:
+            # Group typing events by recipient to avoid over-sending
+            by_recipient = {}
+            for t in current_typing:
+                rid = t['recipient_id']
+                if rid not in by_recipient: by_recipient[rid] = []
+                by_recipient[rid].append(t)
+                
+            for rid, events in by_recipient.items():
+                socketio.emit('batched_typing', {'events': events}, room=str(rid))
+
+# Start background task
+socketio.start_background_task(bg_socket_batcher)
 
 # Typing indicator tracking: {dm_id: {user_id: timestamp}}
 typing_users = {}
@@ -103,12 +159,8 @@ def handle_typing_start(data):
         typing_users[dm_id] = {}
     typing_users[dm_id][user_id] = time.time()
     
-    # Emit to recipient only
-    emit('typing_start', {
-        'user_id': user_id,
-        'username': username,
-        'dm_id': dm_id
-    }, room=recipient_id)
+    # Queue typing event for batching
+    enqueue_typing_event(dm_id, recipient_id, user_id, username, 'start')
 
 @socketio.on('typing_stop')
 def handle_typing_stop(data):
@@ -117,6 +169,7 @@ def handle_typing_stop(data):
         return
     
     user_id = str(session['user']['id'])
+    username = session['user'].get('username', '')
     dm_id = data.get('dm_id')
     recipient_id = data.get('recipient_id')
     
@@ -128,12 +181,9 @@ def handle_typing_stop(data):
         del typing_users[dm_id][user_id]
         if not typing_users[dm_id]:  # Clean up empty dict
             del typing_users[dm_id]
-    
-    # Emit to recipient only
-    emit('typing_stop', {
-        'user_id': user_id,
-        'dm_id': dm_id
-    }, room=recipient_id)
+            
+    # Queue typing stop event (removed redundant immediate emit)
+    enqueue_typing_event(dm_id, recipient_id, user_id, username, 'stop')
 
 import psycopg2
 from urllib.parse import urlparse
@@ -3841,19 +3891,34 @@ def api_dm_messages_by_id(dm_id):
     if my_id not in [dm_row[0], dm_row[1]]:
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
-    # Fetch ALL messages ordered chronologically with extended fields
-    rows = execute_query("""
+    limit = min(int(request.args.get('limit', 50)), 100)
+    before_id = request.args.get('before_id')
+    
+    query = """
         SELECT dm.id, dm.content, dm.timestamp, u.username, u.avatar, 
                dm.is_pinned, dm.edited_at, dm.reply_to_id, u.id as author_id, dm.attachments,
                dm.is_encrypted, dm.encryption_metadata, dm.cloud_folder_id, dm.tags
         FROM dm_messages dm
         JOIN users u ON u.id = dm.author_id
         WHERE dm.dm_id = %s
-        ORDER BY dm.timestamp ASC
-    """, (dm_id,), fetch_all=True)
+    """
+    params = [dm_id]
+    
+    if before_id:
+        query += " AND dm.id < %s"
+        params.append(int(before_id))
+        
+    query += " ORDER BY dm.id DESC LIMIT %s"
+    params.append(limit)
+    
+    # Fetch messages
+    rows = execute_query(query, tuple(params), fetch_all=True)
     
     if not rows:
         return jsonify({'success': True, 'messages': []})
+    
+    # Reverse to chronological order
+    rows.reverse()
 
     msg_ids = [r[0] for r in rows]
     reply_ids = list(set([r[7] for r in rows if r[7]]))

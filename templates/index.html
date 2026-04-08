@@ -621,6 +621,12 @@
 
             <!-- Global Input (Inside Chat Area, after Scroll Area) -->
             <div class="chat-input-area">
+                <div id="typing-indicator" class="typing-indicator">
+                    <div class="typing-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <span id="typing-users" class="typing-text"></span>
+                </div>
                 <div class="chat-input-wrapper">
                     <button class="input-btn" id="attach-file-btn" title="Прикрепить файл"
                         onclick="document.getElementById('file-input-hidden').click()"><i
@@ -658,13 +664,6 @@
                 </div>
             </div>
 
-            <!-- Typing Indicator -->
-            <div id="typing-indicator" class="typing-indicator" style="display: none;">
-                <span id="typing-users"></span>
-                <span class="typing-dots">
-                    <span>OC</span> Octave
-                </span>
-            </div>
 
             <!-- Emoji Picker Panel -->
             <div id="emoji-picker-panel" class="emoji-picker" style="display: none;">

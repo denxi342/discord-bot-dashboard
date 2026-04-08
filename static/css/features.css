@@ -182,51 +182,67 @@
 /* === TYPING INDICATOR STYLES === */
 
 .typing-indicator {
-    padding: 12px 24px;
+    position: absolute;
+    bottom: calc(100% - 10px); /* Positioned relative to the input area top boundary */
+    left: 24px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     color: var(--text-muted);
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 400;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(5px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 5;
+    pointer-events: none;
+    user-select: none;
+    background: transparent;
+    max-width: calc(100% - 48px);
+}
+
+.typing-indicator.active {
+    opacity: 0.8;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.typing-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px; /* Limit name width */
 }
 
 .typing-dots {
     display: inline-flex;
     gap: 3px;
-    margin-left: 4px;
+    height: 14px;
+    align-items: center;
 }
 
 .typing-dots span {
-    width: 6px;
-    height: 6px;
-    background: var(--text-muted);
+    width: 4px;
+    height: 4px;
+    background: currentColor;
     border-radius: 50%;
-    animation: typing-bounce 1.4s infinite ease-in-out;
+    opacity: 0.4;
+    animation: typing-pulse 1.4s infinite ease-in-out;
 }
 
-.typing-dots span:nth-child(1) {
-    animation-delay: 0s;
-}
+.typing-dots span:nth-child(1) { animation-delay: 0s; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 
-.typing-dots span:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.typing-dots span:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-@keyframes typing-bounce {
-
-    0%,
-    60%,
-    100% {
+@keyframes typing-pulse {
+    0%, 100% {
         transform: translateY(0);
+        opacity: 0.4;
     }
-
-    30% {
-        transform: translateY(-10px);
+    50% {
+        transform: translateY(-4px);
+        opacity: 1;
     }
 }
 

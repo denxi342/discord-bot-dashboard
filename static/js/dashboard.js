@@ -9,6 +9,25 @@ const Utils = {
     showToast: (msg) => console.log('Toast:', msg),
     escapeHtml: (text) => text ? text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : '',
     copyToClipboard: (text) => navigator.clipboard.writeText(text),
+    
+    debounce: (func, wait) => {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    },
+    
+    throttle: (func, limit) => {
+        let inThrottle;
+        return function (...args) {
+            if (!inThrottle) {
+                func.apply(this, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
+    },
 
     formatMessageTime: (timestamp) => {
         if (!timestamp) return '';
@@ -37,6 +56,200 @@ const Utils = {
     }
 };
 
+/**
+ * High-Performance Virtualization for Messenger
+ * Handles dynamic heights and thousands of messages without lag.
+ */
+class VirtualMessageList {
+    constructor(container, options = {}) {
+        this.container = container;
+        this.container.style.position = 'relative';
+        this.container.style.overflowY = 'auto'; // Ensure it's scrollable
+        
+        this.items = [];
+        this.heights = new Map(); // index -> height
+        this.positions = []; // index -> top position
+        this.estimatedHeight = options.estimatedHeight || 80;
+        this.buffer = options.buffer || 12; // Items above/below
+        this.onRender = options.onRender || ((item) => `<div>${item}</div>`);
+        
+        this.scrollTop = 0;
+        this.viewportHeight = 0;
+        this.totalHeight = 0;
+        this.isScrollingToBottom = false;
+
+        this.init();
+    }
+
+    init() {
+        // Create internal structure
+        this.container.innerHTML = '';
+        this.spacer = document.createElement('div');
+        this.spacer.className = 'v-list-spacer';
+        this.spacer.style.cssText = 'position: absolute; top: 0; left: 0; right: 0; height: 100%; pointer-events: none; visibility: hidden;';
+        
+        this.content = document.createElement('div');
+        this.content.className = 'v-list-content';
+        this.content.style.cssText = 'position: relative; width: 100%; min-height: 100%;';
+        
+        this.container.appendChild(this.spacer);
+        this.container.appendChild(this.content);
+
+        // Listeners
+        this.container.addEventListener('scroll', () => {
+            if (this._scrollReq) cancelAnimationFrame(this._scrollReq);
+            this._scrollReq = requestAnimationFrame(() => {
+                this.scrollTop = this.container.scrollTop;
+                this.render();
+            });
+        }, { passive: true });
+
+        this.resizeObserver = new ResizeObserver(entries => {
+            this.viewportHeight = this.container.clientHeight;
+            this.render();
+        });
+        this.resizeObserver.observe(this.container);
+        this.viewportHeight = this.container.clientHeight;
+    }
+
+    setItems(items, maintainScroll = false) {
+        const oldScrollHeight = this.totalHeight;
+        const oldScrollTop = this.container.scrollTop;
+
+        this.items = items;
+        this.recalculatePositions();
+        this.render();
+
+        if (maintainScroll && oldScrollHeight > 0) {
+            const newScrollHeight = this.totalHeight;
+            this.container.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight);
+        }
+    }
+
+    prependItems(newItems) {
+        const oldScrollHeight = this.totalHeight;
+        const oldScrollTop = this.container.scrollTop;
+
+        // Shift existing heights
+        const newHeights = new Map();
+        const offset = newItems.length;
+        this.heights.forEach((h, idx) => {
+            newHeights.set(idx + offset, h);
+        });
+        this.heights = newHeights;
+
+        this.items = [...newItems, ...this.items];
+        this.recalculatePositions();
+        this.render();
+
+        const newScrollHeight = this.totalHeight;
+        this.container.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight);
+    }
+
+    appendItem(item) {
+        this.items.push(item);
+        const idx = this.items.length - 1;
+        const lastPos = this.positions[idx - 1] || 0;
+        const lastHeight = this.heights.get(idx - 1) || this.estimatedHeight;
+        this.positions[idx] = lastPos + lastHeight;
+        this.totalHeight = this.positions[idx] + this.estimatedHeight;
+        this.spacer.style.height = `${this.totalHeight}px`;
+        
+        const isNearBottom = this.container.scrollHeight - this.container.scrollTop - this.container.clientHeight < 100;
+        this.render();
+        
+        if (isNearBottom) this.scrollToBottom();
+    }
+
+    recalculatePositions() {
+        let currentPos = 0;
+        this.positions = [];
+        for (let i = 0; i < this.items.length; i++) {
+            this.positions[i] = currentPos;
+            currentPos += this.heights.get(i) || this.estimatedHeight;
+        }
+        this.totalHeight = currentPos;
+        this.spacer.style.height = `${this.totalHeight}px`;
+    }
+
+    render() {
+        if (!this.items.length) return;
+
+        // Find visible range using binary search for performance
+        let start = this.findStartIndex(this.scrollTop);
+        start = Math.max(0, start - this.buffer);
+        
+        let end = this.findEndIndex(start, this.scrollTop + this.viewportHeight);
+        end = Math.min(this.items.length, end + this.buffer);
+
+        this.syncDOM(start, end);
+    }
+
+    findStartIndex(scrollTop) {
+        let low = 0, high = this.items.length - 1;
+        while (low <= high) {
+            let mid = Math.floor((low + high) / 2);
+            if (this.positions[mid] < scrollTop) low = mid + 1;
+            else if (this.positions[mid] > scrollTop) high = mid - 1;
+            else return mid;
+        }
+        return Math.max(0, low - 1);
+    }
+
+    findEndIndex(start, scrollBottom) {
+        let i = start;
+        while (i < this.items.length && this.positions[i] < scrollBottom) {
+            i++;
+        }
+        return i;
+    }
+
+    syncDOM(start, end) {
+        const fragment = document.createDocumentFragment();
+        
+        for (let i = start; i < end; i++) {
+            const item = this.items[i];
+            const div = document.createElement('div');
+            div.className = 'v-list-item';
+            div.style.cssText = `position: absolute; top: ${this.positions[i]}px; left: 0; right: 0;`;
+            div.setAttribute('data-index', i);
+            div.innerHTML = this.onRender(item);
+            fragment.appendChild(div);
+        }
+
+        this.content.innerHTML = '';
+        this.content.appendChild(fragment);
+        this.measureAndUpdateHeights();
+    }
+
+    measureAndUpdateHeights() {
+        let changed = false;
+        const rendered = this.content.querySelectorAll('.v-list-item');
+        rendered.forEach(el => {
+            const idx = parseInt(el.getAttribute('data-index'));
+            const actualH = el.offsetHeight;
+            if (actualH > 0 && this.heights.get(idx) !== actualH) {
+                this.heights.set(idx, actualH);
+                changed = true;
+            }
+        });
+
+        if (changed) {
+            this.recalculatePositions();
+            // Re-render immediately to fix positions if heights changed
+            if (!this._isCorrecting) {
+                this._isCorrecting = true;
+                this.render();
+                this._isCorrecting = false;
+            }
+        }
+    }
+
+    scrollToBottom() {
+        this.container.scrollTop = this.container.scrollHeight;
+    }
+}
+
 const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' fill='%235865F2'/%3E%3Ccircle cx='64' cy='50' r='22' fill='%23fff'/%3E%3Cellipse cx='64' cy='112' rx='36' ry='28' fill='%23fff'/%3E%3C/svg%3E";
 window.DEFAULT_AVATAR = DEFAULT_AVATAR;
 
@@ -55,6 +268,7 @@ const DiscordModule = {
     typingTimeout: null,
     isTyping: false,
     recentOwnMessages: new Set(), // Set of "content" to prevent duplicates
+    virtualList: null, // Virtualized message list instance
 
     // Disappearing messages timer (seconds until message expires)
     disappearingTimer: null, // null = off, or number of seconds (30, 60, 300, 3600, 86400)
@@ -456,6 +670,17 @@ const DiscordModule = {
         const container = document.getElementById('home-dm-list');
         if (!container) return;
 
+        // Show skeleton loaders during fetch
+        container.innerHTML = Array(5).fill(0).map(() => `
+            <div class="chat-list-item skeleton-item" style="opacity: 0.5; pointer-events: none;">
+                <div class="avatar-wrapper skeleton" style="width:32px; height:32px; border-radius:50%; background: rgba(255,255,255,0.1);"></div>
+                <div class="chat-info">
+                    <div class="skeleton" style="width:60%; height:14px; margin-bottom:8px; background: rgba(255,255,255,0.1); border-radius: 4px;"></div>
+                    <div class="skeleton" style="width:40%; height:10px; background: rgba(255,255,255,0.05); border-radius: 3px;"></div>
+                </div>
+            </div>
+        `).join('');
+
         try {
             const res = await fetch('/api/dms');
             const data = await res.json();
@@ -659,6 +884,9 @@ const DiscordModule = {
         // Hide all views first to ensure a clean state
         document.querySelectorAll('.channel-view, .main-view-section, .personal-welcome-view').forEach(v => v.style.display = 'none');
         
+        // Clear typing indicator
+        if (typeof TypingIndicatorModule !== 'undefined') TypingIndicatorModule.clear();
+
         // Remove home-view mode (CSS class that hides toolbar/header/input/sidebar)
         document.body.classList.remove('home-view');
         
@@ -1188,6 +1416,15 @@ const DiscordModule = {
         else container = main;
 
         if (!container) return;
+
+        // If virtualization is enabled for this container
+        if (DiscordModule.virtualList && DiscordModule.virtualList.container === container) {
+            DiscordModule.virtualList.appendItem({
+                ...msgData,
+                timestamp: msgData.timestamp || (Date.now() / 1000)
+            });
+            return;
+        }
 
         const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -2314,10 +2551,19 @@ const DiscordModule = {
 
     handleDMScroll: (event, dmId) => {
         const el = event.target;
-        // Check if user is near the bottom (within 50px)
+        
+        // 1. Check if user is near the TOP (load older messages)
+        if (el.scrollTop < 100 && !DiscordModule[`fetching_${dmId}`]) {
+            const firstMsg = DiscordModule.virtualList?.items[0];
+            if (firstMsg && firstMsg.id) {
+                console.log('[DEBUG] Near top, fetching messages before:', firstMsg.id);
+                DiscordModule.fetchDMMessages(dmId, firstMsg.id);
+            }
+        }
+
+        // 2. Check if user is near the BOTTOM (mark as read)
         if (el.scrollHeight - el.scrollTop - el.clientHeight < 50) {
             if (typeof AdvancedFeatures !== 'undefined') {
-                // Throttle to avoid spamming the server
                 const now = Date.now();
                 if (!DiscordModule.lastMarkRead || now - DiscordModule.lastMarkRead > 2000) {
                     AdvancedFeatures.markAsRead(dmId);
@@ -2327,14 +2573,15 @@ const DiscordModule = {
         }
     },
 
-    fetchDMMessages: async (dmId) => {
-        console.log('[DEBUG fetchDMMessages] dmId:', dmId);
+    fetchDMMessages: async (dmId, beforeId = null) => {
+        console.log('[DEBUG fetchDMMessages] dmId:', dmId, 'beforeId:', beforeId);
         const lockKey = `fetching_${dmId}`;
         if (DiscordModule[lockKey]) return;
         DiscordModule[lockKey] = true;
 
         try {
-            const res = await fetch(`/api/dms/by_id/${dmId}/messages`);
+            const url = beforeId ? `/api/dms/by_id/${dmId}/messages?before_id=${beforeId}` : `/api/dms/by_id/${dmId}/messages`;
+            const res = await fetch(url);
             const data = await res.json();
 
             const box = document.getElementById(`dm-messages-${dmId}`);
@@ -2343,108 +2590,107 @@ const DiscordModule = {
                 return;
             }
 
-            // Only clear if container is empty (first load)
-            const isFirstLoad = box.children.length === 0;
-            if (isFirstLoad) {
-                box.innerHTML = '';
+            // Initialize Virtualization
+            if (!DiscordModule.virtualList || DiscordModule.virtualList.container !== box) {
+                DiscordModule.virtualList = new VirtualMessageList(box, {
+                    onRender: (m) => DiscordModule.renderMessageBubble(m, window.currentUsername)
+                });
             }
+            
             box.classList.add('dm-bubbles-container');
             
-            // Add scroll listener for auto-read
+            // Add scroll listener for auto-read and pagination
             box.onscroll = (e) => DiscordModule.handleDMScroll(e, dmId);
 
-            const myUsername = window.currentUsername || '';
-
             if (!data.messages || data.messages.length === 0) {
-                if (isFirstLoad) box.innerHTML = '<div class="dm-empty">Начните беседу!</div>';
+                if (!beforeId && (!DiscordModule.virtualList.items.length)) {
+                    box.innerHTML = '<div class="dm-empty">Начните беседу!</div>';
+                }
                 DiscordModule[lockKey] = false;
                 return;
             }
 
-            // Get existing message IDs to prevent duplicates
-            const existingIds = new Set(Array.from(box.querySelectorAll('.dm-bubble[data-id]')).map(el => el.getAttribute('data-id')));
-
-            data.messages.forEach((m) => {
-                if (existingIds.has(String(m.id))) return;
-
-                const isOwn = m.username === myUsername;
-
-                // Build reply preview HTML
-                let replyHtml = '';
-                if (m.reply_to) {
-                    replyHtml = `
-                        <div class="dm-bubble-reply" onclick="DiscordModule.scrollToMessage(${m.reply_to.id})">
-                            <i class="fa-solid fa-reply"></i>
-                            <span class="reply-author">@${Utils.escapeHtml(m.reply_to.username)}</span>
-                            <span class="reply-text">${Utils.escapeHtml(m.reply_to.content)}</span>
-                        </div>`;
-                }
-
-                // Build attachments HTML
-                let attachmentHTML = '';
-                if (m.attachments) {
-                    const attachments = typeof m.attachments === 'string' ? JSON.parse(m.attachments) : m.attachments;
-                    attachmentHTML = DiscordModule.renderAttachments(attachments);
-                }
-
-                // Build reactions HTML
-                let reactionsHtml = '';
-                if (m.reactions && Object.keys(m.reactions).length > 0) {
-                    const reactItems = Object.entries(m.reactions)
-                        .map(([emoji, count]) => `<div class="reaction-item" onclick="DiscordModule.toggleReaction(${m.id}, '${emoji}')">${emoji} ${count}</div>`)
-                        .join('');
-                    reactionsHtml = `<div class="message-reactions">${reactItems}</div>`;
-                }
-
-                const bubbleClass = isOwn ? 'own' : 'other';
-                const avatarImg = `<img src="${m.avatar || DEFAULT_AVATAR}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar">`;
-
-                // If own, avatar is usually hidden in modern messenger style, but let's follow the app style
-                // The current style seems to use avatar for 'other' and none or different for 'own'
-
-                const timeStr = new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                // Tags HTML
-                let tagsHtml = '';
-                if (m.tags && typeof m.tags === 'string') {
-                    const tagList = m.tags.split(',').map(t => t.trim()).filter(t => t);
-                    tagsHtml = `<div class="message-tags">${tagList.map(t => `<span class="tag-badge">#${Utils.escapeHtml(t)}</span>`).join('')}</div>`;
-                }
-
-                box.innerHTML += `
-                    <div class="dm-bubble ${bubbleClass}" data-id="${m.id}" data-message-id="${m.id}" data-tags="${Utils.escapeHtml(m.tags || '')}" data-folder-id="${m.cloud_folder_id || ''}" oncontextmenu="DiscordModule.showMessageMenu(event, ${m.id}, ${isOwn}); return false;">
-                        ${!isOwn ? avatarImg : ''}
-                        <div class="dm-bubble-content">
-                            ${replyHtml}
-                            ${m.is_encrypted ?
-                        `<span class="encrypted-msg" data-enc="${Utils.escapeHtml(m.content)}" data-author-id="${m.author_id}"><i class="fa-solid fa-lock"></i> Encrypted Message</span>`
-                        : (m.content ? `<div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>` : '')
-                    }
-                            ${attachmentHTML}
-                            ${tagsHtml}
-                            ${reactionsHtml}
-                            <div class="dm-bubble-time">${timeStr}</div>
-                        </div>
-                    </div>`;
-            });
-
+            if (beforeId) {
+                // Prepend older messages
+                DiscordModule.virtualList.prependItems(data.messages);
+            } else {
+                // Load latest messages
+                DiscordModule.virtualList.setItems(data.messages);
+                DiscordModule.virtualList.scrollToBottom();
+            }
+            
             // Trigger decryption if UI present
             if (typeof EncryptionUI !== 'undefined') {
                 setTimeout(() => EncryptionUI.tryDecryptElements(), 500);
             }
 
-            box.scrollTop = box.scrollHeight;
-
-            // Mark as read after loading messages
-            if (typeof AdvancedFeatures !== 'undefined') {
+            // Mark as read after loading messages (only if we loaded latest)
+            if (!beforeId && typeof AdvancedFeatures !== 'undefined') {
                 AdvancedFeatures.markAsRead(dmId);
             }
         } catch (e) {
             console.error(`[DM] Fetch error: `, e);
         } finally {
-            // Release lock
             DiscordModule[lockKey] = false;
         }
+    },
+
+    renderMessageBubble: (m, myUsername) => {
+        const isOwn = m.username === myUsername;
+
+        // Build reply preview HTML
+        let replyHtml = '';
+        if (m.reply_to) {
+            replyHtml = `
+                <div class="dm-bubble-reply" onclick="DiscordModule.scrollToMessage(${m.reply_to.id})">
+                    <i class="fa-solid fa-reply"></i>
+                    <span class="reply-author">@${Utils.escapeHtml(m.reply_to.username)}</span>
+                    <span class="reply-text">${Utils.escapeHtml(m.reply_to.content)}</span>
+                </div>`;
+        }
+
+        // Build attachments HTML
+        let attachmentHTML = '';
+        if (m.attachments) {
+            const attachments = typeof m.attachments === 'string' ? JSON.parse(m.attachments) : m.attachments;
+            attachmentHTML = DiscordModule.renderAttachments(attachments);
+        }
+
+        // Build reactions HTML
+        let reactionsHtml = '';
+        if (m.reactions && Object.keys(m.reactions).length > 0) {
+            const reactItems = Object.entries(m.reactions)
+                .map(([emoji, count]) => `<div class="reaction-item" onclick="DiscordModule.toggleReaction(${m.id}, '${emoji}')">${emoji} ${count}</div>`)
+                .join('');
+            reactionsHtml = `<div class="message-reactions">${reactItems}</div>`;
+        }
+
+        const bubbleClass = isOwn ? 'own' : 'other';
+        const avatarImg = `<img src="${m.avatar || DEFAULT_AVATAR}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar" loading="lazy">`;
+        const timeStr = new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Tags HTML
+        let tagsHtml = '';
+        if (m.tags && typeof m.tags === 'string') {
+            const tagList = m.tags.split(',').map(t => t.trim()).filter(t => t);
+            tagsHtml = `<div class="message-tags">${tagList.map(t => `<span class="tag-badge">#${Utils.escapeHtml(t)}</span>`).join('')}</div>`;
+        }
+
+        return `
+            <div class="dm-bubble ${bubbleClass}" data-id="${m.id}" data-message-id="${m.id}" data-tags="${Utils.escapeHtml(m.tags || '')}" data-folder-id="${m.cloud_folder_id || ''}" oncontextmenu="DiscordModule.showMessageMenu(event, ${m.id}, ${isOwn}); return false;">
+                ${!isOwn ? avatarImg : ''}
+                <div class="dm-bubble-content">
+                    ${replyHtml}
+                    ${m.is_encrypted ?
+                        `<span class="encrypted-msg" data-enc="${Utils.escapeHtml(m.content)}" data-author-id="${m.author_id}"><i class="fa-solid fa-lock"></i> Encrypted Message</span>`
+                        : (m.content ? `<div class="dm-bubble-text">${Utils.escapeHtml(m.content)}</div>` : '')
+                    }
+                    ${attachmentHTML}
+                    ${tagsHtml}
+                    ${reactionsHtml}
+                    <div class="dm-bubble-time">${timeStr}</div>
+                </div>
+            </div>`;
     },
 
     forceRefresh: false,
@@ -2470,7 +2716,7 @@ const DiscordModule = {
         // Reset timeout
         clearTimeout(DiscordModule.typingTimeout);
         DiscordModule.typingTimeout = setTimeout(() => {
-            // Stop typing after 3 seconds
+            // Stop typing after 2.5 seconds (User feedback request)
             DiscordModule.isTyping = false;
             if (typeof WebSocketModule !== 'undefined' && WebSocketModule.socket) {
                 const dm = DiscordModule.dmList?.find(d => d.id == DiscordModule.activeDM);
@@ -2481,7 +2727,7 @@ const DiscordModule = {
                     });
                 }
             }
-        }, 3000);
+        }, 2500);
     },
 
     detectAndRenderLinkPreview: async (messageText) => {
@@ -3506,18 +3752,75 @@ const DiscordModule = {
         }
     },
 
-    openDMWithUser: async (userId) => {
-        try {
-            const res = await fetch(`/api/dms/get_or_create/${userId}`, { method: 'POST' });
-            const data = await res.json();
-            if (data.success) {
-                DiscordModule.selectChannel('dm-' + data.dm_id, 'dm');
-            }
-        } catch (e) {
-            Utils.showToast('Ошибка открытия чата');
-        }
-    }
+};
 
+const TypingIndicatorModule = {
+    typingUsers: new Map(), // userId -> {username, timeout}
+
+    updateIndicator: () => {
+        const indicator = document.getElementById('typing-indicator');
+        const usersEl = document.getElementById('typing-users');
+        if (!indicator || !usersEl) return;
+
+        const users = Array.from(TypingIndicatorModule.typingUsers.values());
+
+        if (users.length === 0) {
+            indicator.classList.remove('active');
+            return;
+        }
+
+        let text = '';
+        const limit = 15;
+        const truncate = (name) => (name && name.length > limit) ? name.substring(0, limit) + '...' : (name || 'Someone');
+
+        if (users.length === 1) {
+            text = `${truncate(users[0].username)} печатает...`;
+        } else if (users.length === 2) {
+            text = `${truncate(users[0].username)} и ${truncate(users[1].username)} печатают...`;
+        } else {
+            text = `${truncate(users[0].username)}, ${truncate(users[1].username)} и ещё ${users.length - 2} печатают...`;
+        }
+
+        usersEl.textContent = text;
+        indicator.classList.add('active');
+    },
+
+    startTyping: (userId, username, dmId) => {
+        // Only show if it's the active conversation
+        if (dmId != DiscordModule.activeDM) return;
+        if (!userId || !username) return;
+
+        // Clear existing timeout for this user
+        const existing = TypingIndicatorModule.typingUsers.get(userId);
+        if (existing) {
+            clearTimeout(existing.timeout);
+        }
+
+        // Set fallback timeout (indicator disappears if user stops typing or disconnects)
+        const timeout = setTimeout(() => {
+            TypingIndicatorModule.stopTyping(userId, dmId);
+        }, 3000); 
+
+        TypingIndicatorModule.typingUsers.set(userId, { username, timeout });
+        TypingIndicatorModule.updateIndicator();
+    },
+
+    stopTyping: (userId, dmId) => {
+        if (dmId != DiscordModule.activeDM) return;
+        
+        const existing = TypingIndicatorModule.typingUsers.get(userId);
+        if (existing) {
+            clearTimeout(existing.timeout);
+            TypingIndicatorModule.typingUsers.delete(userId);
+            TypingIndicatorModule.updateIndicator();
+        }
+    },
+
+    clear: () => {
+        TypingIndicatorModule.typingUsers.forEach(u => clearTimeout(u.timeout));
+        TypingIndicatorModule.typingUsers.clear();
+        TypingIndicatorModule.updateIndicator();
+    }
 };
 
 const WebSocketModule = {
@@ -3660,19 +3963,38 @@ const WebSocketModule = {
             DiscordModule.updateFriendStatus(data.user_id, data.status);
         });
 
+        socket.on('batched_user_status', (data) => {
+            if (!DiscordModule.userStatuses) DiscordModule.userStatuses = {};
+            if (data.updates) {
+                data.updates.forEach(u => {
+                    DiscordModule.userStatuses[u.user_id] = u.status;
+                    DiscordModule.updateMemberStatus(u.user_id, u.status);
+                    DiscordModule.updateFriendStatus(u.user_id, u.status);
+                });
+            }
+        });
+
         socket.on('typing_start', (data) => {
-            const indicator = document.getElementById('typing-indicator');
-            const usersEl = document.getElementById('typing-users');
-            if (indicator && usersEl && data.dm_id == DiscordModule.activeDM) {
-                usersEl.textContent = `${data.username} печатает`;
-                indicator.style.display = 'flex';
+            if (typeof TypingIndicatorModule !== 'undefined') {
+                TypingIndicatorModule.startTyping(data.user_id || data.author_id, data.username, data.dm_id);
             }
         });
 
         socket.on('typing_stop', (data) => {
-            const indicator = document.getElementById('typing-indicator');
-            if (indicator && data.dm_id == DiscordModule.activeDM) {
-                indicator.style.display = 'none';
+            if (typeof TypingIndicatorModule !== 'undefined') {
+                TypingIndicatorModule.stopTyping(data.user_id || data.author_id, data.dm_id);
+            }
+        });
+
+        socket.on('batched_typing', (data) => {
+            if (typeof TypingIndicatorModule !== 'undefined' && data.events) {
+                data.events.forEach(e => {
+                    if (e.action === 'start') {
+                        TypingIndicatorModule.startTyping(e.user_id, e.username, e.dm_id);
+                    } else {
+                        TypingIndicatorModule.stopTyping(e.user_id, e.dm_id);
+                    }
+                });
             }
         });
 
