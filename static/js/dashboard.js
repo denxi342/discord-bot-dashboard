@@ -69,6 +69,7 @@ class VirtualMessageList {
         this.items = [];
         this.heights = new Map(); // index -> height
         this.positions = []; // index -> top position
+        this.domNodes = new Map(); // index -> node mapping for non-destructive sync
         this.estimatedHeight = options.estimatedHeight || 80;
         this.buffer = options.buffer || 12; // Items above/below
         this.onRender = options.onRender || ((item) => `<div>${item}</div>`);
@@ -138,6 +139,13 @@ class VirtualMessageList {
         });
         this.heights = newHeights;
 
+        // Shift DOM nodes mapping
+        const newNodes = new Map();
+        this.domNodes.forEach((node, idx) => {
+            newNodes.set(idx + offset, node);
+        });
+        this.domNodes = newNodes;
+
         this.items = [...newItems, ...this.items];
         this.recalculatePositions();
         this.render();
@@ -173,7 +181,11 @@ class VirtualMessageList {
     }
 
     render() {
-        if (!this.items.length) return;
+        if (!this.items.length) {
+            this.content.innerHTML = '';
+            this.domNodes.clear();
+            return;
+        }
 
         // Find visible range using binary search for performance
         let start = this.findStartIndex(this.scrollTop);
@@ -205,20 +217,43 @@ class VirtualMessageList {
     }
 
     syncDOM(start, end) {
+        // 1. Remove nodes no longer in visible range
+        this.domNodes.forEach((node, idx) => {
+            if (idx < start || idx >= end) {
+                node.remove();
+                this.domNodes.delete(idx);
+            }
+        });
+
+        // 2. Add or update nodes (Non-destructive)
         const fragment = document.createDocumentFragment();
         
         for (let i = start; i < end; i++) {
             const item = this.items[i];
-            const div = document.createElement('div');
-            div.className = 'v-list-item';
-            div.style.cssText = `position: absolute; top: ${this.positions[i]}px; left: 0; right: 0;`;
-            div.setAttribute('data-index', i);
-            div.innerHTML = this.onRender(item);
-            fragment.appendChild(div);
+            const topPos = `${this.positions[i]}px`;
+            
+            if (this.domNodes.has(i)) {
+                // Node exists, just update position if needed
+                const node = this.domNodes.get(i);
+                if (node.style.top !== topPos) {
+                    node.style.top = topPos;
+                }
+            } else {
+                // Create new node
+                const div = document.createElement('div');
+                div.className = 'v-list-item';
+                div.style.cssText = `position: absolute; top: ${topPos}; left: 0; right: 0;`;
+                div.setAttribute('data-index', i);
+                div.innerHTML = this.onRender(item);
+                this.domNodes.set(i, div);
+                fragment.appendChild(div);
+            }
         }
 
-        this.content.innerHTML = '';
-        this.content.appendChild(fragment);
+        if (fragment.children.length > 0) {
+            this.content.appendChild(fragment);
+        }
+
         this.measureAndUpdateHeights();
     }
 
@@ -236,11 +271,13 @@ class VirtualMessageList {
 
         if (changed) {
             this.recalculatePositions();
-            // Re-render immediately to fix positions if heights changed
+            // Re-render immediately to fix positions if heights changed, but break the loop
             if (!this._isCorrecting) {
                 this._isCorrecting = true;
-                this.render();
-                this._isCorrecting = false;
+                requestAnimationFrame(() => {
+                    this.render();
+                    this._isCorrecting = false;
+                });
             }
         }
     }
@@ -250,16 +287,25 @@ class VirtualMessageList {
     }
 }
 
+
 const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' fill='%235865F2'/%3E%3Ccircle cx='64' cy='50' r='22' fill='%23fff'/%3E%3Cellipse cx='64' cy='112' rx='36' ry='28' fill='%23fff'/%3E%3C/svg%3E";
 window.DEFAULT_AVATAR = DEFAULT_AVATAR;
+
+const BROKEN_IMAGES = new Set();
+window.BROKEN_IMAGES = BROKEN_IMAGES;
 
 // Global avatar error handler - catches all broken avatar images
 document.addEventListener('error', function (e) {
     if (e.target.tagName === 'IMG') {
+        const src = e.target.getAttribute('src');
+        if (src && !src.startsWith('data:')) {
+            BROKEN_IMAGES.add(src);
+        }
         e.target.onerror = null; // Prevent infinite loop
         e.target.src = DEFAULT_AVATAR;
     }
 }, true);
+
 
 const DiscordModule = {
     currentServer: 'home',
@@ -2665,8 +2711,10 @@ const DiscordModule = {
             reactionsHtml = `<div class="message-reactions">${reactItems}</div>`;
         }
 
-        const bubbleClass = isOwn ? 'own' : 'other';
-        const avatarImg = `<img src="${m.avatar || DEFAULT_AVATAR}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR" class="dm-bubble-avatar" loading="lazy">`;
+        const avatarSrc = m.avatar || DEFAULT_AVATAR;
+        const displayAvatar = BROKEN_IMAGES.has(avatarSrc) ? DEFAULT_AVATAR : avatarSrc;
+        
+        const avatarImg = `<img src="${displayAvatar}" onerror="if(this.src!=='${DEFAULT_AVATAR}'){this.onerror=null;this.src='${DEFAULT_AVATAR}';window.BROKEN_IMAGES.add('${avatarSrc}');}" class="dm-bubble-avatar" loading="lazy">`;
         const timeStr = new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         // Tags HTML
@@ -2691,6 +2739,7 @@ const DiscordModule = {
                     <div class="dm-bubble-time">${timeStr}</div>
                 </div>
             </div>`;
+
     },
 
     forceRefresh: false,
